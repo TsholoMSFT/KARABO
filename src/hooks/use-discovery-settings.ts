@@ -1,4 +1,4 @@
-import { useKV } from '@github/spark/hooks'
+import { useLocalStorage } from './use-local-storage'
 
 export interface DiscoverySettings {
   enableFollowUpQuestions: boolean
@@ -9,13 +9,13 @@ const defaultSettings: DiscoverySettings = {
 }
 
 export function useDiscoverySettings() {
-  const [settings, setSettings] = useKV<DiscoverySettings>('discovery-settings', defaultSettings)
+  const [settings, setSettings] = useLocalStorage<DiscoverySettings>('discovery-settings', defaultSettings)
 
   const updateSettings = (updates: Partial<DiscoverySettings>) => {
-    setSettings((current) => ({
-      ...(current || defaultSettings),
+    setSettings({
+      ...(settings || defaultSettings),
       ...updates,
-    }))
+    })
   }
 
   return {

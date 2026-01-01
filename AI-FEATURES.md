@@ -42,7 +42,7 @@ Provide a brief, actionable insight (2-3 sentences) that:
 2. Suggests a potential area to explore further
 3. Connects to Microsoft innovation or technology capabilities when relevant`
 
-const insight = await window.spark.llm(promptText, 'gpt-4o-mini')
+const insight = await window.llm(promptText, 'gpt-4o-mini')
 ```
 
 ### 2. Standard Discovery AI Suggestions (Question Help)
@@ -82,7 +82,7 @@ Customer Context:
 
 Provide 2-3 thoughtful prompts or examples (bullet points) to help them think about how to answer this question effectively.`
 
-const suggestion = await window.spark.llm(promptText, 'gpt-4o-mini')
+const suggestion = await window.llm(promptText, 'gpt-4o-mini')
 ```
 
 ### 3. AI-Powered Use Case Generation
@@ -134,7 +134,7 @@ GUIDELINES:
 - Prioritize use cases with clear business value and feasibility
 - Ensure diversity in the types of solutions`
 
-const useCasesResult = await window.spark.llm(useCasesPromptText, 'gpt-4o', true)
+const useCasesResult = await window.llm(useCasesPromptText, 'gpt-4o', true)
 ```
 
 ### 4. AI-Generated Executive Summary
@@ -186,7 +186,7 @@ TASK: Create a compelling executive summary (3-4 well-structured paragraphs) tha
 3. RECOMMENDATIONS - Highlight the prioritized use cases and their potential business impact (reference specific scores where relevant)
 4. NEXT STEPS - Suggest strategic actions and implementation approach`
 
-const summary = await window.spark.llm(summaryPromptText, 'gpt-4o')
+const summary = await window.llm(summaryPromptText, 'gpt-4o')
 ```
 
 ## AI Model Selection Strategy
@@ -251,7 +251,7 @@ const summary = await window.spark.llm(summaryPromptText, 'gpt-4o')
 - Use case suggestions stored in session data
 - Executive summaries stored with discovery sessions
 - Real-time insights not persisted (shown only during session)
-- All stored data persists in browser local storage via Spark KV API
+- All stored data persists in browser localStorage
 
 ## Future Enhancement Opportunities
 

@@ -110,7 +110,7 @@ Provide 2-3 thoughtful prompts or examples (bullet points) to help them think ab
 
 Keep it brief, actionable, and thought-provoking. Do not answer the question for them - just help them think through it.`
 
-      const suggestion = await window.spark.llm(promptText, 'gpt-4o-mini')
+      const suggestion = await window.llm(promptText, 'gpt-4o-mini')
       setAiSuggestion(suggestion)
     } catch (error) {
       console.error('Error generating suggestion:', error)
@@ -164,7 +164,7 @@ Return ONLY a JSON object with this exact structure (no markdown, no code blocks
 
 Keep questions conversational, specific to their answer, and focused on discovering valuable use cases.`
 
-      const result = await window.spark.llm(promptText, 'gpt-4o-mini', true)
+      const result = await window.llm(promptText, 'gpt-4o-mini', true)
       const parsed = JSON.parse(result)
       
       const followUps: DiscoveryQuestion[] = parsed.questions.map((q: any, idx: number) => ({

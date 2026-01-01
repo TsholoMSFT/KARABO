@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import { Loader2, Sparkles, CheckCircle2, XCircle, Edit } from 'lucide-react'
+import { Loader2, Sparkles, CheckCircle2, XCircle, Edit, Mic } from 'lucide-react'
+import { VoiceInputField } from '../VoiceInputField'
 import { calculateTotalCOI } from '@/lib/financial-calculations'
 import type { OpportunityStageData, ProblemCategory, AffectedArea, TimelineExpectation, SCQStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -18,9 +19,10 @@ interface Stage1OpportunityProps {
   initialData?: OpportunityStageData
   onComplete: (data: OpportunityStageData) => void
   onBack?: () => void
+  isLiveMode?: boolean
 }
 
-export function Stage1Opportunity({ initialData, onComplete, onBack }: Stage1OpportunityProps) {
+export function Stage1Opportunity({ initialData, onComplete, onBack, isLiveMode = false }: Stage1OpportunityProps) {
   // 1A: Current State
   const [problemStatement, setProblemStatement] = useState(initialData?.problemStatement || '')
   const [problemCategory, setProblemCategory] = useState<ProblemCategory>(initialData?.problemCategory || 'efficiency')
@@ -88,7 +90,7 @@ Generate a professional SCQ in the following format:
 
 Return ONLY a JSON object with keys: situation, complication, question`
 
-      const response = await (window as any).spark.llm(prompt, 'gpt-4o-mini', true)
+      const response = await window.llm(prompt, 'gpt-4o-mini', true)
       const parsed = JSON.parse(response)
 
       setScq({
@@ -132,7 +134,7 @@ Return ONLY a JSON object with keys: situation, complication, question`
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Stage 1: OPPORTUNITY</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#0078D4]">Stage 1: OPPORTUNITY</h2>
         <p className="text-muted-foreground mt-2">
           Understand the problem and quantify what's at stake
         </p>
@@ -160,15 +162,25 @@ Return ONLY a JSON object with keys: situation, complication, question`
                 <Label htmlFor="problem-statement">
                   Problem Statement <span className="text-destructive">*</span>
                 </Label>
-                <Textarea
-                  id="problem-statement"
-                  value={problemStatement}
-                  onChange={(e) => setProblemStatement(e.target.value)}
-                  placeholder="What's driving this conversation today? Tell me more about the core issue..."
-                  rows={4}
-                />
+                {isLiveMode ? (
+                  <VoiceInputField
+                    value={problemStatement}
+                    onChange={setProblemStatement}
+                    placeholder="What's driving this conversation today? Tell me more about the core issue..."
+                    rows={4}
+                  />
+                ) : (
+                  <Textarea
+                    id="problem-statement"
+                    value={problemStatement}
+                    onChange={(e) => setProblemStatement(e.target.value)}
+                    placeholder="What's driving this conversation today? Tell me more about the core issue..."
+                    rows={4}
+                  />
+                )}
                 <p className="text-xs text-muted-foreground">
                   Guide: Start broad, probe deeper, then confirm the core issue
+                  {isLiveMode && <Badge variant="outline" className="ml-2 text-xs"><Mic className="w-3 h-3 mr-1" />Voice enabled</Badge>}
                 </p>
               </div>
 
@@ -224,13 +236,22 @@ Return ONLY a JSON object with keys: situation, complication, question`
                 <Label htmlFor="desired-outcome">
                   Desired Outcome <span className="text-destructive">*</span>
                 </Label>
-                <Textarea
-                  id="desired-outcome"
-                  value={desiredOutcome}
-                  onChange={(e) => setDesiredOutcome(e.target.value)}
-                  placeholder="Describe what success looks like..."
-                  rows={4}
-                />
+                {isLiveMode ? (
+                  <VoiceInputField
+                    value={desiredOutcome}
+                    onChange={setDesiredOutcome}
+                    placeholder="Describe what success looks like..."
+                    rows={4}
+                  />
+                ) : (
+                  <Textarea
+                    id="desired-outcome"
+                    value={desiredOutcome}
+                    onChange={(e) => setDesiredOutcome(e.target.value)}
+                    placeholder="Describe what success looks like..."
+                    rows={4}
+                  />
+                )}
               </div>
 
               <div className="space-y-2">
@@ -430,35 +451,62 @@ Return ONLY a JSON object with keys: situation, complication, question`
                       </Button>
                     )}
                   </div>
-                  <Textarea
-                    id="situation"
-                    value={scq.situation}
-                    onChange={(e) => setScq({ ...scq, situation: e.target.value })}
-                    placeholder="Summary of the current state..."
-                    rows={2}
-                  />
+                  {isLiveMode ? (
+                    <VoiceInputField
+                      value={scq.situation}
+                      onChange={(v) => setScq({ ...scq, situation: v })}
+                      placeholder="Summary of the current state..."
+                      rows={2}
+                    />
+                  ) : (
+                    <Textarea
+                      id="situation"
+                      value={scq.situation}
+                      onChange={(e) => setScq({ ...scq, situation: e.target.value })}
+                      placeholder="Summary of the current state..."
+                      rows={2}
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="complication">Complication</Label>
-                  <Textarea
-                    id="complication"
-                    value={scq.complication}
-                    onChange={(e) => setScq({ ...scq, complication: e.target.value })}
-                    placeholder="The problem and its impact..."
-                    rows={2}
-                  />
+                  {isLiveMode ? (
+                    <VoiceInputField
+                      value={scq.complication}
+                      onChange={(v) => setScq({ ...scq, complication: v })}
+                      placeholder="The problem and its impact..."
+                      rows={2}
+                    />
+                  ) : (
+                    <Textarea
+                      id="complication"
+                      value={scq.complication}
+                      onChange={(e) => setScq({ ...scq, complication: e.target.value })}
+                      placeholder="The problem and its impact..."
+                      rows={2}
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="question">Question</Label>
-                  <Textarea
-                    id="question"
-                    value={scq.question}
-                    onChange={(e) => setScq({ ...scq, question: e.target.value })}
-                    placeholder="Strategic question framing next steps..."
-                    rows={2}
-                  />
+                  {isLiveMode ? (
+                    <VoiceInputField
+                      value={scq.question}
+                      onChange={(v) => setScq({ ...scq, question: v })}
+                      placeholder="Strategic question framing next steps..."
+                      rows={2}
+                    />
+                  ) : (
+                    <Textarea
+                      id="question"
+                      value={scq.question}
+                      onChange={(e) => setScq({ ...scq, question: e.target.value })}
+                      placeholder="Strategic question framing next steps..."
+                      rows={2}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -511,7 +559,7 @@ Return ONLY a JSON object with keys: situation, complication, question`
         <Button variant="outline" onClick={onBack}>
           Back to Stage 0
         </Button>
-        <Button onClick={handleSubmit} disabled={!isValid}>
+        <Button onClick={handleSubmit} disabled={!isValid} className="bg-[#0078D4] hover:bg-[#106EBE] text-white">
           Continue to Stage 2
         </Button>
       </div>

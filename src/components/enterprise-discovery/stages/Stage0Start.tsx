@@ -27,9 +27,10 @@ interface Stage0StartProps {
   initialData?: Stage0Data
   onComplete: (data: Stage0Data) => void
   onBack?: () => void
+  isLiveMode?: boolean
 }
 
-export function Stage0Start({ initialData, onComplete, onBack }: Stage0StartProps) {
+export function Stage0Start({ initialData, onComplete, onBack, isLiveMode = false }: Stage0StartProps) {
   const [clientName, setClientName] = useState(initialData?.clientName || '')
   const [attendees, setAttendees] = useState<Attendee[]>(
     initialData?.attendees || [{ name: '', role: '' }]
@@ -76,7 +77,7 @@ export function Stage0Start({ initialData, onComplete, onBack }: Stage0StartProp
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Stage 0: START</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#0078D4]">Stage 0: START</h2>
         <p className="text-muted-foreground mt-2">
           Initialize your discovery session with basic information
         </p>
@@ -211,6 +212,7 @@ export function Stage0Start({ initialData, onComplete, onBack }: Stage0StartProp
         <Button
           onClick={handleSubmit}
           disabled={!isValid}
+          className="bg-[#0078D4] hover:bg-[#106EBE] text-white"
         >
           Continue to Stage 1
         </Button>

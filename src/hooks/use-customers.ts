@@ -1,26 +1,23 @@
-import { useKV } from '@github/spark/hooks'
+import { useLocalStorage } from './use-local-storage'
 import { Customer } from '@/lib/types'
 
 export function useCustomers() {
-  const [customers, setCustomers, deleteCustomers] = useKV<Customer[]>('customers', [])
+  const [customers, setCustomers] = useLocalStorage<Customer[]>('customers', [])
 
   const addCustomer = (customer: Customer) => {
-    setCustomers((current) => [...(current || []), customer])
+    setCustomers([...(customers || []), customer])
   }
 
   const updateCustomer = (customerId: string, updates: Partial<Customer>) => {
-    setCustomers((current) => 
-      (current || []).map((c) => c.id === customerId ? { ...c, ...updates, updatedAt: Date.now() } : c)
-    )
+    setCustomers((customers || []).map((c) => c.id === customerId ? { ...c, ...updates, updatedAt: Date.now() } : c))
   }
 
   const deleteCustomer = (customerId: string) => {
-    setCustomers((current) => (current || []).filter((c) => c.id !== customerId))
+    setCustomers((customers || []).filter((c) => c.id !== customerId))
   }
 
   const getCustomerById = (customerId: string): Customer | undefined => {
-    const allCustomers = customers || []
-    return allCustomers.find((c) => c.id === customerId)
+    return (customers || []).find((c) => c.id === customerId)
   }
 
   const findOrCreateCustomer = (customerName: string, innovationHubSPOC: string): Customer => {
@@ -48,7 +45,7 @@ export function useCustomers() {
   }
 
   const clearCustomers = () => {
-    deleteCustomers()
+    setCustomers([])
   }
 
   return {

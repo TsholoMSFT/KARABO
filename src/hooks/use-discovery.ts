@@ -1,26 +1,23 @@
-import { useKV } from '@github/spark/hooks'
+import { useLocalStorage } from './use-local-storage'
 import { DiscoverySession } from '@/lib/types'
 
 export function useDiscovery() {
-  const [sessions, setSessions, deleteSessions] = useKV<DiscoverySession[]>('discovery-sessions', [])
+  const [sessions, setSessions] = useLocalStorage<DiscoverySession[]>('discovery-sessions', [])
 
   const addSession = (session: DiscoverySession) => {
-    setSessions((current) => [...(current || []), session])
+    setSessions([...(sessions || []), session])
   }
 
   const updateSession = (sessionId: string, updates: Partial<DiscoverySession>) => {
-    setSessions((current) => 
-      (current || []).map((s) => s.id === sessionId ? { ...s, ...updates } : s)
-    )
+    setSessions((sessions || []).map((s) => s.id === sessionId ? { ...s, ...updates } : s))
   }
 
   const deleteSession = (sessionId: string) => {
-    setSessions((current) => (current || []).filter((s) => s.id !== sessionId))
+    setSessions((sessions || []).filter((s) => s.id !== sessionId))
   }
 
   const getSessionById = (sessionId: string): DiscoverySession | undefined => {
-    const allSessions = sessions || []
-    return allSessions.find((s) => s.id === sessionId)
+    return (sessions || []).find((s) => s.id === sessionId)
   }
 
   const getLatestSession = (): DiscoverySession | undefined => {
@@ -30,7 +27,7 @@ export function useDiscovery() {
   }
 
   const clearSessions = () => {
-    deleteSessions()
+    setSessions([])
   }
 
   return {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useKV } from '@github/spark/hooks'
+import { useLocalStorage } from '@/hooks/use-local-storage'
+import '@/lib/openai-service' // Initialize OpenAI service
 import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse } from '@/lib/types'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
@@ -44,10 +45,10 @@ interface SessionState {
 function App() {
   const { sessions: discoverySessions, addSession, updateSession } = useDiscovery()
   const { customers, findOrCreateCustomer } = useCustomers()
-  const [useCases, setUseCases] = useKV<UseCase[]>('use-cases', [])
-  const [selectedSessionId, setSelectedSessionId] = useKV<string | null>('selected-session-id', null)
-  const [selectedCustomerId, setSelectedCustomerId] = useKV<string | null>('selected-customer-id', null)
-  const [enterpriseSessions, setEnterpriseSessions] = useKV<EnterpriseDiscoverySession[]>('enterprise-sessions', [])
+  const [useCases, setUseCases] = useLocalStorage<UseCase[]>('use-cases', [])
+  const [selectedSessionId, setSelectedSessionId] = useLocalStorage<string | null>('selected-session-id', null)
+  const [selectedCustomerId, setSelectedCustomerId] = useLocalStorage<string | null>('selected-customer-id', null)
+  const [enterpriseSessions, setEnterpriseSessions] = useLocalStorage<EnterpriseDiscoverySession[]>('enterprise-sessions', [])
   const [currentEnterpriseSession, setCurrentEnterpriseSession] = useState<EnterpriseDiscoverySession | null>(null)
   
   const [currentView, setCurrentView] = useState<AppView>('dashboard')
@@ -190,6 +191,20 @@ function App() {
     setCurrentView('enterprise-discovery')
   }
 
+  const handleResumeEnterpriseDiscovery = (session: EnterpriseDiscoverySession) => {
+    setCurrentEnterpriseSession(session)
+    setCurrentView('enterprise-discovery')
+  }
+
+  const handleEnterpriseSessionPause = (session: EnterpriseDiscoverySession) => {
+    handleEnterpriseSessionSave(session)
+    toast.info('Discovery session paused', {
+      description: 'You can resume from the Enterprise Discovery tab.',
+    })
+    setCurrentView('dashboard')
+    setCurrentEnterpriseSession(null)
+  }
+
   const handleEnterpriseSessionSave = (session: EnterpriseDiscoverySession) => {
     const updated = enterpriseSessions || []
     const index = updated.findIndex(s => s.id === session.id)
@@ -308,6 +323,7 @@ function App() {
             onSave={handleEnterpriseSessionSave}
             onComplete={handleEnterpriseSessionComplete}
             onCancel={handleEnterpriseDiscoveryCancel}
+            onPause={handleEnterpriseSessionPause}
           />
         </div>
       )}
@@ -397,6 +413,7 @@ function App() {
                   onStartDiscovery={handleStartDiscovery} 
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
+                  onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
                 />
                 <EmptyState onAddFirst={handleOpenAddDialog} />
               </>
@@ -442,6 +459,7 @@ function App() {
                   onStartDiscovery={handleStartDiscovery} 
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
+                  onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
                 />
 
                 <Card className="border-2 bg-card mb-8">

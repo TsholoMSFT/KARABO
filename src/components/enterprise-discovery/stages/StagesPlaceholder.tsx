@@ -1,1 +1,142 @@
-// Placeholder stage components for Stages 3-8\n// These can be fully implemented following the pattern of Stage 1 & 2\n\nimport { Button } from '@/components/ui/card'\nimport { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'\nimport { Alert, AlertDescription } from '@/components/ui/alert'\nimport { Construction } from 'lucide-react'\n\n// Stage 3: Decision Process\nexport function Stage3DecisionProcess({ initialData, onComplete, onBack }: any) {\n  return (\n    <div className=\"max-w-5xl mx-auto space-y-6\">\n      <div>\n        <h2 className=\"text-3xl font-bold tracking-tight\">Stage 3: DECISION PROCESS</h2>\n        <p className=\"text-muted-foreground mt-2\">Map stakeholders and decision-making process</p>\n      </div>\n      <Alert>\n        <Construction className=\"h-4 w-4\" />\n        <AlertDescription>\n          Full stakeholder mapping UI coming soon. For now, proceeding to next stage.\n        </AlertDescription>\n      </Alert>\n      <div className=\"flex justify-between\">\n        <Button variant=\"outline\" onClick={onBack}>\n          Back\n        </Button>\n        <Button onClick={() => onComplete({})}>Continue to Stage 4</Button>\n      </div>\n    </div>\n  )\n}\n\n// Stage 4: Prioritise (RICE)\nexport function Stage4Prioritise({ initialData, onComplete, onBack }: any) {\n  return (\n    <div className=\"max-w-5xl mx-auto space-y-6\">\n      <div>\n        <h2 className=\"text-3xl font-bold tracking-tight\">Stage 4: PRIORITISE</h2>\n        <p className=\"text-muted-foreground mt-2\">Rank opportunities using RICE methodology</p>\n      </div>\n      <Alert>\n        <Construction className=\"h-4 w-4\" />\n        <AlertDescription>\n          RICE scoring UI coming soon. Reusing existing scoring system.\n        </AlertDescription>\n      </Alert>\n      <div className=\"flex justify-between\">\n        <Button variant=\"outline\" onClick={onBack}>\n          Back\n        </Button>\n        <Button onClick={() => onComplete({})}>Continue to Stage 5</Button>\n      </div>\n    </div>\n  )\n}\n\n// Stage 5: Solution Scope\nexport function Stage5SolutionScope({ initialData, onComplete, onBack }: any) {\n  return (\n    <div className=\"max-w-5xl mx-auto space-y-6\">\n      <div>\n        <h2 className=\"text-3xl font-bold tracking-tight\">Stage 5: SOLUTION SCOPE</h2>\n        <p className=\"text-muted-foreground mt-2\">Define scope and value drivers</p>\n      </div>\n      <Alert>\n        <Construction className=\"h-4 w-4\" />\n        <AlertDescription>\n          Scope definition and value driver tree UI coming soon.\n        </AlertDescription>\n      </Alert>\n      <div className=\"flex justify-between\">\n        <Button variant=\"outline\" onClick={onBack}>\n          Back\n        </Button>\n        <Button onClick={() => onComplete({})}>Continue to Stage 6</Button>\n      </div>\n    </div>\n  )\n}\n\n// Stage 6: Validate\nexport function Stage6Validate({ initialData, onComplete, onBack }: any) {\n  return (\n    <div className=\"max-w-5xl mx-auto space-y-6\">\n      <div>\n        <h2 className=\"text-3xl font-bold tracking-tight\">Stage 6: VALIDATE</h2>\n        <p className=\"text-muted-foreground mt-2\">Test assumptions and validate business case</p>\n      </div>\n      <Alert>\n        <Construction className=\"h-4 w-4\" />\n        <AlertDescription>Assumptions and validation tracking UI coming soon.</AlertDescription>\n      </Alert>\n      <div className=\"flex justify-between\">\n        <Button variant=\"outline\" onClick={onBack}>\n          Back\n        </Button>\n        <Button onClick={() => onComplete({})}>Continue to Stage 7</Button>\n      </div>\n    </div>\n  )\n}\n\n// Stage 7: Commit\nexport function Stage7Commit({ initialData, onComplete, onBack }: any) {\n  return (\n    <div className=\"max-w-5xl mx-auto space-y-6\">\n      <div>\n        <h2 className=\"text-3xl font-bold tracking-tight\">Stage 7: COMMIT</h2>\n        <p className=\"text-muted-foreground mt-2\">Assess relationship quality and make go/no-go decision</p>\n      </div>\n      <Alert>\n        <Construction className=\"h-4 w-4\" />\n        <AlertDescription>\n          Relationship assessment and decision framework UI coming soon.\n        </AlertDescription>\n      </Alert>\n      <div className=\"flex justify-between\">\n        <Button variant=\"outline\" onClick={onBack}>\n          Back\n        </Button>\n        <Button onClick={() => onComplete({})}>Continue to Stage 8</Button>\n      </div>\n    </div>\n  )\n}\n\n// Stage 8: Communicate\nexport function Stage8Communicate({ initialData, onComplete, onBack }: any) {\n  return (\n    <div className=\"max-w-5xl mx-auto space-y-6\">\n      <div>\n        <h2 className=\"text-3xl font-bold tracking-tight\">Stage 8: COMMUNICATE</h2>\n        <p className=\"text-muted-foreground mt-2\">Generate financial outputs and stakeholder reports</p>\n      </div>\n      <Alert>\n        <Construction className=\"h-4 w-4\" />\n        <AlertDescription>\n          P&L impact, ROI analysis, and sensitivity charts coming soon.\n        </AlertDescription>\n      </Alert>\n      <div className=\"flex justify-between\">\n        <Button variant=\"outline\" onClick={onBack}>\n          Back\n        </Button>\n        <Button onClick={() => onComplete({})}>Complete Discovery</Button>\n      </div>\n    </div>\n  )\n}\n
+// Placeholder stage components for Stages 3-8
+// Stage 5 has been fully implemented in Stage5SolutionScope.tsx
+// These can be fully implemented following the pattern of Stage 1 & 2
+
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Construction, Mic } from 'lucide-react'
+
+interface PlaceholderStageProps {
+  initialData?: any
+  onComplete: (data: any) => void
+  onBack?: () => void
+  isLiveMode?: boolean
+}
+
+// Stage 3: Decision Process
+export function Stage3DecisionProcess({ initialData, onComplete, onBack, isLiveMode }: PlaceholderStageProps) {
+  return (
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-[#0078D4]">Stage 3: DECISION PROCESS</h2>
+          <p className="text-muted-foreground mt-2">Map stakeholders and decision-making process</p>
+        </div>
+        {isLiveMode && (
+          <Badge variant="outline" className="gap-1 text-[#0078D4] border-[#0078D4]">
+            <Mic className="w-3 h-3" />
+            Voice Active
+          </Badge>
+        )}
+      </div>
+      <Alert>
+        <Construction className="h-4 w-4" />
+        <AlertDescription>
+          Full stakeholder mapping UI coming soon. For now, proceeding to next stage.
+        </AlertDescription>
+      </Alert>
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button onClick={() => onComplete({})} className="bg-[#0078D4] hover:bg-[#106EBE] text-white">Continue to Stage 4</Button>
+      </div>
+    </div>
+  )
+}
+
+// Stage 4: Prioritise (RICE)
+export function Stage4Prioritise({ initialData, onComplete, onBack, isLiveMode }: PlaceholderStageProps) {
+  return (
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-[#0078D4]">Stage 4: PRIORITISE</h2>
+          <p className="text-muted-foreground mt-2">Rank opportunities using RICE methodology</p>
+        </div>
+        {isLiveMode && (
+          <Badge variant="outline" className="gap-1 text-[#0078D4] border-[#0078D4]">
+            <Mic className="w-3 h-3" />
+            Voice Active
+          </Badge>
+        )}
+      </div>
+      <Alert>
+        <Construction className="h-4 w-4" />
+        <AlertDescription>
+          RICE scoring UI coming soon. Reusing existing scoring system.
+        </AlertDescription>
+      </Alert>
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button onClick={() => onComplete({})} className="bg-[#0078D4] hover:bg-[#106EBE] text-white">Continue to Stage 5</Button>
+      </div>
+    </div>
+  )
+}
+
+// Stage 6: Validate
+export function Stage6Validate({ initialData, onComplete, onBack, isLiveMode }: PlaceholderStageProps) {
+  return (
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-[#0078D4]">Stage 6: VALIDATE</h2>
+          <p className="text-muted-foreground mt-2">Test assumptions and validate business case</p>
+        </div>
+        {isLiveMode && (
+          <Badge variant="outline" className="gap-1 text-[#0078D4] border-[#0078D4]">
+            <Mic className="w-3 h-3" />
+            Voice Active
+          </Badge>
+        )}
+      </div>
+      <Alert>
+        <Construction className="h-4 w-4" />
+        <AlertDescription>Assumptions and validation tracking UI coming soon.</AlertDescription>
+      </Alert>
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button onClick={() => onComplete({})} className="bg-[#0078D4] hover:bg-[#106EBE] text-white">Continue to Stage 7</Button>
+      </div>
+    </div>
+  )
+}
+
+// Stage 7: Commit
+export function Stage7Commit({ initialData, onComplete, onBack, isLiveMode }: PlaceholderStageProps) {
+  return (
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-[#0078D4]">Stage 7: COMMIT</h2>
+          <p className="text-muted-foreground mt-2">Assess relationship quality and make go/no-go decision</p>
+        </div>
+        {isLiveMode && (
+          <Badge variant="outline" className="gap-1 text-[#0078D4] border-[#0078D4]">
+            <Mic className="w-3 h-3" />
+            Voice Active
+          </Badge>
+        )}
+      </div>
+      <Alert>
+        <Construction className="h-4 w-4" />
+        <AlertDescription>
+          Relationship assessment and decision framework UI coming soon.
+        </AlertDescription>
+      </Alert>
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button onClick={() => onComplete({})} className="bg-[#0078D4] hover:bg-[#106EBE] text-white">Continue to Stage 8</Button>
+      </div>
+    </div>
+  )
+}

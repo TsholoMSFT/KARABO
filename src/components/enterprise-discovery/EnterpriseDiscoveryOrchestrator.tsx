@@ -1,29 +1,34 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertTriangle } from 'lucide-react'
 import { StageNavigator } from './StageNavigator'
 import { YellowLightsDashboard } from './YellowLightsDashboard'
+import { SessionControlBar } from './SessionControlBar'
 import { Stage0Start } from './stages/Stage0Start'
 import { Stage1Opportunity } from './stages/Stage1Opportunity'
 import { Stage2Resources } from './stages/Stage2Resources'
+import { Stage5SolutionScope } from './stages/Stage5SolutionScope'
+import { Stage8Communicate } from './stages/Stage8Communicate'
 import {
   Stage3DecisionProcess,
   Stage4Prioritise,
-  Stage5SolutionScope,
   Stage6Validate,
   Stage7Commit,
-  Stage8Communicate,
 } from './stages/StagesPlaceholder'
+import { exportEnterpriseDiscoveryToPDF } from '@/lib/enterprise-pdf-export'
 import type { EnterpriseDiscoverySession, YellowLight, StageStatus } from '@/lib/types'
 import { toast } from 'sonner'
+
+const PAUSED_SESSIONS_KEY = 'karabo-paused-enterprise-sessions'
 
 interface EnterpriseDiscoveryOrchestratorProps {
   initialSession?: EnterpriseDiscoverySession
   onSave: (session: EnterpriseDiscoverySession) => void
   onComplete: (session: EnterpriseDiscoverySession) => void
   onCancel: () => void
+  onPause?: (session: EnterpriseDiscoverySession) => void
 }
 
 export function EnterpriseDiscoveryOrchestrator({
@@ -31,5 +36,349 @@ export function EnterpriseDiscoveryOrchestrator({
   onSave,
   onComplete,
   onCancel,
+  onPause,
 }: EnterpriseDiscoveryOrchestratorProps) {
-  const [session, setSession] = useState<EnterpriseDiscoverySession>(\n    initialSession || {\n      id: `ent-${Date.now()}`,\n      clientName: '',\n      attendees: [],\n      sessionDate: Date.now(),\n      discoveryType: 'new-opportunity',\n      currentStageId: 0,\n      stages: {\n        0: { status: 'in-progress', data: null },\n        1: { status: 'not-started', data: null },\n        2: { status: 'not-started', data: null },\n        3: { status: 'not-started', data: null },\n        4: { status: 'not-started', data: null },\n        5: { status: 'not-started', data: null },\n        6: { status: 'not-started', data: null },\n        7: { status: 'not-started', data: null },\n        8: { status: 'not-started', data: null },\n      },\n      allYellowLights: [],\n      createdAt: Date.now(),\n    }\n  )\n\n  // Auto-save every 30 seconds\n  useEffect(() => {\n    const interval = setInterval(() => {\n      onSave(session)\n    }, 30000)\n    return () => clearInterval(interval)\n  }, [session, onSave])\n\n  const stages = Object.entries(session.stages).map(([id, stage]) => ({\n    id: Number(id),\n    name: `Stage ${id}`,\n    status: stage.status,\n  }))\n\n  const currentStage = session.currentStageId\n  const criticalYellowLights = session.allYellowLights.filter(\n    (l) => !l.resolved && (l.severity === 'serious' || l.severity === 'deal-breaker')\n  )\n\n  const handleStageComplete = (stageId: number, data: any) => {\n    const updated = { ...session }\n    updated.stages[stageId as keyof typeof updated.stages] = {\n      status: 'completed',\n      completedAt: Date.now(),\n      data,\n    }\n\n    // Move to next stage if not at the end\n    if (stageId < 8) {\n      updated.currentStageId = stageId + 1\n      updated.stages[(stageId + 1) as keyof typeof updated.stages].status = 'in-progress'\n    } else {\n      // Completed all stages\n      updated.completedAt = Date.now()\n      toast.success('Enterprise Discovery Completed!')\n      onComplete(updated)\n      return\n    }\n\n    setSession(updated)\n    onSave(updated)\n    toast.success(`Stage ${stageId} completed`)\n  }\n\n  const handleStageBack = (targetStageId: number) => {\n    const updated = { ...session }\n    updated.currentStageId = targetStageId\n    updated.stages[targetStageId as keyof typeof updated.stages].status = 'in-progress'\n    setSession(updated)\n  }\n\n  const handleResolveYellowLight = (id: string) => {\n    const updated = { ...session }\n    const light = updated.allYellowLights.find((l) => l.id === id)\n    if (light) {\n      light.resolved = true\n      setSession(updated)\n      onSave(updated)\n      toast.success('Yellow light resolved')\n    }\n  }\n\n  const handleStage0Complete = (data: any) => {\n    const updated = { ...session }\n    updated.clientName = data.clientName\n    updated.attendees = data.attendees\n    updated.sessionDate = data.sessionDate\n    updated.discoveryType = data.discoveryType\n    handleStageComplete(0, null)\n  }\n\n  const renderStage = () => {\n    switch (currentStage) {\n      case 0:\n        return (\n          <Stage0Start\n            initialData={{\n              clientName: session.clientName,\n              attendees: session.attendees,\n              sessionDate: session.sessionDate,\n              discoveryType: session.discoveryType,\n            }}\n            onComplete={handleStage0Complete}\n            onBack={onCancel}\n          />\n        )\n      case 1:\n        return (\n          <Stage1Opportunity\n            initialData={session.stages[1].data}\n            onComplete={(data) => handleStageComplete(1, data)}\n            onBack={() => handleStageBack(0)}\n          />\n        )\n      case 2:\n        return (\n          <Stage2Resources\n            initialData={session.stages[2].data}\n            onComplete={(data) => handleStageComplete(2, data)}\n            onBack={() => handleStageBack(1)}\n          />\n        )\n      case 3:\n        return (\n          <Stage3DecisionProcess\n            initialData={session.stages[3].data}\n            onComplete={(data) => handleStageComplete(3, data)}\n            onBack={() => handleStageBack(2)}\n          />\n        )\n      case 4:\n        return (\n          <Stage4Prioritise\n            initialData={session.stages[4].data}\n            onComplete={(data) => handleStageComplete(4, data)}\n            onBack={() => handleStageBack(3)}\n          />\n        )\n      case 5:\n        return (\n          <Stage5SolutionScope\n            initialData={session.stages[5].data}\n            onComplete={(data) => handleStageComplete(5, data)}\n            onBack={() => handleStageBack(4)}\n          />\n        )\n      case 6:\n        return (\n          <Stage6Validate\n            initialData={session.stages[6].data}\n            onComplete={(data) => handleStageComplete(6, data)}\n            onBack={() => handleStageBack(5)}\n          />\n        )\n      case 7:\n        return (\n          <Stage7Commit\n            initialData={session.stages[7].data}\n            onComplete={(data) => handleStageComplete(7, data)}\n            onBack={() => handleStageBack(6)}\n          />\n        )\n      case 8:\n        return (\n          <Stage8Communicate\n            initialData={session.stages[8].data}\n            onComplete={(data) => handleStageComplete(8, data)}\n            onBack={() => handleStageBack(7)}\n          />\n        )\n      default:\n        return null\n    }\n  }\n\n  return (\n    <div className=\"space-y-6 pb-12\">\n      {/* Header */}\n      <div className=\"flex items-center justify-between\">\n        <div>\n          <h1 className=\"text-3xl font-bold tracking-tight\">Enterprise Discovery</h1>\n          {session.clientName && (\n            <p className=\"text-muted-foreground mt-1\">\n              {session.clientName} • {session.discoveryType.replace('-', ' ')}\n            </p>\n          )}\n        </div>\n        <Button variant=\"outline\" onClick={onCancel}>\n          Exit Discovery\n        </Button>\n      </div>\n\n      {/* Stage Navigator */}\n      <StageNavigator\n        stages={stages}\n        currentStageId={currentStage}\n        onStageClick={(id) => {\n          if (id <= currentStage || stages[id].status === 'completed') {\n            handleStageBack(id)\n          }\n        }}\n      />\n\n      {/* Critical Yellow Lights Alert */}\n      {criticalYellowLights.length > 0 && (\n        <Alert variant=\"destructive\">\n          <AlertTriangle className=\"h-4 w-4\" />\n          <AlertDescription>\n            {criticalYellowLights.length} critical concern{criticalYellowLights.length > 1 ? 's' : ''} requiring\n            attention before proceeding\n          </AlertDescription>\n        </Alert>\n      )}\n\n      <div className=\"grid grid-cols-1 lg:grid-cols-4 gap-6\">\n        {/* Main Content */}\n        <div className=\"lg:col-span-3\">{renderStage()}</div>\n\n        {/* Sidebar - Yellow Lights */}\n        <div className=\"lg:col-span-1\">\n          <div className=\"sticky top-6\">\n            <YellowLightsDashboard\n              yellowLights={session.allYellowLights}\n              onResolve={handleResolveYellowLight}\n              compact\n            />\n          </div>\n        </div>\n      </div>\n    </div>\n  )\n}\n
+  const [session, setSession] = useState<EnterpriseDiscoverySession>(
+    initialSession || {
+      id: `ent-${Date.now()}`,
+      clientName: '',
+      attendees: [],
+      sessionDate: Date.now(),
+      discoveryType: 'new-opportunity',
+      currentStageId: 0,
+      stages: {
+        0: { status: 'in-progress', data: null },
+        1: { status: 'not-started', data: null },
+        2: { status: 'not-started', data: null },
+        3: { status: 'not-started', data: null },
+        4: { status: 'not-started', data: null },
+        5: { status: 'not-started', data: null },
+        6: { status: 'not-started', data: null },
+        7: { status: 'not-started', data: null },
+        8: { status: 'not-started', data: null },
+      },
+      allYellowLights: [],
+      isLiveMode: false,
+      createdAt: Date.now(),
+    }
+  )
+  
+  const [lastSaved, setLastSaved] = useState<number | undefined>(session.lastSavedAt)
+  const [isLiveMode, setIsLiveMode] = useState(session.isLiveMode || false)
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const updatedSession = { ...session, lastSavedAt: Date.now(), isLiveMode }
+      onSave(updatedSession)
+      setLastSaved(Date.now())
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [session, onSave, isLiveMode])
+
+  // Save session to localStorage for pause/resume
+  const saveToLocalStorage = useCallback((sessionToSave: EnterpriseDiscoverySession) => {
+    try {
+      const pausedSessions = JSON.parse(localStorage.getItem(PAUSED_SESSIONS_KEY) || '[]')
+      const existingIndex = pausedSessions.findIndex((s: EnterpriseDiscoverySession) => s.id === sessionToSave.id)
+      if (existingIndex >= 0) {
+        pausedSessions[existingIndex] = sessionToSave
+      } else {
+        pausedSessions.push(sessionToSave)
+      }
+      localStorage.setItem(PAUSED_SESSIONS_KEY, JSON.stringify(pausedSessions))
+    } catch (error) {
+      console.error('Failed to save session to localStorage:', error)
+    }
+  }, [])
+
+  // Handle pause session
+  const handlePauseSession = useCallback(() => {
+    const pausedSession: EnterpriseDiscoverySession = {
+      ...session,
+      isPaused: true,
+      pausedAt: Date.now(),
+      lastSavedAt: Date.now(),
+      isLiveMode,
+    }
+    saveToLocalStorage(pausedSession)
+    onSave(pausedSession)
+    if (onPause) {
+      onPause(pausedSession)
+    } else {
+      onCancel() // Fall back to cancel if no pause handler
+    }
+  }, [session, isLiveMode, saveToLocalStorage, onSave, onPause, onCancel])
+
+  // Handle end session with PDF export
+  const handleEndSession = useCallback(() => {
+    const completedSession: EnterpriseDiscoverySession = {
+      ...session,
+      completedAt: Date.now(),
+      lastSavedAt: Date.now(),
+      isLiveMode,
+    }
+    
+    // Export PDF
+    try {
+      const fileName = exportEnterpriseDiscoveryToPDF(completedSession)
+      toast.success('Discovery session completed!', {
+        description: `PDF exported as ${fileName}`,
+      })
+    } catch (error) {
+      console.error('Failed to export PDF:', error)
+      toast.error('Failed to export PDF', {
+        description: 'Session data was saved but PDF export failed.',
+      })
+    }
+    
+    onComplete(completedSession)
+  }, [session, isLiveMode, onComplete])
+
+  // Handle PDF export (without ending session)
+  const handleExportPDF = useCallback(() => {
+    try {
+      const fileName = exportEnterpriseDiscoveryToPDF(session)
+      toast.success('PDF exported successfully', {
+        description: fileName,
+      })
+    } catch (error) {
+      console.error('Failed to export PDF:', error)
+      toast.error('Failed to export PDF')
+    }
+  }, [session])
+
+  // Toggle live mode
+  const handleToggleLiveMode = useCallback(() => {
+    setIsLiveMode(prev => !prev)
+    toast.info(isLiveMode ? 'Voice input disabled' : 'Voice input enabled', {
+      description: isLiveMode ? 'Switched to keyboard input' : 'You can now speak your responses',
+    })
+  }, [isLiveMode])
+
+  const stages = Object.entries(session.stages).map(([id, stage]) => ({
+    id: Number(id),
+    name: `Stage ${id}`,
+    status: stage.status,
+  }))
+
+  const currentStage = session.currentStageId
+  const criticalYellowLights = session.allYellowLights.filter(
+    (l) => !l.resolved && (l.severity === 'serious' || l.severity === 'deal-breaker')
+  )
+
+  const handleStageComplete = (stageId: number, data: any) => {
+    const updated = { ...session }
+    updated.stages[stageId as keyof typeof updated.stages] = {
+      status: 'completed',
+      completedAt: Date.now(),
+      data,
+    }
+
+    // Move to next stage if not at the end
+    if (stageId < 8) {
+      updated.currentStageId = stageId + 1
+      updated.stages[(stageId + 1) as keyof typeof updated.stages].status = 'in-progress'
+    } else {
+      // Completed all stages
+      updated.completedAt = Date.now()
+      toast.success('Enterprise Discovery Completed!')
+      onComplete(updated)
+      return
+    }
+
+    setSession(updated)
+    onSave(updated)
+    toast.success(`Stage ${stageId} completed`)
+  }
+
+  const handleStageBack = (targetStageId: number) => {
+    const updated = { ...session }
+    updated.currentStageId = targetStageId
+    updated.stages[targetStageId as keyof typeof updated.stages].status = 'in-progress'
+    setSession(updated)
+  }
+
+  const handleResolveYellowLight = (id: string) => {
+    const updated = { ...session }
+    const light = updated.allYellowLights.find((l) => l.id === id)
+    if (light) {
+      light.resolved = true
+      setSession(updated)
+      onSave(updated)
+      toast.success('Yellow light resolved')
+    }
+  }
+
+  const handleStage0Complete = (data: any) => {
+    const updated = { ...session }
+    updated.clientName = data.clientName
+    updated.attendees = data.attendees
+    updated.sessionDate = data.sessionDate
+    updated.discoveryType = data.discoveryType
+    handleStageComplete(0, null)
+  }
+
+  const renderStage = () => {
+    switch (currentStage) {
+      case 0:
+        return (
+          <Stage0Start
+            initialData={{
+              clientName: session.clientName,
+              attendees: session.attendees,
+              sessionDate: session.sessionDate,
+              discoveryType: session.discoveryType,
+            }}
+            onComplete={handleStage0Complete}
+            onBack={onCancel}
+            isLiveMode={isLiveMode}
+          />
+        )
+      case 1:
+        return (
+          <Stage1Opportunity
+            initialData={session.stages[1].data}
+            onComplete={(data) => handleStageComplete(1, data)}
+            onBack={() => handleStageBack(0)}
+            isLiveMode={isLiveMode}
+          />
+        )
+      case 2:
+        return (
+          <Stage2Resources
+            initialData={session.stages[2].data}
+            onComplete={(data) => handleStageComplete(2, data)}
+            onBack={() => handleStageBack(1)}
+            isLiveMode={isLiveMode}
+          />
+        )
+      case 3:
+        return (
+          <Stage3DecisionProcess
+            initialData={session.stages[3].data}
+            onComplete={(data) => handleStageComplete(3, data)}
+            onBack={() => handleStageBack(2)}
+            isLiveMode={isLiveMode}
+          />
+        )
+      case 4:
+        return (
+          <Stage4Prioritise
+            initialData={session.stages[4].data}
+            onComplete={(data) => handleStageComplete(4, data)}
+            onBack={() => handleStageBack(3)}
+            isLiveMode={isLiveMode}
+          />
+        )
+      case 5:
+        return (
+          <Stage5SolutionScope
+            initialData={session.stages[5].data}
+            coiData={session.stages[1].data?.coi}
+            onComplete={(data) => handleStageComplete(5, data)}
+            onBack={() => handleStageBack(4)}
+            isLiveMode={isLiveMode}
+          />
+        )
+      case 6:
+        return (
+          <Stage6Validate
+            initialData={session.stages[6].data}
+            onComplete={(data) => handleStageComplete(6, data)}
+            onBack={() => handleStageBack(5)}
+            isLiveMode={isLiveMode}
+          />
+        )
+      case 7:
+        return (
+          <Stage7Commit
+            initialData={session.stages[7].data}
+            onComplete={(data) => handleStageComplete(7, data)}
+            onBack={() => handleStageBack(6)}
+            isLiveMode={isLiveMode}
+          />
+        )
+      case 8:
+        return (
+          <Stage8Communicate
+            initialData={session.stages[8].data}
+            solutionScopeData={session.stages[5].data}
+            resourcesData={session.stages[2].data}
+            onComplete={(data) => handleStageComplete(8, data)}
+            onBack={() => handleStageBack(7)}
+            isLiveMode={isLiveMode}
+          />
+        )
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0078D4]">Enterprise Discovery</h1>
+          {session.clientName && (
+            <p className="text-muted-foreground mt-1">
+              {session.clientName} • {session.discoveryType.replace('-', ' ')}
+            </p>
+          )}
+        </div>
+        
+        {/* Session Control Bar */}
+        <SessionControlBar
+          sessionId={session.id}
+          clientName={session.clientName}
+          currentStage={currentStage}
+          isLiveMode={isLiveMode}
+          onToggleLiveMode={handleToggleLiveMode}
+          onPauseSession={handlePauseSession}
+          onEndSession={handleEndSession}
+          onExportPDF={handleExportPDF}
+          lastSaved={lastSaved}
+        />
+      </div>
+
+      {/* Stage Navigator */}
+      <StageNavigator
+        stages={stages}
+        currentStageId={currentStage}
+        onStageClick={(id) => {
+          if (id <= currentStage || stages[id].status === 'completed') {
+            handleStageBack(id)
+          }
+        }}
+      />
+
+      {/* Critical Yellow Lights Alert */}
+      {criticalYellowLights.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {criticalYellowLights.length} critical concern{criticalYellowLights.length > 1 ? 's' : ''} requiring
+            attention before proceeding
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main Content */}
+        <div className="lg:col-span-3">{renderStage()}</div>
+
+        {/* Sidebar - Yellow Lights */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-6">
+            <YellowLightsDashboard
+              yellowLights={session.allYellowLights}
+              onResolve={handleResolveYellowLight}
+              compact
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

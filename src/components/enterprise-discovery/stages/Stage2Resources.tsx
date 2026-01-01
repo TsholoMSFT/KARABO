@@ -24,9 +24,10 @@ interface Stage2ResourcesProps {
   initialData?: ResourcesStageData
   onComplete: (data: ResourcesStageData) => void
   onBack?: () => void
+  isLiveMode?: boolean
 }
 
-export function Stage2Resources({ initialData, onComplete, onBack }: Stage2ResourcesProps) {
+export function Stage2Resources({ initialData, onComplete, onBack, isLiveMode = false }: Stage2ResourcesProps) {
   // Financial
   const [budgetStatus, setBudgetStatus] = useState<BudgetStatus>(initialData?.budgetStatus || 'unknown')
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(initialData?.budgetRange || 'unknown')
@@ -76,7 +77,7 @@ Technical Debt: ${technicalDebtConcerns}
 
 Return JSON: {situation, complication, question}`
 
-      const response = await (window as any).spark.llm(prompt, 'gpt-4o-mini', true)
+      const response = await window.llm(prompt, 'gpt-4o-mini', true)
       const parsed = JSON.parse(response)
       setScq({ ...parsed, status: 'pending' })
     } catch (error) {
@@ -113,7 +114,7 @@ Return JSON: {situation, complication, question}`
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Stage 2: RESOURCES</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-[#0078D4]">Stage 2: RESOURCES</h2>
         <p className="text-muted-foreground mt-2">Understand constraints and enablers</p>
       </div>
 
@@ -416,7 +417,7 @@ Return JSON: {situation, complication, question}`
         <Button variant="outline" onClick={onBack}>
           Back to Stage 1
         </Button>
-        <Button onClick={handleSubmit} disabled={!isValid}>
+        <Button onClick={handleSubmit} disabled={!isValid} className="bg-[#0078D4] hover:bg-[#106EBE] text-white">
           Continue to Stage 3
         </Button>
       </div>

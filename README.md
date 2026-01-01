@@ -1,6 +1,45 @@
-# Microsoft Innovation Hub Use Case Assessment Tool
+# KARABO - Microsoft Innovation Hub Use Case Assessment Tool
 
 A comprehensive web application for evaluating and prioritizing use cases using Impact vs. Feasibility analysis and RICE scoring methodology, powered by AI to streamline the discovery process.
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ and npm
+- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+
+### Installation
+
+1. **Clone the repository**
+```bash
+git clone <your-repo-url>
+cd KARABO
+```
+
+2. **Install dependencies**
+```bash
+npm install
+```
+
+3. **Configure environment variables**
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your OpenAI API key:
+```env
+VITE_OPENAI_API_KEY=sk-your-api-key-here
+VITE_OPENAI_ORG_ID=org-your-org-id (optional)
+VITE_APP_NAME=KARABO Discovery
+```
+
+4. **Start the development server**
+```bash
+npm run dev
+```
+
+5. **Open your browser**
+Navigate to `http://localhost:5173`
 
 ## 🤖 AI-Powered Features
 
@@ -58,12 +97,12 @@ This application leverages **OpenAI's GPT-4o and GPT-4o-mini** models to provide
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS v4
 - **UI Components**: shadcn/ui v4, Radix UI primitives
-- **State Management**: React hooks with Spark KV API for persistence
-- **AI Integration**: OpenAI GPT-4o and GPT-4o-mini via Spark SDK
+- **State Management**: React hooks with localStorage for persistence
+- **AI Integration**: OpenAI GPT-4o and GPT-4o-mini via direct API calls
 - **Speech Recognition**: Web Speech API (Chrome, Edge, Safari)
 - **Icons**: Phosphor Icons
 - **Animations**: Framer Motion
-- **Build Tool**: Vite
+- **Build Tool**: Vite 7
 
 ## Documentation
 
@@ -79,15 +118,54 @@ This application leverages **OpenAI's GPT-4o and GPT-4o-mini** models to provide
 
 ## Privacy & Data
 
-- All data stored locally in your browser using Spark KV API
-- AI features process only the information you explicitly provide
+- All data stored locally in your browser using localStorage
+- AI features process only the information you explicitly provide via OpenAI API
 - No external databases or user authentication required
 - Session data persists between browser sessions
+- **Your OpenAI API key is stored in environment variables and never exposed to the browser**
 
 ## Development
 
-This is a Spark application running on the GitHub Spark platform. All development and deployment is managed through the Spark environment.
+### Available Scripts
+
+```bash
+npm run dev          # Start development server (port 5173)
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+```
+
+### Project Structure
+
+```
+src/
+├── components/       # React components
+│   ├── ui/          # shadcn/ui components
+│   └── ...          # Feature components
+├── hooks/           # Custom React hooks
+├── lib/             # Utilities, types, and services
+│   ├── openai-service.ts    # OpenAI API integration
+│   └── types.ts             # TypeScript type definitions
+└── styles/          # Global styles and themes
+```
+
+## Deployment
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+The built files will be in the `dist/` directory, ready to deploy to any static hosting service:
+- Vercel
+- Netlify
+- GitHub Pages
+- AWS S3 + CloudFront
+- Azure Static Web Apps
+
+**Important**: Remember to set your `VITE_OPENAI_API_KEY` environment variable in your hosting platform's settings.
 
 📄 **License**
 
-The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
+MIT License

@@ -261,6 +261,8 @@ export interface ValueDriver {
   driver: string
   value: number
   period: 'one-time' | 'month' | 'quarter' | 'year'
+  sourceStage?: string // e.g., 'Stage 1 COI' for auto-populated drivers
+  isFromCOI?: boolean // Indicates if this driver was auto-populated from COI
 }
 
 export interface Phase {
@@ -290,18 +292,191 @@ export interface Risk {
   owner: string
 }
 
+// ============================================================================
+// DETAILED FINANCIAL IMPACT TYPES (Three-Statement Model)
+// ============================================================================
+
+// Revenue Impact Mapping - 5 drivers with metric chain inputs
+export type RevenueDriverType = 'customer-acquisition' | 'margin-improvement' | 'sales-cycle' | 'churn-reduction' | 'upsell-crosssell'
+
+export interface RevenueImpactDriver {
+  id: string
+  type: RevenueDriverType
+  enabled: boolean
+  
+  // Metric chain inputs (vary by driver type)
+  inputs: {
+    // Customer Acquisition: Leads × Conversion × Deal Size
+    leads?: number
+    conversionRate?: number // percentage
+    avgDealSize?: number
+    
+    // Margin Improvement: Price × Volume - Discount
+    priceIncrease?: number // percentage
+    volume?: number
+    discountReduction?: number // percentage
+    
+    // Sales Cycle: Pipeline × Win Rate × (365 ÷ Cycle Days)
+    pipelineValue?: number
+    winRate?: number // percentage
+    currentCycleDays?: number
+    newCycleDays?: number
+    
+    // Churn Reduction: Customers × (1 - Churn) × LTV
+    customerCount?: number
+    currentChurnRate?: number // percentage
+    newChurnRate?: number // percentage
+    customerLTV?: number
+    
+    // Upsell/Cross-sell: Customers × Expansion Rate × ARPU
+    existingCustomers?: number
+    expansionRate?: number // percentage
+    arpu?: number
+  }
+  
+  // Auto-calculated output
+  calculatedAnnualValue: number
+  plLine: 'revenue' // Always maps to Revenue line
+  notes?: string
+}
+
+// Cost Impact Mapping - 5 drivers with FTE tracking
+export type CostDriverType = 'labour-efficiency' | 'error-reduction' | 'infrastructure' | 'vendor-consolidation' | 'automation'
+
+export interface CostImpactDriver {
+  id: string
+  type: CostDriverType
+  enabled: boolean
+  
+  // Metric chain inputs
+  inputs: {
+    // Labour Efficiency: Hours × Loaded Cost × Volume
+    hoursSavedPerTask?: number
+    fullyLoadedHourlyCost?: number
+    tasksPerMonth?: number
+    
+    // Error Reduction: Error Rate × Volume × Cost per Error
+    currentErrorRate?: number // percentage
+    newErrorRate?: number // percentage
+    transactionVolume?: number
+    costPerError?: number
+    
+    // Infrastructure: Current - Future Spend
+    currentMonthlySpend?: number
+    futureMonthlySpend?: number
+    
+    // Vendor Consolidation: Current - Consolidated
+    vendorCount?: number
+    costPerVendor?: number
+    consolidatedCost?: number
+    
+    // Automation: Manual Cost - Automated Cost
+    manualCostPerProcess?: number
+    automatedCostPerProcess?: number
+    processVolume?: number
+  }
+  
+  // Auto-calculated outputs
+  calculatedAnnualValue: number
+  fteEquivalent: number // Show FTE equivalent for transparency
+  plLine: 'cogs' | 'opex' // Maps to COGS or OpEx
+  notes?: string
+}
+
+// Balance Sheet & Cash Flow Impact
+export type BalanceSheetDriverType = 'collections' | 'inventory' | 'capex-avoidance' | 'risk-provision'
+
+export interface BalanceSheetCashFlowDriver {
+  id: string
+  type: BalanceSheetDriverType
+  enabled: boolean
+  
+  inputs: {
+    // Faster Collections (DSO Reduction)
+    currentDSO?: number // Days Sales Outstanding
+    newDSO?: number
+    dailyRevenue?: number
+    
+    // Inventory Optimisation (DIO Reduction)
+    currentDIO?: number // Days Inventory Outstanding
+    newDIO?: number
+    dailyCOGS?: number
+    
+    // CapEx Avoidance
+    avoidedCapEx?: number
+    alternativeOpEx?: number // If shifting to cloud/subscription
+    
+    // Risk Provision Release
+    currentProvision?: number
+    riskReductionPercent?: number // percentage
+  }
+  
+  calculatedValue: number
+  cashFlowImpact: number
+  statementLine: 'working-capital' | 'cash-operating' | 'cash-investing' | 'balance-sheet'
+  notes?: string
+}
+
+// Metric Hierarchy - Strategic → Financial → Operational → Activity
+export type MetricLevel = 'strategic' | 'financial' | 'operational' | 'activity'
+
+export interface MetricHierarchyItem {
+  id: string
+  level: MetricLevel
+  name: string
+  linkedToId?: string // Links to parent metric at higher level
+}
+
+export interface MetricHierarchy {
+  strategicOutcome: string // e.g., "Shareholder Value", "Revenue Growth"
+  financialMetrics: string[] // e.g., ["Revenue by Segment", "Gross Margin %"]
+  operationalMetrics: string[] // e.g., ["Cycle Time", "Error Rate"]
+  activityMetrics: string[] // e.g., ["Documents Processed", "Cases Resolved"]
+}
+
+// Extended Solution Scope Stage Data with sub-steps
 export interface SolutionScopeStageData {
-  // 5A: Scope Definition
+  // Current sub-step (5a, 5b, 5c)
+  currentSubStep: 'overview' | 'revenue' | 'cost' | 'balance-sheet' | 'summary'
+  
+  // 5A: Scope Definition (kept from original)
   inScope: string[]
   outOfScope: string[]
   mvpDefinition: string
   phases: Phase[]
   
-  // 5B: Value Driver Tree
+  // 5B: Value Driver Tree (legacy - kept for compatibility)
   valueDrivers: ValueDriver[]
-  totalAnnualValue: number // Auto-calculated
-  riskAdjustedValue: number // Auto-calculated
-  paybackPeriod: number // Months, auto-calculated
+  
+  // NEW: Detailed Revenue Impact (Stage 5a)
+  revenueImpact: {
+    drivers: RevenueImpactDriver[]
+    totalAnnualRevenue: number
+    sourceFromCOI: boolean // If opportunity costs were auto-populated
+  }
+  
+  // NEW: Detailed Cost Impact (Stage 5b)
+  costImpact: {
+    drivers: CostImpactDriver[]
+    totalAnnualSavings: number
+    totalFTEEquivalent: number
+    sourceFromCOI: boolean // If direct costs were auto-populated
+  }
+  
+  // NEW: Balance Sheet & Cash Flow Impact (Stage 5c)
+  balanceSheetCashFlow: {
+    drivers: BalanceSheetCashFlowDriver[]
+    totalWorkingCapitalImpact: number
+    totalCashFlowImpact: number
+  }
+  
+  // NEW: Metric Hierarchy
+  metricHierarchy: MetricHierarchy
+  
+  // Aggregated values (auto-calculated)
+  totalAnnualValue: number
+  riskAdjustedValue: number
+  paybackPeriod: number // Months
   
   // 5C: Success Metrics
   successMetrics: SuccessMetric[]
@@ -439,6 +614,44 @@ export interface CommunicateStageData {
   plImpact: PLImpactSummary
   investmentAnalysis: InvestmentAnalysis
   sensitivityAnalysis: SensitivityScenario
+  
+  // NEW: Three-Statement Financial Model
+  threeStatementModel: {
+    incomeStatement: {
+      revenue: { year1: number; year2: number; year3: number }
+      cogs: { year1: number; year2: number; year3: number }
+      grossProfit: { year1: number; year2: number; year3: number }
+      opex: {
+        salesMarketing: { year1: number; year2: number; year3: number }
+        rAndD: { year1: number; year2: number; year3: number }
+        gAndA: { year1: number; year2: number; year3: number }
+        total: { year1: number; year2: number; year3: number }
+      }
+      ebit: { year1: number; year2: number; year3: number }
+    }
+    balanceSheet: {
+      workingCapitalChange: number
+      inventoryReduction: number
+      receivablesReduction: number
+      capexAvoided: number
+    }
+    cashFlow: {
+      operatingCashFlow: { year1: number; year2: number; year3: number }
+      investingCashFlow: { year1: number; year2: number; year3: number }
+      netCashFlow: { year1: number; year2: number; year3: number }
+    }
+  }
+  
+  // NEW: Metric Hierarchy Summary (pulled from Stage 5)
+  metricHierarchy: MetricHierarchy
+  
+  // NEW: Value Driver Summary by P&L Line
+  valueDriversByPLLine: {
+    revenue: Array<{ driver: string; annualValue: number }>
+    cogs: Array<{ driver: string; annualValue: number }>
+    opex: Array<{ driver: string; annualValue: number }>
+    balanceSheet: Array<{ driver: string; value: number }>
+  }
 }
 
 // Main Enterprise Discovery Session
@@ -467,6 +680,12 @@ export interface EnterpriseDiscoverySession {
   
   // Global yellow lights (accessible from any stage)
   allYellowLights: YellowLight[]
+  
+  // Session state
+  isLiveMode?: boolean // Voice input enabled
+  isPaused?: boolean
+  pausedAt?: number
+  lastSavedAt?: number
   
   createdAt: number
   completedAt?: number

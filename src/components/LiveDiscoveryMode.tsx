@@ -129,7 +129,7 @@ Provide a brief, actionable insight (2-3 sentences) that:
 
 Be conversational, insightful, and focused on helping them discover valuable use cases.`
 
-      const insight = await window.spark.llm(promptText, 'gpt-4o-mini')
+      const insight = await window.llm(promptText, 'gpt-4o-mini')
       setAiInsight(insight)
     } catch (error) {
       console.error('Error generating insight:', error)
@@ -183,7 +183,7 @@ Return ONLY a JSON object with this exact structure (no markdown, no code blocks
 
 Keep questions conversational, specific to their answer, and focused on discovering valuable use cases.`
 
-      const result = await window.spark.llm(promptText, 'gpt-4o-mini', true)
+      const result = await window.llm(promptText, 'gpt-4o-mini', true)
       const parsed = JSON.parse(result)
       
       const followUps: DiscoveryQuestion[] = parsed.questions.map((q: any, idx: number) => ({

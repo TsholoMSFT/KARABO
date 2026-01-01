@@ -191,7 +191,7 @@ STYLE GUIDELINES:
 
 Write the executive summary now:`
 
-      const summary = await window.spark.llm(summaryPromptText, 'gpt-4o')
+      const summary = await window.llm(summaryPromptText, 'gpt-4o')
       setExecutiveSummary(summary)
       toast.success('Executive summary generated!')
       setStep('save-confirm')

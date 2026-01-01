@@ -54,23 +54,23 @@ export function StageNavigator({ stages, currentStageId, onStageClick }: StageNa
               disabled={!canClick}
               className={cn(
                 'flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all',
-                isCurrent && 'border-primary bg-primary/10',
+                isCurrent && 'border-[#0078D4] bg-[#0078D4]/10',
                 isCompleted && 'border-green-500 bg-green-50',
-                !isCurrent && !isCompleted && canClick && 'border-muted hover:border-primary/50',
+                !isCurrent && !isCompleted && canClick && 'border-muted hover:border-[#0078D4]/50',
                 isLocked && 'opacity-50 cursor-not-allowed'
               )}
             >
               <div
                 className={cn(
                   'w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm',
-                  isCurrent && 'bg-primary text-primary-foreground',
+                  isCurrent && 'bg-[#0078D4] text-white',
                   isCompleted && 'bg-green-500 text-white',
                   !isCurrent && !isCompleted && 'bg-muted text-muted-foreground'
                 )}
               >
                 {isCompleted ? <Check className="h-5 w-5" /> : isLocked ? <Lock className="h-4 w-4" /> : stage.id}
               </div>
-              <span className={cn('text-xs font-medium text-center leading-tight', isCurrent && 'text-primary')}>
+              <span className={cn('text-xs font-medium text-center leading-tight', isCurrent && 'text-[#0078D4]')}>
                 {stageNames[stage.id]}
               </span>
             </button>
