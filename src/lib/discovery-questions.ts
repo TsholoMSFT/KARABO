@@ -1,0 +1,240 @@
+import { DiscoveryQuestion, Industry } from './types'
+
+export const industryLabels: Record<Industry, string> = {
+  general: 'General / Cross-Industry',
+  healthcare: 'Healthcare & Life Sciences',
+  'financial-services': 'Financial Services & Banking',
+  manufacturing: 'Manufacturing & Supply Chain',
+  retail: 'Retail & Consumer Goods',
+  government: 'Government & Public Sector',
+  education: 'Education & Research',
+  energy: 'Energy & Utilities',
+  telecommunications: 'Telecommunications & Media',
+}
+
+export const discoveryQuestions: DiscoveryQuestion[] = [
+  {
+    id: 'q1',
+    question: 'What are the primary business objectives or goals you want to achieve?',
+    category: 'business',
+    placeholder: 'E.g., Increase operational efficiency, reduce costs, improve customer satisfaction...',
+  },
+  {
+    id: 'q2',
+    question: 'What are the biggest pain points or challenges your organization currently faces?',
+    category: 'challenges',
+    placeholder: 'E.g., Manual processes, data silos, slow response times...',
+  },
+  {
+    id: 'q3',
+    question: 'Who are the primary users or stakeholders who would benefit from innovation?',
+    category: 'users',
+    placeholder: 'E.g., Customer service teams, operations staff, executives...',
+  },
+  {
+    id: 'q4',
+    question: 'What existing systems or technologies are currently in use?',
+    category: 'technical',
+    placeholder: 'E.g., CRM platforms, ERP systems, legacy databases...',
+  },
+  {
+    id: 'q5',
+    question: 'What processes or workflows take the most time or resources?',
+    category: 'challenges',
+    placeholder: 'E.g., Document review, data entry, approval workflows...',
+  },
+  {
+    id: 'q6',
+    question: 'What data sources or information do you have available?',
+    category: 'technical',
+    placeholder: 'E.g., Customer data, transaction history, operational logs...',
+  },
+  {
+    id: 'q7',
+    question: 'What would success look like for your organization in the next 6-12 months?',
+    category: 'business',
+    placeholder: 'E.g., 30% faster processing, 50% cost reduction, improved compliance...',
+  },
+  {
+    id: 'q8',
+    question: 'Are there any regulatory or compliance requirements to consider?',
+    category: 'challenges',
+    placeholder: 'E.g., GDPR, HIPAA, industry-specific regulations...',
+  },
+  {
+    id: 'healthcare-q1',
+    question: 'What are your primary patient care or clinical workflow challenges?',
+    category: 'challenges',
+    placeholder: 'E.g., Patient wait times, care coordination, diagnostic accuracy, medication management...',
+    industries: ['healthcare'],
+  },
+  {
+    id: 'healthcare-q2',
+    question: 'How do you currently manage electronic health records (EHR) and patient data?',
+    category: 'technical',
+    placeholder: 'E.g., Epic, Cerner, paper-based systems, data integration challenges...',
+    industries: ['healthcare'],
+  },
+  {
+    id: 'healthcare-q3',
+    question: 'What clinical outcomes or quality metrics are you focused on improving?',
+    category: 'business',
+    placeholder: 'E.g., Readmission rates, patient satisfaction scores, length of stay, diagnostic turnaround time...',
+    industries: ['healthcare'],
+  },
+  {
+    id: 'financial-q1',
+    question: 'What are your key challenges in risk management, fraud detection, or compliance?',
+    category: 'challenges',
+    placeholder: 'E.g., Transaction monitoring, AML compliance, fraud patterns, regulatory reporting...',
+    industries: ['financial-services'],
+  },
+  {
+    id: 'financial-q2',
+    question: 'How do you currently handle customer onboarding and KYC processes?',
+    category: 'business',
+    placeholder: 'E.g., Manual document review, identity verification, credit checks, time to onboard...',
+    industries: ['financial-services'],
+  },
+  {
+    id: 'financial-q3',
+    question: 'What customer experience improvements are you targeting?',
+    category: 'users',
+    placeholder: 'E.g., Personalized recommendations, faster loan approvals, digital banking features, chatbot support...',
+    industries: ['financial-services'],
+  },
+  {
+    id: 'manufacturing-q1',
+    question: 'What are your main challenges in production efficiency or quality control?',
+    category: 'challenges',
+    placeholder: 'E.g., Equipment downtime, defect rates, production scheduling, quality inspection...',
+    industries: ['manufacturing'],
+  },
+  {
+    id: 'manufacturing-q2',
+    question: 'How do you currently manage your supply chain and inventory?',
+    category: 'business',
+    placeholder: 'E.g., Manual tracking, ERP systems, stockouts, demand forecasting, supplier coordination...',
+    industries: ['manufacturing'],
+  },
+  {
+    id: 'manufacturing-q3',
+    question: 'What operational data do you collect from your production floor?',
+    category: 'technical',
+    placeholder: 'E.g., IoT sensors, machine telemetry, quality metrics, maintenance logs, production counts...',
+    industries: ['manufacturing'],
+  },
+  {
+    id: 'retail-q1',
+    question: 'What are your biggest challenges in customer engagement and retention?',
+    category: 'challenges',
+    placeholder: 'E.g., Personalization, loyalty programs, cart abandonment, customer insights...',
+    industries: ['retail'],
+  },
+  {
+    id: 'retail-q2',
+    question: 'How do you manage inventory across channels and locations?',
+    category: 'business',
+    placeholder: 'E.g., POS systems, e-commerce platforms, warehouse management, stockouts, overstock...',
+    industries: ['retail'],
+  },
+  {
+    id: 'retail-q3',
+    question: 'What customer data and shopping behavior insights do you currently capture?',
+    category: 'technical',
+    placeholder: 'E.g., Purchase history, browsing behavior, demographic data, feedback, returns data...',
+    industries: ['retail'],
+  },
+  {
+    id: 'government-q1',
+    question: 'What are your primary challenges in delivering citizen services?',
+    category: 'challenges',
+    placeholder: 'E.g., Application processing times, service accessibility, case management, resource allocation...',
+    industries: ['government'],
+  },
+  {
+    id: 'government-q2',
+    question: 'What public data or information systems do you manage?',
+    category: 'technical',
+    placeholder: 'E.g., Citizen records, permit systems, GIS data, public records, legacy databases...',
+    industries: ['government'],
+  },
+  {
+    id: 'government-q3',
+    question: 'What transparency or accountability improvements are you targeting?',
+    category: 'business',
+    placeholder: 'E.g., Public reporting, performance dashboards, decision-making transparency, audit trails...',
+    industries: ['government'],
+  },
+  {
+    id: 'education-q1',
+    question: 'What are your main challenges in student learning outcomes or engagement?',
+    category: 'challenges',
+    placeholder: 'E.g., Personalized learning, student retention, assessment methods, learning analytics...',
+    industries: ['education'],
+  },
+  {
+    id: 'education-q2',
+    question: 'How do you currently manage student information and academic records?',
+    category: 'technical',
+    placeholder: 'E.g., Student information systems, LMS platforms, grading systems, attendance tracking...',
+    industries: ['education'],
+  },
+  {
+    id: 'education-q3',
+    question: 'What administrative processes are most resource-intensive?',
+    category: 'business',
+    placeholder: 'E.g., Enrollment, course scheduling, financial aid, faculty workload, facility management...',
+    industries: ['education'],
+  },
+  {
+    id: 'energy-q1',
+    question: 'What are your key challenges in asset management or predictive maintenance?',
+    category: 'challenges',
+    placeholder: 'E.g., Equipment failures, maintenance scheduling, asset lifecycle, infrastructure monitoring...',
+    industries: ['energy'],
+  },
+  {
+    id: 'energy-q2',
+    question: 'How do you currently monitor and optimize energy distribution or generation?',
+    category: 'technical',
+    placeholder: 'E.g., SCADA systems, smart meters, grid management, load forecasting, renewable integration...',
+    industries: ['energy'],
+  },
+  {
+    id: 'energy-q3',
+    question: 'What sustainability or efficiency targets are you working toward?',
+    category: 'business',
+    placeholder: 'E.g., Emissions reduction, renewable energy mix, energy efficiency, grid reliability...',
+    industries: ['energy'],
+  },
+  {
+    id: 'telecom-q1',
+    question: 'What are your main challenges in network performance or customer experience?',
+    category: 'challenges',
+    placeholder: 'E.g., Network congestion, service outages, customer churn, quality of service...',
+    industries: ['telecommunications'],
+  },
+  {
+    id: 'telecom-q2',
+    question: 'How do you currently handle customer support and issue resolution?',
+    category: 'business',
+    placeholder: 'E.g., Call center operations, ticketing systems, self-service portals, escalation processes...',
+    industries: ['telecommunications'],
+  },
+  {
+    id: 'telecom-q3',
+    question: 'What network or customer data do you collect and analyze?',
+    category: 'technical',
+    placeholder: 'E.g., Network performance metrics, usage patterns, customer behavior, service quality indicators...',
+    industries: ['telecommunications'],
+  },
+]
+
+export function getQuestionsForIndustry(industry: Industry): DiscoveryQuestion[] {
+  const generalQuestions = discoveryQuestions.filter((q) => !q.industries)
+  const industryQuestions = discoveryQuestions.filter(
+    (q) => q.industries && q.industries.includes(industry)
+  )
+  return [...generalQuestions, ...industryQuestions]
+}
