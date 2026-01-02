@@ -158,3 +158,181 @@ export function getSourceInfo(source: EarningsTranscript['source']): { label: st
   }
   return info[source] || { label: source, color: 'bg-gray-100 text-gray-800' }
 }
+
+/**
+ * Ticker lookup result
+ */
+export interface TickerLookupResult {
+  ticker: string
+  name: string
+  exchange?: string
+  region?: string
+  source: 'yahoo' | 'alpha-vantage'
+  confidence: 'high' | 'medium' | 'low'
+}
+
+/**
+ * Lookup ticker symbol from company name using Yahoo Finance and Alpha Vantage
+ */
+export async function lookupTickerSymbol(companyName: string): Promise<TickerLookupResult[]> {
+  if (!companyName || companyName.trim().length < 2) {
+    return []
+  }
+
+  try {
+    const response = await fetch(`${API_ENDPOINT}/earnings/ticker-lookup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ companyName }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.error || `Ticker lookup failed: ${response.status}`)
+    }
+
+    const result = await response.json()
+    return result.tickers || []
+  } catch (error) {
+    console.error('Ticker lookup error:', error)
+    return []
+  }
+}
+
+/**
+ * Financial Statements interfaces
+ */
+export interface FinancialStatement {
+  ticker: string
+  fiscalYear: number
+  quarter?: string
+  revenue?: number
+  netIncome?: number
+  totalAssets?: number
+  totalLiabilities?: number
+  cashFlow?: number
+  eps?: number
+  peRatio?: number
+  source: 'alpha-vantage' | 'yahoo-finance'
+}
+
+export interface FinancialMetrics {
+  statements: FinancialStatement[]
+  summary: string
+}
+
+/**
+ * News Articles interfaces
+ */
+export interface NewsArticle {
+  id: string
+  title: string
+  source: string
+  url: string
+  publishedAt: string
+  summary?: string
+  sentiment?: 'positive' | 'negative' | 'neutral'
+}
+
+export interface NewsSearchResult {
+  articles: NewsArticle[]
+  summary: string
+}
+
+/**
+ * Industry Research interfaces
+ */
+export interface IndustryInsight {
+  id: string
+  category: 'trend' | 'standard' | 'benchmark' | 'regulation'
+  title: string
+  description: string
+  source: string
+  relevanceScore: number
+}
+
+export interface IndustryResearchResult {
+  insights: IndustryInsight[]
+  summary: string
+}
+
+/**
+ * Fetch financial statements from Alpha Vantage
+ */
+export async function fetchFinancialStatements(ticker: string): Promise<FinancialMetrics> {
+  if (!ticker || ticker.trim().length === 0) {
+    return { statements: [], summary: '' }
+  }
+
+  try {
+    const response = await fetch(`${API_ENDPOINT}/earnings/financials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.error || `Financial fetch failed: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Financial statements error:', error)
+    return { statements: [], summary: '' }
+  }
+}
+
+/**
+ * Fetch company news from Alpha Vantage News API
+ */
+export async function fetchCompanyNews(companyName: string, ticker?: string): Promise<NewsSearchResult> {
+  if (!companyName || companyName.trim().length === 0) {
+    return { articles: [], summary: '' }
+  }
+
+  try {
+    const response = await fetch(`${API_ENDPOINT}/earnings/news`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ companyName, ticker }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.error || `News fetch failed: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('News fetch error:', error)
+    return { articles: [], summary: '' }
+  }
+}
+
+/**
+ * Fetch industry research, trends, and standards
+ */
+export async function fetchIndustryResearch(industry: string, companyName: string): Promise<IndustryResearchResult> {
+  if (!industry || industry.trim().length === 0) {
+    return { insights: [], summary: '' }
+  }
+
+  try {
+    const response = await fetch(`${API_ENDPOINT}/earnings/industry-research`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ industry, companyName }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.error || `Industry research failed: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error('Industry research error:', error)
+    return { insights: [], summary: '' }
+  }
+}

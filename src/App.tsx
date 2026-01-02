@@ -26,6 +26,7 @@ import { SessionMetadataForm } from '@/components/SessionMetadataForm'
 import { CustomerSelector } from '@/components/CustomerSelector'
 import { EnterpriseDiscoveryOrchestrator } from '@/components/enterprise-discovery/EnterpriseDiscoveryOrchestrator'
 import { Disclaimer } from '@/components/Disclaimer'
+import { LandingPage } from '@/components/LandingPage'
 import { DEMO_DISCOVERY_SESSION, DEMO_USE_CASES, DEMO_ENTERPRISE_SESSION } from '@/lib/demo-data'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -36,7 +37,7 @@ import { Plus, ChartScatter, ListNumbers, FileArrowDown, CaretDown, CaretUp, Fol
 import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 
-type AppView = 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'enterprise-discovery'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'enterprise-discovery'
 
 interface SessionState {
   sessionName: string
@@ -53,7 +54,7 @@ function App() {
   const [enterpriseSessions, setEnterpriseSessions] = useLocalStorage<EnterpriseDiscoverySession[]>('enterprise-sessions', [])
   const [currentEnterpriseSession, setCurrentEnterpriseSession] = useState<EnterpriseDiscoverySession | null>(null)
   
-  const [currentView, setCurrentView] = useState<AppView>('dashboard')
+  const [currentView, setCurrentView] = useState<AppView>('landing')
   const [currentDiscoverySession, setCurrentDiscoverySession] = useState<DiscoverySession | null>(null)
   const [comparingSessions, setComparingSessions] = useState<DiscoverySession[]>([])
   const [sessionState, setSessionState] = useState<SessionState | null>(null)
@@ -210,7 +211,7 @@ function App() {
     }
     
     // Create customer and add session
-    const customer = findOrCreateCustomer(demoSession.customerName, demoSession.innovationHubSPOC || '')
+    const customer = findOrCreateCustomer(demoSession.customerName, demoSession.innovationHubSPOC || '', demoSession.stockTicker)
     demoSession.customerId = customer.id
     addSession(demoSession)
     
@@ -301,7 +302,7 @@ function App() {
   }
 
   const handleDiscoveryComplete = (session: DiscoverySession) => {
-    const customer = findOrCreateCustomer(session.customerName, session.innovationHubSPOC || '')
+    const customer = findOrCreateCustomer(session.customerName, session.innovationHubSPOC || '', session.stockTicker)
     const sessionWithCustomer: DiscoverySession = {
       ...session,
       customerId: customer.id,
@@ -369,6 +370,17 @@ function App() {
     <>
       <Toaster position="top-right" />
       
+      {currentView === 'landing' && (
+        <LandingPage
+          customers={customers}
+          onStartNew={() => {
+            setDiscoveryMode('standard')
+            setCurrentView('session-metadata')
+          }}
+          onViewExisting={() => setCurrentView('dashboard')}
+        />
+      )}
+
       {currentView === 'enterprise-discovery' && (
         <div className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
           <EnterpriseDiscoveryOrchestrator

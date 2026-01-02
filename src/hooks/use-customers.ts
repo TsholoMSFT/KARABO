@@ -20,23 +20,31 @@ export function useCustomers() {
     return (customers || []).find((c) => c.id === customerId)
   }
 
-  const findOrCreateCustomer = (customerName: string, innovationHubSPOC: string): Customer => {
+  const findOrCreateCustomer = (customerName: string, innovationHubSPOC: string, stockTicker?: string): Customer => {
     const allCustomers = customers || []
     const existing = allCustomers.find(
       (c) => c.name.toLowerCase().trim() === customerName.toLowerCase().trim()
     )
     
     if (existing) {
+      const updates: Partial<Customer> = {}
       if (existing.innovationHubSPOC !== innovationHubSPOC) {
-        updateCustomer(existing.id, { innovationHubSPOC })
+        updates.innovationHubSPOC = innovationHubSPOC
       }
-      return existing
+      if (stockTicker && existing.stockTicker !== stockTicker) {
+        updates.stockTicker = stockTicker
+      }
+      if (Object.keys(updates).length > 0) {
+        updateCustomer(existing.id, updates)
+      }
+      return { ...existing, ...updates }
     }
     
     const newCustomer: Customer = {
       id: `customer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: customerName,
       innovationHubSPOC,
+      stockTicker,
       createdAt: Date.now(),
     }
     

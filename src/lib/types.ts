@@ -9,6 +9,7 @@ export interface Customer {
   id: string
   name: string
   innovationHubSPOC: string
+  stockTicker?: string
   createdAt: number
   updatedAt?: number
 }
@@ -140,6 +141,8 @@ export interface UseCase {
   // AI Regulations & Cybersecurity (footnote-level considerations)
   aiRegulations?: AIRegulationsInfo
   cybersecurity?: CybersecurityInfo
+  // Data sources that informed this use case
+  dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery')[]
   createdAt: number
 }
 

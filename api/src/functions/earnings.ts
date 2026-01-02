@@ -454,3 +454,473 @@ app.http("earnings", {
   route: "earnings/search",
   handler: earningsHandler,
 });
+
+// Ticker Lookup Handler
+interface TickerLookupRequest {
+  companyName: string;
+}
+
+interface TickerLookupResult {
+  ticker: string;
+  name: string;
+  exchange?: string;
+  region?: string;
+  source: "yahoo" | "alpha-vantage";
+  confidence: "high" | "medium" | "low";
+}
+
+async function lookupTickerYahoo(companyName: string): Promise<TickerLookupResult[]> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(companyName)}&quotesCount=10&newsCount=0`;
+    
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "KARABO Discovery Tool",
+      },
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json() as any;
+    const results: TickerLookupResult[] = [];
+
+    if (data.quotes) {
+      for (const quote of data.quotes.slice(0, 5)) {
+        if (quote.symbol && quote.shortname) {
+          // Determine confidence based on name match
+          const nameLower = companyName.toLowerCase();
+          const quoteName = (quote.shortname || quote.longname || "").toLowerCase();
+          let confidence: "high" | "medium" | "low" = "low";
+          
+          if (quoteName.includes(nameLower) || nameLower.includes(quoteName)) {
+            confidence = "high";
+          } else if (quoteName.split(" ").some((word: string) => nameLower.includes(word) && word.length > 3)) {
+            confidence = "medium";
+          }
+
+          // Determine region from exchange
+          let region = "GLOBAL";
+          const exchange = quote.exchange || "";
+          if (exchange.includes("JSE") || quote.symbol.endsWith(".JO")) {
+            region = "ZA";
+          } else if (["NMS", "NYQ", "NGM", "NYE"].includes(exchange)) {
+            region = "US";
+          } else if (["LSE", "FRA", "PAR"].includes(exchange)) {
+            region = "EU";
+          }
+
+          results.push({
+            ticker: quote.symbol,
+            name: quote.shortname || quote.longname || quote.symbol,
+            exchange: quote.exchange,
+            region,
+            source: "yahoo",
+            confidence,
+          });
+        }
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error("Yahoo ticker lookup error:", error);
+    return [];
+  }
+}
+
+async function lookupTickerAlphaVantage(companyName: string): Promise<TickerLookupResult[]> {
+  if (!ALPHA_VANTAGE_KEY) return [];
+
+  try {
+    const url = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(companyName)}&apikey=${ALPHA_VANTAGE_KEY}`;
+    
+    const response = await fetch(url);
+    if (!response.ok) return [];
+
+    const data = await response.json() as any;
+    const results: TickerLookupResult[] = [];
+
+    if (data.bestMatches) {
+      for (const match of data.bestMatches.slice(0, 5)) {
+        const matchScore = parseFloat(match["9. matchScore"] || "0");
+        let confidence: "high" | "medium" | "low" = "low";
+        
+        if (matchScore >= 0.8) confidence = "high";
+        else if (matchScore >= 0.5) confidence = "medium";
+
+        // Determine region
+        const region = match["4. region"] || "GLOBAL";
+        let regionCode = "GLOBAL";
+        if (region.includes("United States")) regionCode = "US";
+        else if (region.includes("South Africa")) regionCode = "ZA";
+        else if (region.includes("Europe") || region.includes("United Kingdom")) regionCode = "EU";
+
+        results.push({
+          ticker: match["1. symbol"],
+          name: match["2. name"],
+          exchange: match["4. region"],
+          region: regionCode,
+          source: "alpha-vantage",
+          confidence,
+        });
+      }
+    }
+
+    return results;
+  } catch (error) {
+    console.error("Alpha Vantage ticker lookup error:", error);
+    return [];
+  }
+}
+
+async function tickerLookupHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  if (req.method === "OPTIONS") {
+    return { status: 204, headers: corsHeaders };
+  }
+
+  try {
+    const body = await req.json().catch(() => ({})) as Partial<TickerLookupRequest>;
+    const { companyName } = body;
+
+    if (!companyName || companyName.trim().length < 2) {
+      return {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: { error: "companyName is required (min 2 characters)" },
+      };
+    }
+
+    // Query both sources in parallel
+    const [yahooResults, alphaResults] = await Promise.allSettled([
+      lookupTickerYahoo(companyName),
+      lookupTickerAlphaVantage(companyName),
+    ]);
+
+    const allResults: TickerLookupResult[] = [];
+
+    if (yahooResults.status === "fulfilled") {
+      allResults.push(...yahooResults.value);
+    }
+    if (alphaResults.status === "fulfilled") {
+      allResults.push(...alphaResults.value);
+    }
+
+    // Deduplicate by ticker symbol, prefer higher confidence
+    const uniqueMap = new Map<string, TickerLookupResult>();
+    for (const result of allResults) {
+      const existing = uniqueMap.get(result.ticker);
+      if (!existing || result.confidence === "high") {
+        uniqueMap.set(result.ticker, result);
+      }
+    }
+
+    const unique = Array.from(uniqueMap.values());
+
+    // Sort by confidence and then by source (Yahoo first, then Alpha Vantage)
+    unique.sort((a, b) => {
+      const confidenceOrder = { high: 3, medium: 2, low: 1 };
+      const confDiff = confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
+      if (confDiff !== 0) return confDiff;
+      return a.source === "yahoo" ? -1 : 1;
+    });
+
+    return {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: {
+        tickers: unique.slice(0, 10),
+      },
+    };
+  } catch (error: any) {
+    context.error("Ticker lookup error:", error);
+    return {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { error: "Ticker lookup failed", details: error.message },
+    };
+  }
+}
+
+app.http("ticker-lookup", {
+  methods: ["POST", "OPTIONS"],
+  authLevel: "anonymous",
+  route: "earnings/ticker-lookup",
+  handler: tickerLookupHandler,
+});
+
+// ============================================================================
+// FINANCIAL STATEMENTS HANDLER
+// ============================================================================
+interface FinancialsRequest {
+  ticker: string;
+}
+
+async function financialsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  if (req.method === "OPTIONS") {
+    return { status: 204, headers: corsHeaders };
+  }
+
+  try {
+    const body = await req.json().catch(() => ({})) as Partial<FinancialsRequest>;
+    const { ticker } = body;
+
+    if (!ticker) {
+      return {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: { error: "ticker is required" },
+      };
+    }
+
+    const statements: any[] = [];
+    let summary = '';
+
+    // Fetch from Alpha Vantage
+    if (ALPHA_VANTAGE_KEY) {
+      try {
+        // Income Statement
+        const incomeUrl = `https://www.alphavantage.co/query?function=INCOME_STATEMENT&symbol=${encodeURIComponent(ticker)}&apikey=${ALPHA_VANTAGE_KEY}`;
+        const incomeRes = await fetch(incomeUrl);
+        const incomeData = await incomeRes.json() as any;
+
+        // Balance Sheet
+        const balanceUrl = `https://www.alphavantage.co/query?function=BALANCE_SHEET&symbol=${encodeURIComponent(ticker)}&apikey=${ALPHA_VANTAGE_KEY}`;
+        const balanceRes = await fetch(balanceUrl);
+        const balanceData = await balanceRes.json() as any;
+
+        // Parse annual reports
+        const annualReports = incomeData.annualReports || [];
+        const balanceReports = balanceData.annualReports || [];
+
+        if (annualReports.length > 0) {
+          const latest = annualReports[0];
+          const latestBalance = balanceReports[0] || {};
+          
+          const revenue = parseInt(latest.totalRevenue || '0');
+          const netIncome = parseInt(latest.netIncome || '0');
+          const totalAssets = parseInt(latestBalance.totalAssets || '0');
+          const totalLiabilities = parseInt(latestBalance.totalLiabilities || '0');
+
+          statements.push({
+            ticker,
+            fiscalYear: parseInt(latest.fiscalDateEnding?.substring(0, 4) || '2024'),
+            revenue,
+            netIncome,
+            totalAssets,
+            totalLiabilities,
+            source: 'alpha-vantage',
+          });
+
+          // Format currency
+          const formatNum = (num: number) => {
+            if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+            if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+            return `$${num.toLocaleString()}`;
+          };
+
+          summary = `${ticker} reported ${formatNum(revenue)} in revenue with ${formatNum(netIncome)} net income. Total assets: ${formatNum(totalAssets)}.`;
+        }
+      } catch (error) {
+        console.error('Alpha Vantage financials error:', error);
+      }
+    }
+
+    return {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { statements, summary },
+    };
+  } catch (error: any) {
+    context.error("Financials fetch error:", error);
+    return {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { error: "Failed to fetch financials", details: error.message },
+    };
+  }
+}
+
+app.http("financials", {
+  methods: ["POST", "OPTIONS"],
+  authLevel: "anonymous",
+  route: "earnings/financials",
+  handler: financialsHandler,
+});
+
+// ============================================================================
+// NEWS HANDLER
+// ============================================================================
+interface NewsRequest {
+  companyName: string;
+  ticker?: string;
+}
+
+async function newsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  if (req.method === "OPTIONS") {
+    return { status: 204, headers: corsHeaders };
+  }
+
+  try {
+    const body = await req.json().catch(() => ({})) as Partial<NewsRequest>;
+    const { companyName, ticker } = body;
+
+    if (!companyName) {
+      return {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: { error: "companyName is required" },
+      };
+    }
+
+    const articles: any[] = [];
+    let summary = '';
+
+    // Fetch from Alpha Vantage News API
+    if (ALPHA_VANTAGE_KEY) {
+      try {
+        const searchTerm = ticker || companyName;
+        const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${encodeURIComponent(searchTerm)}&apikey=${ALPHA_VANTAGE_KEY}&limit=20&sort=LATEST`;
+        
+        const response = await fetch(url);
+        const data = await response.json() as any;
+
+        if (data.feed) {
+          for (const item of data.feed.slice(0, 15)) {
+            const sentiment = (item.overall_sentiment_label || 'Neutral').toLowerCase();
+            articles.push({
+              id: item.url || `news-${Date.now()}-${Math.random()}`,
+              title: item.title,
+              source: item.source,
+              url: item.url,
+              publishedAt: item.time_published,
+              summary: item.summary || item.title,
+              sentiment: sentiment === 'bullish' || sentiment === 'positive' ? 'positive' 
+                       : sentiment === 'bearish' || sentiment === 'negative' ? 'negative' 
+                       : 'neutral',
+            });
+          }
+
+          summary = `Found ${articles.length} recent news articles about ${companyName}.`;
+        }
+      } catch (error) {
+        console.error('News fetch error:', error);
+      }
+    }
+
+    // If no news found, return empty but valid response
+    if (articles.length === 0) {
+      summary = `No recent news articles found for ${companyName}.`;
+    }
+
+    return {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { articles, summary },
+    };
+  } catch (error: any) {
+    context.error("News fetch error:", error);
+    return {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { error: "Failed to fetch news", details: error.message },
+    };
+  }
+}
+
+app.http("news", {
+  methods: ["POST", "OPTIONS"],
+  authLevel: "anonymous",
+  route: "earnings/news",
+  handler: newsHandler,
+});
+
+// ============================================================================
+// INDUSTRY RESEARCH HANDLER
+// ============================================================================
+interface IndustryResearchRequest {
+  industry: string;
+  companyName: string;
+}
+
+function getIndustryInsights(industry: string): any[] {
+  const insights: Record<string, any[]> = {
+    'healthcare': [
+      { id: '1', category: 'regulation', title: 'HIPAA Compliance', description: 'Health Insurance Portability and Accountability Act requirements for patient data protection', source: 'HHS.gov', relevanceScore: 10 },
+      { id: '2', category: 'trend', title: 'AI in Medical Diagnostics', description: 'Growing adoption of AI and machine learning for medical imaging analysis and disease diagnosis', source: 'Healthcare IT News', relevanceScore: 9 },
+      { id: '3', category: 'standard', title: 'HL7 FHIR Standard', description: 'Fast Healthcare Interoperability Resources for healthcare data exchange', source: 'HL7.org', relevanceScore: 8 },
+      { id: '4', category: 'trend', title: 'Telemedicine Growth', description: 'Accelerated adoption of virtual care and remote patient monitoring', source: 'Industry Report', relevanceScore: 8 },
+    ],
+    'financial-services': [
+      { id: '1', category: 'regulation', title: 'SOX Compliance', description: 'Sarbanes-Oxley Act requirements for financial reporting and internal controls', source: 'SEC.gov', relevanceScore: 10 },
+      { id: '2', category: 'trend', title: 'Open Banking APIs', description: 'API-driven financial services enabling third-party access to banking data', source: 'Fintech Report', relevanceScore: 9 },
+      { id: '3', category: 'regulation', title: 'PCI-DSS', description: 'Payment Card Industry Data Security Standard for payment processing', source: 'PCI Security Standards Council', relevanceScore: 9 },
+      { id: '4', category: 'trend', title: 'AI Fraud Detection', description: 'Machine learning models for real-time fraud detection and prevention', source: 'Financial Technology', relevanceScore: 8 },
+    ],
+    'manufacturing': [
+      { id: '1', category: 'standard', title: 'ISO 9001 Quality Management', description: 'International standard for quality management systems', source: 'ISO.org', relevanceScore: 9 },
+      { id: '2', category: 'trend', title: 'Industry 4.0', description: 'Smart manufacturing with IoT, AI, and automation', source: 'Manufacturing Today', relevanceScore: 10 },
+      { id: '3', category: 'trend', title: 'Predictive Maintenance', description: 'AI-powered predictive maintenance to reduce downtime', source: 'Industry Report', relevanceScore: 9 },
+      { id: '4', category: 'standard', title: 'OPC UA Protocol', description: 'Open Platform Communications Unified Architecture for industrial automation', source: 'OPC Foundation', relevanceScore: 7 },
+    ],
+    'retail': [
+      { id: '1', category: 'trend', title: 'Omnichannel Commerce', description: 'Seamless integration of online and offline retail experiences', source: 'Retail Dive', relevanceScore: 9 },
+      { id: '2', category: 'trend', title: 'AI-Powered Personalization', description: 'Machine learning for personalized product recommendations', source: 'Retail Technology', relevanceScore: 8 },
+      { id: '3', category: 'standard', title: 'PCI-DSS Compliance', description: 'Payment card data security for retail transactions', source: 'PCI SSC', relevanceScore: 9 },
+      { id: '4', category: 'trend', title: 'Supply Chain Visibility', description: 'Real-time tracking and optimization of supply chain operations', source: 'Supply Chain Management', relevanceScore: 8 },
+    ],
+    'energy': [
+      { id: '1', category: 'regulation', title: 'NERC CIP Standards', description: 'Critical Infrastructure Protection standards for power grid cybersecurity', source: 'NERC', relevanceScore: 10 },
+      { id: '2', category: 'trend', title: 'Smart Grid Technology', description: 'Digital transformation of electrical grid with IoT and AI', source: 'Energy Magazine', relevanceScore: 9 },
+      { id: '3', category: 'trend', title: 'Renewable Energy Integration', description: 'AI optimization for renewable energy sources and storage', source: 'Clean Energy Report', relevanceScore: 8 },
+      { id: '4', category: 'standard', title: 'ISO 50001 Energy Management', description: 'International standard for energy management systems', source: 'ISO.org', relevanceScore: 7 },
+    ],
+  };
+
+  return insights[industry] || [
+    { id: '1', category: 'trend', title: 'Digital Transformation', description: 'Organizations adopting cloud, AI, and automation technologies', source: 'Industry Research', relevanceScore: 8 },
+    { id: '2', category: 'trend', title: 'Data Analytics', description: 'Growing focus on data-driven decision making', source: 'Technology Trends', relevanceScore: 7 },
+  ];
+}
+
+async function industryResearchHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  if (req.method === "OPTIONS") {
+    return { status: 204, headers: corsHeaders };
+  }
+
+  try {
+    const body = await req.json().catch(() => ({})) as Partial<IndustryResearchRequest>;
+    const { industry, companyName } = body;
+
+    if (!industry) {
+      return {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: { error: "industry is required" },
+      };
+    }
+
+    // Get curated insights based on industry
+    const insights = getIndustryInsights(industry);
+    const summary = `Key trends, standards, and regulations for ${industry} industry.`;
+
+    return {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { insights, summary },
+    };
+  } catch (error: any) {
+    context.error("Industry research error:", error);
+    return {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { error: "Failed to fetch industry research", details: error.message },
+    };
+  }
+}
+
+app.http("industry-research", {
+  methods: ["POST", "OPTIONS"],
+  authLevel: "anonymous",
+  route: "earnings/industry-research",
+  handler: industryResearchHandler,
+});

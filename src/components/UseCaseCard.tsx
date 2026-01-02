@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp } from '@phosphor-icons/react'
+import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
 import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
@@ -121,6 +121,86 @@ export function UseCaseCard({
             </div>
             {useCase.description && (
               <p className="text-sm text-muted-foreground leading-relaxed">{useCase.description}</p>
+            )}
+            {/* Data Source Badges */}
+            {useCase.dataSources && useCase.dataSources.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {useCase.dataSources.includes('earnings') && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5 bg-blue-500/10 text-blue-600 border-blue-500/30">
+                          <ChartLine size={10} className="mr-1" weight="bold" />
+                          Earnings
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Based on earnings call transcripts</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                {useCase.dataSources.includes('financials') && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5 bg-green-500/10 text-green-600 border-green-500/30">
+                          <Briefcase size={10} className="mr-1" weight="bold" />
+                          Financials
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Based on financial statements & metrics</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                {useCase.dataSources.includes('news') && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5 bg-orange-500/10 text-orange-600 border-orange-500/30">
+                          <Newspaper size={10} className="mr-1" weight="bold" />
+                          News
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Based on recent company news & market sentiment</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                {useCase.dataSources.includes('industry-research') && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5 bg-purple-500/10 text-purple-600 border-purple-500/30">
+                          <MagnifyingGlass size={10} className="mr-1" weight="bold" />
+                          Industry
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Based on industry trends & standards</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                {useCase.dataSources.includes('discovery') && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5 bg-gray-500/10 text-gray-600 border-gray-500/30">
+                          <ChatCircleText size={10} className="mr-1" weight="bold" />
+                          Discovery
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Based on discovery Q&A session</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             )}
             {useCase.kpis && useCase.kpis.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">

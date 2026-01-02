@@ -3,11 +3,24 @@ import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, Earnin
 import { useDiscovery } from '@/hooks/use-discovery'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
 import { getRegulationsForIndustry, getSecurityRequirementsForIndustry, getRegulationsForJurisdiction, getFallbackUseCasesForIndustry } from '@/lib/demo-data'
-import { searchEarningsTranscripts, analyzeTranscriptsWithAI, CompanyInsight } from '@/lib/earnings-service'
+import { 
+  searchEarningsTranscripts, 
+  analyzeTranscriptsWithAI, 
+  CompanyInsight, 
+  getSourceInfo, 
+  EarningsSearchResult,
+  fetchFinancialStatements,
+  fetchCompanyNews,
+  fetchIndustryResearch,
+  FinancialMetrics,
+  NewsSearchResult,
+  IndustryResearchResult
+} from '@/lib/earnings-service'
 import { EnhancedDiscoveryWorkflow } from '@/components/EnhancedDiscoveryWorkflow'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Sparkle, ArrowClockwise, Warning, ChartLineUp } from '@phosphor-icons/react'
+import { Badge } from '@/components/ui/badge'
+import { Sparkle, ArrowClockwise, Warning, ChartLineUp, Database, CheckCircle, CurrencyDollar, Newspaper, Books } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
@@ -32,6 +45,10 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
   const [generationPhase, setGenerationPhase] = useState<'analyzing' | 'fetching-earnings' | 'generating'>('analyzing')
   const [suggestedUseCases, setSuggestedUseCases] = useState<SuggestedUseCase[]>([])
   const [earningsInsights, setEarningsInsights] = useState<EarningsInsight[]>([])
+  const [earningsDataSources, setEarningsDataSources] = useState<EarningsSearchResult['sources'] | null>(null)
+  const [financialMetrics, setFinancialMetrics] = useState<FinancialMetrics | null>(null)
+  const [newsArticles, setNewsArticles] = useState<NewsSearchResult | null>(null)
+  const [industryInsights, setIndustryInsights] = useState<IndustryResearchResult | null>(null)
   const [showWorkflow, setShowWorkflow] = useState(false)
   const [usedFallback, setUsedFallback] = useState(false)
   const [usedEarningsData, setUsedEarningsData] = useState(false)
@@ -68,6 +85,7 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
       rationale: uc.rationale,
       aiRegulations: uc.aiRegulations,
       cybersecurity: uc.cybersecurity,
+      dataSources: ['discovery'], // Fallback uses only discovery data
     }))
     
     updateSession(session.id, {
@@ -110,9 +128,14 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
         ? 'European Union'
         : 'United States'
 
-      // Fetch earnings data if stock ticker is provided
+      // Fetch all data sources (earnings, financials, news, industry research)
+      const dataSources: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery')[] = ['discovery']
       let earningsContext = ''
+      let financialsContext = ''
+      let newsContext = ''
+      let industryResearchContext = ''
       let fetchedInsights: EarningsInsight[] = []
+      let hasTickerWarning = false
       
       if (session.stockTicker) {
         setGenerationPhase('fetching-earnings')
@@ -123,16 +146,22 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
             session.stockTicker.includes('.L') || session.stockTicker.includes('.DE') || session.stockTicker.includes('.PA') ? 'EU' :
             session.stockTicker.match(/^[A-Z]{1,5}$/) ? 'US' : 'GLOBAL'
           
-          const earningsResult = await searchEarningsTranscripts(session.customerName, {
-            ticker: session.stockTicker,
-            region,
-          })
+          // Fetch all data sources in parallel
+          const [earningsResult, financialsResult, newsResult] = await Promise.allSettled([
+            searchEarningsTranscripts(session.customerName, { ticker: session.stockTicker, region }),
+            fetchFinancialStatements(session.stockTicker),
+            fetchCompanyNews(session.customerName, session.stockTicker),
+          ])
           
-          if (earningsResult.transcripts.length > 0) {
+          // Process earnings transcripts
+          if (earningsResult.status === 'fulfilled' && earningsResult.value.transcripts.length > 0) {
+            setEarningsDataSources(earningsResult.value.sources)
+            
             // Analyze transcripts with AI
-            const insights = await analyzeTranscriptsWithAI(session.customerName, earningsResult.transcripts)
+            const insights = await analyzeTranscriptsWithAI(session.customerName, earningsResult.value.transcripts)
             
             if (insights.length > 0) {
+              dataSources.push('earnings')
               fetchedInsights = insights.map((i: CompanyInsight): EarningsInsight => ({
                 id: i.id,
                 category: i.category,
@@ -154,7 +183,7 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
                 insightsByCategory[i.category].push(i)
               })
               
-              earningsContext = `\n\nEARNINGS CALL & FINANCIAL INSIGHTS (from recent earnings transcripts):
+              earningsContext = `\n\nEARNINGS CALL INSIGHTS (from recent earnings transcripts):
 ${Object.entries(insightsByCategory).map(([cat, items]) => 
   `${cat.toUpperCase().replace('-', ' ')}:
 ${items.map(i => `- ${i.title}: ${i.description}${i.quote ? ` ("${i.quote}")` : ''}`).join('\n')}`
@@ -162,13 +191,78 @@ ${items.map(i => `- ${i.title}: ${i.description}${i.quote ? ` ("${i.quote}")` : 
 
 IMPORTANT: Use these earnings insights to inform your use case suggestions. Address the company's stated strategic priorities, help solve their pain points, and align with their investment areas.`
 
-              toast.success(`Found ${fetchedInsights.length} insights from ${earningsResult.transcripts.length} earnings transcripts`)
+              toast.success(`Found ${fetchedInsights.length} insights from ${earningsResult.value.transcripts.length} earnings transcripts`)
             }
           }
-        } catch (earningsError) {
-          console.warn('Could not fetch earnings data:', earningsError)
-          // Continue without earnings data
+          
+          // Process financial statements
+          if (financialsResult.status === 'fulfilled' && financialsResult.value.statements.length > 0) {
+            dataSources.push('financials')
+            const financials = financialsResult.value
+            setFinancialMetrics(financials)
+            
+            const statements = financials.statements[0]
+            financialsContext = `\n\nFINANCIAL STATEMENTS & METRICS:
+${financials.summary}
+
+Key Financial Data:
+- Revenue: ${statements.revenue ? `$${(statements.revenue / 1e9).toFixed(2)}B` : 'N/A'}
+- Net Income: ${statements.netIncome ? `$${(statements.netIncome / 1e9).toFixed(2)}B` : 'N/A'}
+- Total Assets: ${statements.totalAssets ? `$${(statements.totalAssets / 1e9).toFixed(2)}B` : 'N/A'}
+
+IMPORTANT: Use these financial metrics to inform use cases about cost savings, revenue growth opportunities, and ROI potential. Consider the company's financial scale when sizing opportunities.`
+
+            toast.success('Loaded financial statements')
+          }
+          
+          // Process company news
+          if (newsResult.status === 'fulfilled' && newsResult.value.articles.length > 0) {
+            dataSources.push('news')
+            const news = newsResult.value
+            setNewsArticles(news)
+            
+            const recentNews = news.articles.slice(0, 8)
+            newsContext = `\n\nRECENT COMPANY NEWS (${recentNews.length} articles):
+${recentNews.map(a => `- ${a.title} (${a.source}, ${a.sentiment})`).join('\n')}
+
+IMPORTANT: Consider these recent developments, announcements, and market sentiment when suggesting use cases. Align with current business initiatives and market conditions.`
+
+            toast.success(`Found ${news.articles.length} recent news articles`)
+          }
+        } catch (error) {
+          console.warn('Could not fetch financial data:', error)
+          // Continue without financial data
         }
+      } else {
+        hasTickerWarning = true
+      }
+      
+      // Fetch industry research (always, doesn't require ticker)
+      if (session.industry && session.industry !== 'general') {
+        try {
+          const industryResult = await fetchIndustryResearch(session.industry, session.customerName)
+          if (industryResult.insights.length > 0) {
+            dataSources.push('industry-research')
+            setIndustryInsights(industryResult)
+            
+            industryResearchContext = `\n\nINDUSTRY STANDARDS, TRENDS & REGULATIONS:
+${industryResult.insights.map(i => `- [${i.category.toUpperCase()}] ${i.title}: ${i.description} (Source: ${i.source})`).join('\n')}
+
+IMPORTANT: Ensure use cases align with industry standards and address key trends. Consider regulatory compliance requirements.`
+
+            toast.success(`Found ${industryResult.insights.length} industry insights`)
+          }
+        } catch (error) {
+          console.warn('Could not fetch industry research:', error)
+        }
+      }
+      
+      // Show warning if no ticker provided
+      if (hasTickerWarning) {
+        toast.warning('No stock ticker provided', {
+          description: 'Use cases will be generated from discovery responses and industry research only. Add a ticker for comprehensive financial analysis.',
+          duration: 5000,
+        })
       }
 
       setGenerationPhase('generating')
@@ -183,14 +277,17 @@ Primary Jurisdiction: ${jurisdiction}
 ${session.stockTicker ? `Stock Ticker: ${session.stockTicker} (Public Company)` : ''}
 
 DISCOVERY RESPONSES:
-${responsesText}${industryContext}${earningsContext}
+${responsesText}${industryContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}
 
-TASK: Analyze the responses${earningsContext ? ' and earnings insights' : ''} to suggest 5-8 high-value use cases that could benefit from AI, automation, or digital transformation using Microsoft technologies.
+TASK: Analyze ALL available data sources to suggest 5-8 high-value use cases that could benefit from AI, automation, or digital transformation using Microsoft technologies.
+
+DATA SOURCES AVAILABLE:
+${dataSources.map(ds => `- ${ds.toUpperCase()}`).join('\n')}
 
 For each use case, provide:
 1. A clear, actionable title (max 60 characters) - make it specific and compelling
 2. A detailed description explaining the opportunity and potential solution (2-3 sentences)
-3. A brief rationale explaining why this makes sense based on their specific responses${earningsContext ? ' and earnings data' : ''} (1 sentence referencing their pain points or goals)
+3. A brief rationale explaining why this makes sense based on the available data sources (1-2 sentences referencing specific insights from earnings, financials, news, or industry research)
 4. AI Regulations & Compliance considerations:
    - applicableFrameworks: array of relevant regulation codes (e.g., "gdpr", "popia", "hipaa", "sox", "msha", "osha", "eu-ai-act", "iso-42001")
    - riskClassification: EU AI Act risk level ("minimal", "limited", "high", or "unacceptable")
@@ -258,6 +355,7 @@ Return the result as a valid JSON object with a single property called "useCases
         rationale: uc.rationale,
         aiRegulations: uc.aiRegulations,
         cybersecurity: uc.cybersecurity,
+        dataSources: dataSources, // Include all data sources used during generation
       }))
       
       updateSession(session.id, {
@@ -398,20 +496,125 @@ Return the result as a valid JSON object with a single property called "useCases
                       AI generation was unavailable. These are curated samples that can be edited.
                     </p>
                   )}
-                  {usedEarningsData && earningsInsights.length > 0 && (
-                    <div className="mt-4 p-3 bg-primary/5 rounded-lg text-left max-w-md mx-auto">
-                      <p className="text-xs font-medium text-primary mb-2">Key Insights from Earnings Calls:</p>
-                      <ul className="text-xs text-muted-foreground space-y-1">
-                        {earningsInsights.slice(0, 3).map((insight) => (
-                          <li key={insight.id} className="flex items-start gap-2">
-                            <span className="text-primary">•</span>
-                            <span>{insight.title}</span>
-                          </li>
-                        ))}
-                        {earningsInsights.length > 3 && (
-                          <li className="text-muted-foreground/70">+{earningsInsights.length - 3} more insights</li>
+                  {usedEarningsData && (earningsInsights.length > 0 || financialMetrics || newsArticles || industryInsights) && (
+                    <div className="mt-4 space-y-3 max-w-lg mx-auto">
+                      <div className="p-4 bg-primary/5 rounded-lg text-left">
+                        <div className="flex items-start gap-3 mb-3">
+                          <Database size={20} className="text-primary mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-primary mb-1">
+                              How Comprehensive Data Enriches Use Cases
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              We analyzed multiple data sources including earnings transcripts, financial statements, recent news, and industry research
+                              to identify the company's strategic priorities, pain points, and investment areas. This comprehensive intelligence ensures 
+                              our AI-generated use cases directly address their stated business goals and challenges.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Data Sources Overview */}
+                        <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+                          <p className="text-xs font-medium text-foreground mb-2">Data Sources Used:</p>
+                          
+                          {earningsInsights.length > 0 && (
+                            <div className="flex items-start gap-2 text-xs">
+                              <Badge variant="outline" className="gap-1 bg-blue-500/10 text-blue-600 border-blue-500/30">
+                                <CheckCircle size={12} weight="fill" />
+                                Earnings Transcripts
+                              </Badge>
+                              <span className="text-muted-foreground">{earningsInsights.length} insights from recent calls</span>
+                            </div>
+                          )}
+                          
+                          {financialMetrics && financialMetrics.statements.length > 0 && (
+                            <div className="flex items-start gap-2 text-xs">
+                              <Badge variant="outline" className="gap-1 bg-green-500/10 text-green-600 border-green-500/30">
+                                <CheckCircle size={12} weight="fill" />
+                                Financial Statements
+                              </Badge>
+                              <span className="text-muted-foreground">Income statement, balance sheet, metrics</span>
+                            </div>
+                          )}
+                          
+                          {newsArticles && newsArticles.articles.length > 0 && (
+                            <div className="flex items-start gap-2 text-xs">
+                              <Badge variant="outline" className="gap-1 bg-orange-500/10 text-orange-600 border-orange-500/30">
+                                <CheckCircle size={12} weight="fill" />
+                                Company News
+                              </Badge>
+                              <span className="text-muted-foreground">{newsArticles.articles.length} recent articles with sentiment analysis</span>
+                            </div>
+                          )}
+                          
+                          {industryInsights && industryInsights.insights.length > 0 && (
+                            <div className="flex items-start gap-2 text-xs">
+                              <Badge variant="outline" className="gap-1 bg-purple-500/10 text-purple-600 border-purple-500/30">
+                                <CheckCircle size={12} weight="fill" />
+                                Industry Research
+                              </Badge>
+                              <span className="text-muted-foreground">{industryInsights.insights.length} insights on trends & standards</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-start gap-2 text-xs">
+                            <Badge variant="outline" className="gap-1 bg-gray-500/10 text-gray-600 border-gray-500/30">
+                              <CheckCircle size={12} weight="fill" />
+                              Discovery Session
+                            </Badge>
+                            <span className="text-muted-foreground">{session.responses.length} Q&A responses</span>
+                          </div>
+                        </div>
+                        
+                        {earningsDataSources && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <p className="text-xs font-medium text-foreground mb-2">Financial Data Sources:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {earningsDataSources.secEdgar && (
+                                <Badge variant="outline" className="text-xs gap-1">
+                                  <CheckCircle size={12} weight="fill" />
+                                  SEC EDGAR
+                                </Badge>
+                              )}
+                              {earningsDataSources.jseSens && (
+                                <Badge variant="outline" className="text-xs gap-1">
+                                  <CheckCircle size={12} weight="fill" />
+                                  JSE SENS
+                                </Badge>
+                              )}
+                              {earningsDataSources.yahooFinance && (
+                                <Badge variant="outline" className="text-xs gap-1">
+                                  <CheckCircle size={12} weight="fill" />
+                                  Yahoo Finance
+                                </Badge>
+                              )}
+                              {earningsDataSources.alphaVantage && (
+                                <Badge variant="outline" className="text-xs gap-1">
+                                  <CheckCircle size={12} weight="fill" />
+                                  Alpha Vantage
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
                         )}
-                      </ul>
+                      </div>
+
+                      {/* Key Insights Section */}
+                      {earningsInsights.length > 0 && (
+                        <div className="p-3 bg-accent/30 rounded-lg text-left">
+                          <p className="text-xs font-medium text-foreground mb-2">Key Insights from Earnings:</p>
+                          <ul className="text-xs text-muted-foreground space-y-1.5">
+                            {earningsInsights.slice(0, 3).map((insight) => (
+                              <li key={insight.id} className="flex items-start gap-2">
+                                <span className="text-primary font-bold">•</span>
+                                <span><strong>{insight.title}:</strong> {insight.description}</span>
+                            </li>
+                          ))}
+                          {earningsInsights.length > 3 && (
+                            <li className="text-muted-foreground/70 italic">+{earningsInsights.length - 3} more insights analyzed</li>
+                          )}
+                        </ul>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -24,6 +24,7 @@ interface WorkflowUseCase {
   selected: boolean
   impact?: number
   feasibility?: number
+  dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery')[]
   rice?: {
     reach: number
     users: number
@@ -36,7 +37,7 @@ interface WorkflowUseCase {
 
 interface EnhancedDiscoveryWorkflowProps {
   session: DiscoverySession
-  initialUseCases: Array<{ title: string; description: string; rationale: string }>
+  initialUseCases: Array<{ title: string; description: string; rationale: string; dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery')[] }>
   onComplete: (useCases: Partial<UseCase>[], executiveSummary: string) => void
   onCancel: () => void
 }
@@ -57,6 +58,7 @@ export function EnhancedDiscoveryWorkflow({
       description: uc.description,
       rationale: uc.rationale,
       selected: true,
+      dataSources: uc.dataSources || ['discovery'], // Preserve data sources
     }))
   )
   const [currentUseCaseIndex, setCurrentUseCaseIndex] = useState(0)
@@ -221,6 +223,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
       description: uc.description,
       impact: uc.impact || 5,
       feasibility: uc.feasibility || 5,
+      dataSources: uc.dataSources || ['discovery'], // Preserve data sources
       rice: uc.rice || {
         reach: 100,
         users: 100,

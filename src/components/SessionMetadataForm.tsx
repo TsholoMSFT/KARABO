@@ -1,11 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
-import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine } from '@phosphor-icons/react'
+import { useCustomers } from '@/hooks/use-customers'
+import { lookupTickerSymbol, TickerLookupResult } from '@/lib/earnings-service'
+import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info } from '@phosphor-icons/react'
+import { toast } from 'sonner'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export interface SessionMetadata {
   customerName: string
@@ -63,6 +69,7 @@ const INNOVATION_HUB_LOCATIONS = [
 ]
 
 export function SessionMetadataForm({ onSubmit, onCancel, initialMetadata }: SessionMetadataFormProps) {
+  const { customers, getCustomerById } = useCustomers()
   const [metadata, setMetadata] = useState<SessionMetadata>({
     customerName: initialMetadata?.customerName || '',
     innovationHubSPOC: initialMetadata?.innovationHubSPOC || '',
@@ -73,6 +80,83 @@ export function SessionMetadataForm({ onSubmit, onCancel, initialMetadata }: Ses
     stockTicker: initialMetadata?.stockTicker || '',
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [tickerSuggestions, setTickerSuggestions] = useState<TickerLookupResult[]>([])
+  const [isSearchingTicker, setIsSearchingTicker] = useState(false)
+  const [showTickerSuggestions, setShowTickerSuggestions] = useState(false)
+  const [tickerAutoPopulated, setTickerAutoPopulated] = useState(false)
+
+  // Auto-populate from existing customer when customer name changes
+  useEffect(() => {
+    const customerName = metadata.customerName.trim().toLowerCase()
+    if (!customerName || tickerAutoPopulated) return
+
+    const existingCustomer = customers.find(
+      (c) => c.name.toLowerCase().trim() === customerName
+    )
+
+    if (existingCustomer && existingCustomer.stockTicker) {
+      setMetadata((current) => ({
+        ...current,
+        stockTicker: existingCustomer.stockTicker || '',
+      }))
+      setTickerAutoPopulated(true)
+      toast.success(`Ticker ${existingCustomer.stockTicker} loaded from previous session`)
+    }
+  }, [metadata.customerName, customers])
+
+  // Auto-search ticker when customer name has 3+ characters
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (
+        metadata.customerName.trim().length >= 3 && 
+        !metadata.stockTicker && 
+        !tickerAutoPopulated &&
+        !isSearchingTicker
+      ) {
+        handleTickerSearch()
+      }
+    }, 1500) // Debounce 1.5 seconds
+
+    return () => clearTimeout(timer)
+  }, [metadata.customerName])
+
+  // Auto-search ticker when customer name is filled
+  const handleTickerSearch = async () => {
+    if (!metadata.customerName.trim() || metadata.customerName.trim().length < 3) {
+      toast.error('Please enter a customer name (minimum 3 characters)')
+      return
+    }
+
+    setIsSearchingTicker(true)
+    setShowTickerSuggestions(true)
+    setTickerSuggestions([])
+
+    try {
+      const results = await lookupTickerSymbol(metadata.customerName)
+      setTickerSuggestions(results)
+      
+      if (results.length === 0) {
+        toast.info('No ticker symbols found. You can enter one manually.')
+      } else {
+        toast.success(`Found ${results.length} ticker suggestion${results.length !== 1 ? 's' : ''}`)
+      }
+    } catch (error) {
+      console.error('Ticker lookup error:', error)
+      toast.error('Failed to search ticker symbols. You can enter one manually.')
+    } finally {
+      setIsSearchingTicker(false)
+    }
+  }
+
+  const handleSelectTicker = (ticker: TickerLookupResult) => {
+    setMetadata((current) => ({
+      ...current,
+      stockTicker: ticker.ticker,
+    }))
+    setShowTickerSuggestions(false)
+    setTickerAutoPopulated(true)
+    toast.success(`Ticker ${ticker.ticker} selected`)
+  }
 
   const handleChange = (field: keyof SessionMetadata, value: string) => {
     setMetadata((current) => ({ ...current, [field]: value }))
@@ -198,21 +282,107 @@ export function SessionMetadataForm({ onSubmit, onCancel, initialMetadata }: Ses
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="stock-ticker" className="flex items-center gap-2">
                   <ChartLine size={16} />
                   Stock Ticker (Optional)
                 </Label>
-                <Input
-                  id="stock-ticker"
-                  placeholder="e.g., MSFT, NPN.JO, SOL.JO"
-                  value={metadata.stockTicker || ''}
-                  onChange={(e) => handleChange('stockTicker', e.target.value.toUpperCase())}
-                  className="uppercase"
-                />
-                <p className="text-xs text-muted-foreground">
-                  For public companies - enables AI analysis of earnings calls and financial data
-                </p>
+                <div className="flex gap-2">
+                  <Input
+                    id="stock-ticker"
+                    placeholder="e.g., MSFT, NPN.JO, SOL.JO"
+                    value={metadata.stockTicker || ''}
+                    onChange={(e) => {
+                      handleChange('stockTicker', e.target.value.toUpperCase())
+                      setTickerAutoPopulated(false)
+                    }}
+                    className="uppercase flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTickerSearch}
+                    disabled={isSearchingTicker || !metadata.customerName.trim()}
+                    className="gap-2"
+                  >
+                    <MagnifyingGlass size={16} />
+                    {isSearchingTicker ? 'Searching...' : 'Search'}
+                  </Button>
+                </div>
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <Info size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>
+                    For public companies - enables AI analysis of earnings calls and financial data. 
+                    Click Search to auto-discover ticker symbols or enter manually.
+                  </span>
+                </div>
+
+                <AnimatePresence>
+                  {showTickerSuggestions && tickerSuggestions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="border rounded-lg p-3 bg-muted/30 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Suggested Tickers:</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowTickerSuggestions(false)}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Close
+                        </Button>
+                      </div>
+                      <Separator />
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {tickerSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.ticker}
+                            type="button"
+                            onClick={() => handleSelectTicker(suggestion)}
+                            className="w-full text-left p-2 rounded hover:bg-accent transition-colors flex items-center justify-between group"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-semibold text-sm">
+                                  {suggestion.ticker}
+                                </span>
+                                <Badge 
+                                  variant={
+                                    suggestion.confidence === 'high' 
+                                      ? 'default' 
+                                      : suggestion.confidence === 'medium'
+                                      ? 'secondary'
+                                      : 'outline'
+                                  }
+                                  className="text-xs"
+                                >
+                                  {suggestion.confidence}
+                                </Badge>
+                                {suggestion.region && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {suggestion.region}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                {suggestion.name}
+                                {suggestion.exchange && ` • ${suggestion.exchange}`}
+                              </p>
+                            </div>
+                            <Check size={16} className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-2" />
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground italic">
+                        Sources: Yahoo Finance & Alpha Vantage
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
