@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Settings } from 'lucide-react'
 import { StageNavigator } from './StageNavigator'
 import { YellowLightsDashboard } from './YellowLightsDashboard'
 import { SessionControlBar } from './SessionControlBar'
+import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { Stage0Start } from './stages/Stage0Start'
 import { Stage1Opportunity } from './stages/Stage1Opportunity'
 import { Stage2Resources } from './stages/Stage2Resources'
@@ -65,6 +66,7 @@ export function EnterpriseDiscoveryOrchestrator({
   
   const [lastSaved, setLastSaved] = useState<number | undefined>(session.lastSavedAt)
   const [isLiveMode, setIsLiveMode] = useState(session.isLiveMode || false)
+  const [showSettings, setShowSettings] = useState(false)
 
   // Auto-save every 30 seconds
   useEffect(() => {
@@ -329,18 +331,32 @@ export function EnterpriseDiscoveryOrchestrator({
         </div>
         
         {/* Session Control Bar */}
-        <SessionControlBar
-          sessionId={session.id}
-          clientName={session.clientName}
-          currentStage={currentStage}
-          isLiveMode={isLiveMode}
-          onToggleLiveMode={handleToggleLiveMode}
-          onPauseSession={handlePauseSession}
-          onEndSession={handleEndSession}
-          onExportPDF={handleExportPDF}
-          lastSaved={lastSaved}
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSettings(true)}
+            className="gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            Settings
+          </Button>
+          <SessionControlBar
+            sessionId={session.id}
+            clientName={session.clientName}
+            currentStage={currentStage}
+            isLiveMode={isLiveMode}
+            onToggleLiveMode={handleToggleLiveMode}
+            onPauseSession={handlePauseSession}
+            onEndSession={handleEndSession}
+            onExportPDF={handleExportPDF}
+            lastSaved={lastSaved}
+          />
+        </div>
       </div>
+
+      {/* Settings Dialog */}
+      <DiscoverySettingsDialog open={showSettings} onOpenChange={setShowSettings} />
 
       {/* Stage Navigator */}
       <StageNavigator

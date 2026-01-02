@@ -43,7 +43,7 @@ export function LiveDiscoveryMode({
   selectedIndustry,
   initialResponses,
 }: LiveDiscoveryModeProps) {
-  const { settings } = useDiscoverySettings()
+  const { isAIFeatureEnabled } = useDiscoverySettings()
   const [currentStep, setCurrentStep] = useState(0)
   const [responses, setResponses] = useState<DiscoveryResponse[]>(initialResponses || [])
   const [manualOverride, setManualOverride] = useState<string>('')
@@ -238,7 +238,7 @@ Keep questions conversational, specific to their answer, and focused on discover
       }
       onComplete(session)
     } else {
-      if (isLastBaseQuestion && fullTranscript.trim() && !currentQuestion.isFollowUp && settings.enableFollowUpQuestions) {
+      if (isLastBaseQuestion && fullTranscript.trim() && !currentQuestion.isFollowUp && isAIFeatureEnabled('enableFollowUpQuestions')) {
         setShowFollowUpPrompt(true)
       } else {
         setCurrentStep(currentStep + 1)
@@ -535,7 +535,7 @@ Keep questions conversational, specific to their answer, and focused on discover
                 </motion.div>
 
                 {/* AI Insight */}
-                {displayText && (
+                {displayText && isAIFeatureEnabled('enableAIInsights') && (
                   <div className="border-t pt-4">
                     <Button
                       variant="outline"

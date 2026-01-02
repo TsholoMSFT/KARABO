@@ -75,7 +75,7 @@ GUIDELINES:
 
 Return the result as a valid JSON object with a single property called "useCases" that contains an array of use case objects. Each use case should have "title", "description", and "rationale" properties.`
 
-      const useCasesResult = await window.llm(useCasesPromptText, 'gpt-4o', true)
+      const useCasesResult = await window.llm(useCasesPromptText, 'gpt-4o-mini', true)
       const parsed = JSON.parse(useCasesResult)
 
       let useCases: SuggestedUseCase[] = []

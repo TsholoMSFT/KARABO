@@ -191,7 +191,7 @@ STYLE GUIDELINES:
 
 Write the executive summary now:`
 
-      const summary = await window.llm(summaryPromptText, 'gpt-4o')
+      const summary = await window.llm(summaryPromptText, 'gpt-4o-mini')
       setExecutiveSummary(summary)
       toast.success('Executive summary generated!')
       setStep('save-confirm')

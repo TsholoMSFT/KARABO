@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CalendarIcon, Loader2, Sparkles, CheckCircle2, XCircle, Plus, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
 import type {
   ResourcesStageData,
   BudgetStatus,
@@ -28,6 +29,8 @@ interface Stage2ResourcesProps {
 }
 
 export function Stage2Resources({ initialData, onComplete, onBack, isLiveMode = false }: Stage2ResourcesProps) {
+  const { isAIFeatureEnabled } = useDiscoverySettings()
+  
   // Financial
   const [budgetStatus, setBudgetStatus] = useState<BudgetStatus>(initialData?.budgetStatus || 'unknown')
   const [budgetRange, setBudgetRange] = useState<BudgetRange>(initialData?.budgetRange || 'unknown')
@@ -348,19 +351,21 @@ Return JSON: {situation, complication, question}`
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 SCQ Confirmation
-                <Button variant="outline" size="sm" onClick={generateSCQ} disabled={isGeneratingSCQ}>
-                  {isGeneratingSCQ ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Auto-Generate
-                    </>
-                  )}
-                </Button>
+                {isAIFeatureEnabled('enableSCQGeneration') && (
+                  <Button variant="outline" size="sm" onClick={generateSCQ} disabled={isGeneratingSCQ}>
+                    {isGeneratingSCQ ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Auto-Generate
+                      </>
+                    )}
+                  </Button>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

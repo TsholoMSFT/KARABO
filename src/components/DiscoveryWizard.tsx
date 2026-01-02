@@ -48,7 +48,7 @@ export function DiscoveryWizard({
   initialIndustry,
   initialResponses 
 }: DiscoveryWizardProps) {
-  const { settings } = useDiscoverySettings()
+  const { isAIFeatureEnabled } = useDiscoverySettings()
   const [wizardStep, setWizardStep] = useState<WizardStep>(
     initialSessionName ? (initialIndustry ? 'questions' : 'industry') : 'name'
   )
@@ -227,7 +227,7 @@ Keep questions conversational, specific to their answer, and focused on discover
       }
       onComplete(session)
     } else {
-      if (isLastBaseQuestion && currentAnswer.trim() && !currentQuestion.isFollowUp && settings.enableFollowUpQuestions) {
+      if (isLastBaseQuestion && currentAnswer.trim() && !currentQuestion.isFollowUp && isAIFeatureEnabled('enableFollowUpQuestions')) {
         setShowFollowUpPrompt(true)
       } else {
         setCurrentStep(currentStep + 1)
@@ -583,16 +583,18 @@ Keep questions conversational, specific to their answer, and focused on discover
                       <p className="text-xs text-muted-foreground">
                         Optional: You can skip questions and come back later
                       </p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={generateAiSuggestion}
-                        disabled={isGeneratingSuggestion}
-                        className="gap-2 text-xs"
-                      >
-                        <Sparkle size={14} weight="fill" className="text-primary" />
-                        {isGeneratingSuggestion ? 'Thinking...' : 'Need help?'}
-                      </Button>
+                      {isAIFeatureEnabled('enableAIInsights') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={generateAiSuggestion}
+                          disabled={isGeneratingSuggestion}
+                          className="gap-2 text-xs"
+                        >
+                          <Sparkle size={14} weight="fill" className="text-primary" />
+                          {isGeneratingSuggestion ? 'Thinking...' : 'Need help?'}
+                        </Button>
+                      )}
                     </div>
 
                     <AnimatePresence>

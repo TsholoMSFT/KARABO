@@ -25,8 +25,8 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
   return (
     <>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 space-y-4">
-        {/* Mode Toggle */}
-        <div className="flex justify-center">
+        {/* Mode Toggle with Settings */}
+        <div className="flex justify-center items-center gap-3">
           <Tabs value={mode} onValueChange={(v) => setMode(v as DiscoveryMode)} className="w-auto">
             <TabsList className="grid w-[400px] grid-cols-2">
               <TabsTrigger value="quick" className="gap-2">
@@ -39,6 +39,10 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
               </TabsTrigger>
             </TabsList>
           </Tabs>
+          <Button onClick={() => setSettingsOpen(true)} size="sm" variant="outline" className="gap-2">
+            <GearSix size={16} />
+            AI Settings
+          </Button>
         </div>
 
         {/* Quick Discovery Card */}
@@ -76,10 +80,6 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
                       Live Discovery
                     </Button>
                   )}
-                  <Button onClick={() => setSettingsOpen(true)} size="sm" variant="ghost" className="gap-2">
-                    <GearSix size={16} />
-                    Settings
-                  </Button>
                 </div>
               </div>
             </CardHeader>

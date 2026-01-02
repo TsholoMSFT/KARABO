@@ -1,0 +1,18 @@
+{
+  "name": "karabo-api",
+  "version": "1.0.0",
+  "description": "Azure Functions API proxy for KARABO",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "start": "func start",
+    "test": "echo \"No tests yet\""
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

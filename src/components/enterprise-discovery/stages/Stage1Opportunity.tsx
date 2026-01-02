@@ -12,6 +12,7 @@ import { CurrencyInput } from '@/components/ui/currency-input'
 import { Loader2, Sparkles, CheckCircle2, XCircle, Edit, Mic } from 'lucide-react'
 import { VoiceInputField } from '../VoiceInputField'
 import { calculateTotalCOI } from '@/lib/financial-calculations'
+import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
 import type { OpportunityStageData, ProblemCategory, AffectedArea, TimelineExpectation, SCQStatus } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +24,8 @@ interface Stage1OpportunityProps {
 }
 
 export function Stage1Opportunity({ initialData, onComplete, onBack, isLiveMode = false }: Stage1OpportunityProps) {
+  const { isAIFeatureEnabled } = useDiscoverySettings()
+  
   // 1A: Current State
   const [problemStatement, setProblemStatement] = useState(initialData?.problemStatement || '')
   const [problemCategory, setProblemCategory] = useState<ProblemCategory>(initialData?.problemCategory || 'efficiency')
@@ -412,24 +415,26 @@ Return ONLY a JSON object with keys: situation, complication, question`
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 1D: SCQ Confirmation
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={generateSCQ}
-                  disabled={isGeneratingSCQ || !problemStatement || !desiredOutcome}
-                >
-                  {isGeneratingSCQ ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Auto-Generate SCQ
-                    </>
-                  )}
-                </Button>
+                {isAIFeatureEnabled('enableSCQGeneration') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={generateSCQ}
+                    disabled={isGeneratingSCQ || !problemStatement || !desiredOutcome}
+                  >
+                    {isGeneratingSCQ ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Auto-Generate SCQ
+                      </>
+                    )}
+                  </Button>
+                )}
               </CardTitle>
               <CardDescription>
                 Situation-Complication-Question framework to confirm understanding

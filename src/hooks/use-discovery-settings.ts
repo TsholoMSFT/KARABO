@@ -1,11 +1,24 @@
 import { useLocalStorage } from './use-local-storage'
 
 export interface DiscoverySettings {
+  // Master AI toggle
+  enableAIAssist: boolean
+  
+  // Quick Discovery AI features
   enableFollowUpQuestions: boolean
+  enableAIInsights: boolean
+  
+  // Enterprise Discovery AI features
+  enableSCQGeneration: boolean
+  enableUseCaseGeneration: boolean
 }
 
 const defaultSettings: DiscoverySettings = {
+  enableAIAssist: true,
   enableFollowUpQuestions: true,
+  enableAIInsights: true,
+  enableSCQGeneration: true,
+  enableUseCaseGeneration: true,
 }
 
 export function useDiscoverySettings() {
@@ -18,8 +31,15 @@ export function useDiscoverySettings() {
     })
   }
 
+  // Helper to check if a specific AI feature is enabled (respects master toggle)
+  const isAIFeatureEnabled = (feature: keyof Omit<DiscoverySettings, 'enableAIAssist'>): boolean => {
+    const currentSettings = settings || defaultSettings
+    return currentSettings.enableAIAssist && currentSettings[feature]
+  }
+
   return {
     settings: settings || defaultSettings,
     updateSettings,
+    isAIFeatureEnabled,
   }
 }
