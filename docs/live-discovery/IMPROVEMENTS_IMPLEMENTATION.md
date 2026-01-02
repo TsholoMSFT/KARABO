@@ -1,8 +1,11 @@
 # Live Discovery Browser Capability Improvements
 
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
 ## Overview
 
-This implementation adds comprehensive browser capability detection and error handling to the Live Discovery feature, addressing cross-browser compatibility issues and providing graceful fallbacks when voice input is not available.
+This implementation adds comprehensive browser capability detection and error handling to the Live Discovery feature. I designed this to address cross-browser compatibility issues and provide graceful fallbacks when voice input is not available.
 
 ## New Files Created
 

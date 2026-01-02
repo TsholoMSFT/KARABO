@@ -1,5 +1,8 @@
 # Live Discovery - Quick Reference Guide
 
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
 ## Browser Support at a Glance
 
 ```

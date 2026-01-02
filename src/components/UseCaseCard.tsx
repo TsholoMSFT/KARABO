@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { UseCase } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -7,10 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { PencilSimple, Trash, Sparkle, Info } from '@phosphor-icons/react'
+import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
-import { motion } from 'framer-motion'
+import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface UseCaseCardProps {
   useCase: UseCase
@@ -31,9 +33,12 @@ export function UseCaseCard({
   onDelete,
   onEdit,
 }: UseCaseCardProps) {
+  const [showCompliance, setShowCompliance] = useState(false)
   const riceScore = calculateRICEScore(useCase)
   const impactFeasScore = useCase.impact * useCase.feasibility
   const quadrant = getQuadrant(useCase.impact, useCase.feasibility)
+
+  const hasComplianceInfo = useCase.aiRegulations || useCase.cybersecurity
 
   const impactLabels = [
     { value: 0.25, label: 'Minimal' },
@@ -416,6 +421,98 @@ export function UseCaseCard({
           </TooltipProvider>
         )}
         </motion.div>
+
+        {/* Compliance & Security Footnote Section */}
+        {hasComplianceInfo && (
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <button
+              onClick={() => setShowCompliance(!showCompliance)}
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              <Scales size={14} />
+              <ShieldCheck size={14} />
+              <span>Compliance & Security Notes</span>
+              {showCompliance ? <CaretUp size={12} /> : <CaretDown size={12} />}
+            </button>
+            
+            <AnimatePresence>
+              {showCompliance && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-3 space-y-3 text-xs">
+                    {/* AI Regulations */}
+                    {useCase.aiRegulations && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Scales size={12} />
+                          <span className="font-medium">AI Regulations</span>
+                          {useCase.aiRegulations.riskClassification && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                              {RISK_LEVEL_LABELS[useCase.aiRegulations.riskClassification] || useCase.aiRegulations.riskClassification}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {useCase.aiRegulations.applicableFrameworks?.map((framework) => (
+                            <Badge 
+                              key={framework} 
+                              variant="secondary" 
+                              className="text-[10px] px-1.5 py-0 h-4 bg-muted/50"
+                            >
+                              {REGULATION_LABELS[framework] || framework}
+                            </Badge>
+                          ))}
+                        </div>
+                        {useCase.aiRegulations.jurisdictions && useCase.aiRegulations.jurisdictions.length > 0 && (
+                          <div className="text-muted-foreground">
+                            <span className="font-medium">Jurisdictions:</span> {useCase.aiRegulations.jurisdictions.join(', ')}
+                          </div>
+                        )}
+                        {useCase.aiRegulations.complianceNotes && (
+                          <p className="text-muted-foreground italic">{useCase.aiRegulations.complianceNotes}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Cybersecurity */}
+                    {useCase.cybersecurity && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <ShieldCheck size={12} />
+                          <span className="font-medium">Cybersecurity</span>
+                          {useCase.cybersecurity.dataClassification && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                              {DATA_CLASSIFICATION_LABELS[useCase.cybersecurity.dataClassification] || useCase.cybersecurity.dataClassification}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {useCase.cybersecurity.securityRequirements?.map((req) => (
+                            <Badge 
+                              key={req} 
+                              variant="secondary" 
+                              className="text-[10px] px-1.5 py-0 h-4 bg-muted/50"
+                            >
+                              {SECURITY_REQUIREMENT_LABELS[req] || req}
+                            </Badge>
+                          ))}
+                        </div>
+                        {useCase.cybersecurity.securityNotes && (
+                          <p className="text-muted-foreground italic">{useCase.cybersecurity.securityNotes}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
         </Card>
         </motion.div>
       </motion.div>

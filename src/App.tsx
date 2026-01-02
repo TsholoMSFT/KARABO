@@ -25,6 +25,7 @@ import { SessionComparison } from '@/components/SessionComparison'
 import { SessionMetadataForm } from '@/components/SessionMetadataForm'
 import { CustomerSelector } from '@/components/CustomerSelector'
 import { EnterpriseDiscoveryOrchestrator } from '@/components/enterprise-discovery/EnterpriseDiscoveryOrchestrator'
+import { DEMO_DISCOVERY_SESSION, DEMO_USE_CASES, DEMO_ENTERPRISE_SESSION } from '@/lib/demo-data'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -194,6 +195,57 @@ function App() {
   const handleResumeEnterpriseDiscovery = (session: EnterpriseDiscoverySession) => {
     setCurrentEnterpriseSession(session)
     setCurrentView('enterprise-discovery')
+  }
+
+  // Demo mode handlers - load pre-populated Zava Mining data
+  const handleStartDemo = () => {
+    // Create a fresh demo session with unique IDs
+    const demoSession: DiscoverySession = {
+      ...DEMO_DISCOVERY_SESSION,
+      id: `demo-session-${Date.now()}`,
+      customerId: `demo-customer-${Date.now()}`,
+      createdAt: Date.now(),
+      completedAt: Date.now(),
+    }
+    
+    // Create customer and add session
+    const customer = findOrCreateCustomer(demoSession.customerName, demoSession.innovationHubSPOC || '')
+    demoSession.customerId = customer.id
+    addSession(demoSession)
+    
+    // Add demo use cases with updated session ID
+    const demoUseCasesWithIds = DEMO_USE_CASES.map(uc => ({
+      ...uc,
+      id: `demo-uc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      discoverySessionId: demoSession.id,
+      createdAt: Date.now(),
+    }))
+    setUseCases(current => [...(current || []), ...demoUseCasesWithIds])
+    
+    // Select the demo session
+    setSelectedCustomerId(customer.id)
+    setSelectedSessionId(demoSession.id)
+    
+    toast.success('Demo loaded! Exploring Zava Mining use cases...', {
+      description: 'This demo showcases AI-powered mining innovations with regulatory compliance.',
+    })
+  }
+
+  const handleStartEnterpriseDemo = () => {
+    // Load pre-populated enterprise discovery session
+    const demoEnterpriseSession: EnterpriseDiscoverySession = {
+      ...DEMO_ENTERPRISE_SESSION,
+      id: `demo-enterprise-${Date.now()}`,
+      createdAt: Date.now(),
+      sessionDate: Date.now(),
+    }
+    
+    setCurrentEnterpriseSession(demoEnterpriseSession)
+    setCurrentView('enterprise-discovery')
+    
+    toast.success('Enterprise Demo loaded!', {
+      description: 'Exploring Zava Mining predictive maintenance opportunity.',
+    })
   }
 
   const handleEnterpriseSessionPause = (session: EnterpriseDiscoverySession) => {
@@ -414,6 +466,8 @@ function App() {
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
+                  onStartDemo={handleStartDemo}
+                  onStartEnterpriseDemo={handleStartEnterpriseDemo}
                 />
                 <EmptyState onAddFirst={handleOpenAddDialog} />
               </>
@@ -460,6 +514,8 @@ function App() {
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
+                  onStartDemo={handleStartDemo}
+                  onStartEnterpriseDemo={handleStartEnterpriseDemo}
                 />
 
                 <Card className="border-2 bg-card mb-8">

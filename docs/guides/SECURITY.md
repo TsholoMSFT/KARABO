@@ -1,31 +1,48 @@
-Thanks for helping make GitHub safe for everyone.
+# KARABO - Security Policy
 
-# Security
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
 
-GitHub takes the security of our software products and services seriously, including all of the open source code repositories managed through our GitHub organizations, such as [GitHub](https://github.com/GitHub).
+## Security Considerations
 
-Even though [open source repositories are outside of the scope of our bug bounty program](https://bounty.github.com/index.html#scope) and therefore not eligible for bounty rewards, we will ensure that your finding gets passed along to the appropriate maintainers for remediation. 
+I designed KARABO with the following security principles in mind:
+
+### Data Privacy
+- All data is stored locally in your browser using localStorage
+- No external databases or user authentication required
+- Session data persists only in your browser
+- AI features process only the information you explicitly provide
+
+### API Key Security
+- OpenAI API keys are stored in environment variables
+- Keys are never exposed to the browser directly
+- All AI requests are made through secure HTTPS connections
+
+### Browser Security
+- Live Discovery requires HTTPS or localhost for microphone access
+- Web Speech API follows browser permission models
+- No third-party tracking or analytics
 
 ## Reporting Security Issues
 
-If you believe you have found a security vulnerability in any GitHub-owned repository, please report it to us through coordinated disclosure.
+If you believe you have found a security vulnerability in KARABO, please report it responsibly.
 
 **Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.**
 
-Instead, please send an email to opensource-security[@]github.com.
+Instead, please contact me directly via Microsoft Teams or email.
 
-Please include as much of the information listed below as you can to help us better understand and resolve the issue:
+Please include as much of the information listed below as you can to help me understand and resolve the issue:
 
-  * The type of issue (e.g., buffer overflow, SQL injection, or cross-site scripting)
-  * Full paths of source file(s) related to the manifestation of the issue
-  * The location of the affected source code (tag/branch/commit or direct URL)
-  * Any special configuration required to reproduce the issue
-  * Step-by-step instructions to reproduce the issue
-  * Proof-of-concept or exploit code (if possible)
-  * Impact of the issue, including how an attacker might exploit the issue
+  * The type of issue (e.g., XSS, API key exposure, data leak)
+  * Full paths of source file(s) related to the issue
+  * Steps to reproduce the issue
+  * Impact of the issue
 
-This information will help us triage your report more quickly.
+## Security Best Practices
 
-## Policy
+When deploying KARABO:
 
-See [GitHub's Safe Harbor Policy](https://docs.github.com/en/site-policy/security-policies/github-bug-bounty-program-legal-safe-harbor#1-safe-harbor-terms)
+1. **Keep API keys secure** - Never commit `.env` files to source control
+2. **Use HTTPS** - Always deploy behind HTTPS in production
+3. **Restrict API access** - Use Azure OpenAI endpoint restrictions when available
+4. **Regular updates** - Keep dependencies updated to patch vulnerabilities

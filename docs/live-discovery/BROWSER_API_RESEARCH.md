@@ -1,8 +1,11 @@
 # Live Discovery Feature - Browser APIs & Compatibility Research
 
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
 ## Executive Summary
 
-The Live Discovery feature in KARABO relies primarily on the **Web Speech API** for voice input functionality. The implementation demonstrates a awareness of browser compatibility issues with clear fallback mechanisms, though there are some missing error handling scenarios and browser-specific considerations that could be improved.
+The Live Discovery feature in KARABO relies primarily on the **Web Speech API** for voice input functionality. My analysis shows the implementation demonstrates awareness of browser compatibility issues with clear fallback mechanisms, though there are some missing error handling scenarios and browser-specific considerations that I identified for improvement.
 
 ---
 

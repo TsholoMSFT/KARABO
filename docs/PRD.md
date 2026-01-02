@@ -1,14 +1,17 @@
 # Planning Guide
 
-A strategic prioritization tool that helps product teams evaluate and rank use cases using Impact vs. Feasibility analysis and RICE scoring methodology to identify the top 3-5 highest-value opportunities.
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
 
-**Experience Qualities**:
+I designed this strategic prioritization tool to help product teams evaluate and rank use cases using Impact vs. Feasibility analysis and RICE scoring methodology to identify the top 3-5 highest-value opportunities.
+
+**Experience Qualities I'm Aiming For**:
 1. **Analytical** - The interface should feel data-driven and methodical, instilling confidence in the prioritization decisions through clear visualizations and structured scoring.
 2. **Efficient** - Users should move quickly through evaluating multiple use cases without friction, with smart defaults and intuitive input patterns that respect their time.
 3. **Insightful** - The app should reveal patterns and make recommendations visible through dynamic visualizations, helping users see the "why" behind the top-ranked use cases at a glance.
 
 **Complexity Level**: Light Application (multiple features with basic state)
-This app manages multiple use cases with structured scoring data, visualizations, and persistent state, plus an AI-powered discovery process to help identify use cases. It doesn't require advanced features like authentication, real-time collaboration, or complex workflows.
+I built this app to manage multiple use cases with structured scoring data, visualizations, and persistent state, plus an AI-powered discovery process to help identify use cases. It doesn't require advanced features like authentication, real-time collaboration, or complex workflows.
 
 ## Essential Features
 
@@ -92,10 +95,10 @@ This app manages multiple use cases with structured scoring data, visualizations
 - **Large Data Sets**: Gracefully handle 20+ use cases with scrolling and maintain visualization performance
 
 ## Design Direction
-The design should evoke precision, clarity, and strategic intelligence - like a command center for product decisions. The interface should feel modern and data-forward, with confidence-inspiring visualizations that make complex prioritization feel approachable and actionable.
+I want the design to evoke precision, clarity, and strategic intelligence - like a command center for product decisions. The interface should feel modern and data-forward, with confidence-inspiring visualizations that make complex prioritization feel approachable and actionable.
 
 ## Color Selection
-A professional palette inspired by Microsoft Innovation Hub that balances analytical credibility with approachable warmth and clarity.
+I chose a professional palette inspired by Microsoft Innovation Hub that balances analytical credibility with approachable warmth and clarity.
 
 - **Primary Color**: Microsoft Blue `oklch(0.45 0.13 265)` - Communicates innovation, intelligence, and trustworthiness; used for primary actions and key data points
 - **Secondary Colors**: 
@@ -109,7 +112,7 @@ A professional palette inspired by Microsoft Innovation Hub that balances analyt
   - Muted (Light gray `oklch(0.96 0.005 240)`): Medium text `oklch(0.48 0.01 240)` - Ratio 4.9:1 ✓
 
 ## Font Selection
-Typography should communicate analytical precision while remaining approachable - a balance between technical credibility and human-centered design.
+I selected typography that communicates analytical precision while remaining approachable - a balance between technical credibility and human-centered design.
 
 - **Primary Font**: Space Grotesk - A geometric sans with technical character that feels modern and precise, perfect for data-driven interfaces
 - **Secondary Font**: Inter - For body text and form inputs, providing exceptional readability and a neutral, professional foundation
@@ -123,9 +126,9 @@ Typography should communicate analytical precision while remaining approachable 
   - Data Values (Scores): Space Grotesk SemiBold / 20px / tabular-nums
 
 ## Animations
-Animations should reinforce the sense of intelligent, responsive analysis - smooth transitions that make data changes feel connected and purposeful, with subtle celebrations for insights discovered.
+I designed animations to reinforce the sense of intelligent, responsive analysis - smooth transitions that make data changes feel connected and purposeful, with subtle celebrations for insights discovered.
 
-Use animations to:
+I use animations to:
 - Smooth transitions when use cases move on the matrix (spring physics, 400ms)
 - Gentle scale and highlight effect when a use case enters the top 3-5 (scale 1.02, glow effect)
 - Subtle number counting animation when RICE scores recalculate (200ms ease-out)

@@ -1,8 +1,11 @@
 # Live Discovery Improvements - Complete Implementation Index
 
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
 ## 📌 START HERE
 
-Welcome! This directory contains a complete implementation of browser capability detection and error handling for Live Discovery. Use this index to navigate the documentation and code.
+Welcome! This directory contains a complete implementation of browser capability detection and error handling for Live Discovery that I built. Use this index to navigate the documentation and code.
 
 ---
 

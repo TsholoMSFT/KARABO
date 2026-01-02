@@ -1,6 +1,9 @@
 # KARABO - Microsoft Innovation Hub Use Case Assessment Tool
 
-A comprehensive web application for evaluating and prioritizing use cases using Impact vs. Feasibility analysis and RICE scoring methodology, powered by AI to streamline the discovery process.
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
+I built this comprehensive web application to help evaluate and prioritize use cases using Impact vs. Feasibility analysis and RICE scoring methodology. The tool is powered by AI to streamline the discovery process and make customer engagements more efficient.
 
 ## 🚀 Quick Start
 
@@ -96,13 +99,15 @@ This application leverages **OpenAI's GPT-4o and GPT-4o-mini** models to provide
 
 ## Getting Started
 
+Here's how I designed the workflow:
+
 1. **Start a Discovery Session**: Click "Start Discovery" from the landing page
 2. **Enter Customer Information**: Provide customer name, location, and stakeholders
 3. **Choose Discovery Mode**:
    - Standard Mode for typed responses (with AI help available)
    - Live Mode for voice-based sessions (with AI insights)
 4. **Answer Questions**: Respond to guided questions about the customer's needs
-5. **Review AI-Generated Use Cases**: AI analyzes your responses and suggests relevant use cases
+5. **Review AI-Generated Use Cases**: The AI analyzes responses and suggests relevant use cases
 6. **Score Use Cases**: Evaluate each use case using Impact/Feasibility and RICE scoring
 7. **View Results**: AI generates an executive summary and displays prioritized recommendations
 8. **Export & Share**: Generate PDF reports for stakeholder presentations
@@ -180,6 +185,13 @@ The built files will be in the `dist/` directory, ready to deploy to any static 
 
 **Important**: Remember to set your `VITE_OPENAI_API_KEY` environment variable in your hosting platform's settings.
 
+## 👤 Author
+
+**Tsholo K. Setati**  
+Microsoft Innovation Hub
+
+---
+
 📄 **License**
 
-MIT License
+MIT License - Copyright (c) 2026 Tsholo K. Setati

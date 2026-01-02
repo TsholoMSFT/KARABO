@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { PausedSessionsList } from '@/components/enterprise-discovery/PausedSessionsList'
-import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket } from '@phosphor-icons/react'
+import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket, Play } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
 
@@ -16,9 +16,11 @@ interface DiscoveryLauncherProps {
   onStartLiveDiscovery?: () => void
   onStartEnterpriseDiscovery?: () => void
   onResumeEnterpriseDiscovery?: (session: EnterpriseDiscoverySession) => void
+  onStartDemo?: () => void
+  onStartEnterpriseDemo?: () => void
 }
 
-export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery }: DiscoveryLauncherProps) {
+export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo }: DiscoveryLauncherProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mode, setMode] = useState<DiscoveryMode>('quick')
 
@@ -78,6 +80,12 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
                     <Button onClick={onStartLiveDiscovery} size="lg" variant="outline" className="gap-2">
                       <Microphone size={20} weight="fill" />
                       Live Discovery
+                    </Button>
+                  )}
+                  {onStartDemo && (
+                    <Button onClick={onStartDemo} size="sm" variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
+                      <Play size={16} weight="fill" />
+                      Try Demo (Zava Mining)
                     </Button>
                   )}
                 </div>
@@ -171,10 +179,16 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
                       onClick={onStartLiveDiscovery} 
                       size="lg" 
                       variant="outline" 
-                      className="gap-2 border-[#0078D4]/50 text-[#0078D4] hover:bg-[#0078D4]/10"
+                      className="gap-2 text-white border-white/30 hover:bg-white/10"
                     >
                       <Microphone size={20} weight="fill" />
                       Live Enterprise Discovery
+                    </Button>
+                  )}
+                  {onStartEnterpriseDemo && (
+                    <Button onClick={onStartEnterpriseDemo} size="sm" variant="ghost" className="gap-2 text-white/60 hover:text-white hover:bg-white/10">
+                      <Play size={16} weight="fill" />
+                      Try Demo (Zava Mining)
                     </Button>
                   )}
                 </div>

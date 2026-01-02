@@ -1,7 +1,10 @@
 # Live Discovery - Browser API Improvements Roadmap
 
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
 ## Overview
-This document outlines specific code improvements to enhance browser API compatibility, error handling, and fallback mechanisms for the Live Discovery feature.
+This document outlines specific code improvements I've identified to enhance browser API compatibility, error handling, and fallback mechanisms for the Live Discovery feature.
 
 ---
 

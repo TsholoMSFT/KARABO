@@ -1,8 +1,11 @@
 # Live Discovery Browser API Research - Complete Index
 
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
 ## 📋 Research Documents Created
 
-This research package contains 4 comprehensive documents analyzing the Live Discovery feature's browser API usage, compatibility, error handling, and fallback mechanisms.
+This research package contains 4 comprehensive documents I created analyzing the Live Discovery feature's browser API usage, compatibility, error handling, and fallback mechanisms.
 
 ### Document Overview
 

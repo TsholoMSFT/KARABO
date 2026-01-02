@@ -1,5 +1,8 @@
 # ✅ Live Discovery Browser API Research - COMPLETE
 
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
 ## Research Project Status: **SUCCESSFULLY COMPLETED**
 
 **Date Completed**: January 1, 2026  

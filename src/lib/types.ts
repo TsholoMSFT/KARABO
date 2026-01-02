@@ -13,6 +13,89 @@ export interface Customer {
   updatedAt?: number
 }
 
+// ============================================================================
+// AI REGULATIONS & CYBERSECURITY TYPES
+// ============================================================================
+
+export type AIRegulationFramework = 
+  | 'eu-ai-act'           // EU AI Act
+  | 'nist-ai-rmf'         // NIST AI Risk Management Framework
+  | 'gdpr'                // GDPR (data protection)
+  | 'hipaa'               // HIPAA (healthcare)
+  | 'sox'                 // Sarbanes-Oxley (financial)
+  | 'ccpa'                // California Consumer Privacy Act
+  | 'popia'               // South Africa POPIA
+  | 'iso-42001'           // ISO/IEC 42001 AI Management
+  | 'oecd-ai-principles'  // OECD AI Principles
+  | 'white-house-eo'      // US Executive Order on AI
+  | 'msha'                // Mine Safety and Health (mining)
+  | 'dmre'                // SA Dept of Mineral Resources (mining)
+  | 'epa'                 // Environmental Protection
+  | 'osha'                // Occupational Safety
+  | 'nerc-cip'            // Energy sector cybersecurity
+  | 'pci-dss'             // Payment Card Industry
+  | 'ferpa'               // Education records
+  | 'glba'                // Gramm-Leach-Bliley (financial)
+  | 'other'
+
+export type AIRiskLevel = 
+  | 'unacceptable'        // Banned under EU AI Act
+  | 'high'                // Requires conformity assessment
+  | 'limited'             // Transparency obligations
+  | 'minimal'             // No specific requirements
+
+export type SecurityRequirement =
+  | 'encryption-at-rest'
+  | 'encryption-in-transit'
+  | 'access-control'
+  | 'audit-logging'
+  | 'penetration-testing'
+  | 'vulnerability-scanning'
+  | 'data-masking'
+  | 'mfa-required'
+  | 'soc2-compliance'
+  | 'iso27001'
+  | 'zero-trust'
+  | 'air-gapped'
+  | 'on-premises-only'
+  | 'scada-protection'    // Industrial control systems
+
+export type ThreatCategory =
+  | 'data-breach'
+  | 'prompt-injection'
+  | 'model-poisoning'
+  | 'adversarial-attacks'
+  | 'data-exfiltration'
+  | 'insider-threat'
+  | 'supply-chain'
+  | 'denial-of-service'
+  | 'ot-it-convergence'   // Operational Technology risks
+  | 'scada-attack'        // Industrial control system attacks
+
+export type DataClassification =
+  | 'public'
+  | 'internal'
+  | 'confidential'
+  | 'highly-confidential'
+  | 'pii'
+  | 'phi'                 // Protected Health Information
+  | 'financial'
+  | 'operational'         // Operational/industrial data
+
+export interface AIRegulationsInfo {
+  applicableFrameworks: AIRegulationFramework[]
+  riskClassification?: AIRiskLevel
+  complianceNotes?: string
+  jurisdictions?: string[]  // e.g., ['South Africa', 'EU', 'USA']
+}
+
+export interface CybersecurityInfo {
+  securityRequirements: SecurityRequirement[]
+  threatCategories?: ThreatCategory[]
+  dataClassification?: DataClassification
+  securityNotes?: string
+}
+
 export interface UseCase {
   id: string
   discoverySessionId?: string
@@ -29,6 +112,9 @@ export interface UseCase {
     effort: number
   }
   kpis?: string[]
+  // AI Regulations & Cybersecurity (footnote-level considerations)
+  aiRegulations?: AIRegulationsInfo
+  cybersecurity?: CybersecurityInfo
   createdAt: number
 }
 

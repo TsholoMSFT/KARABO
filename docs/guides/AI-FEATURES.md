@@ -1,8 +1,11 @@
 # AI Integration Documentation
 
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
 ## Overview
 
-The Microsoft Innovation Hub Use Case Assessment application now features comprehensive AI capabilities powered by OpenAI's GPT-4o and GPT-4o-mini models. These AI features enhance the discovery process, use case generation, and executive summary creation to provide intelligent, context-aware assistance throughout the assessment workflow.
+I integrated comprehensive AI capabilities into the Microsoft Innovation Hub Use Case Assessment application using OpenAI's GPT-4o and GPT-4o-mini models. These AI features enhance the discovery process, use case generation, and executive summary creation to provide intelligent, context-aware assistance throughout the assessment workflow.
 
 ## AI Features
 
@@ -191,17 +194,19 @@ const summary = await window.llm(summaryPromptText, 'gpt-4o')
 
 ## AI Model Selection Strategy
 
+I chose different models for different purposes:
+
 ### GPT-4o-mini
-**Used for**: Real-time insights and suggestions during discovery
-**Rationale**: 
+**Used for**: Real-time insights and suggestions during discovery  
+**My rationale**: 
 - Faster response times for interactive features
 - Lower latency for better user experience
 - Sufficient quality for conversational assistance
 - Cost-effective for frequent, smaller requests
 
 ### GPT-4o
-**Used for**: Use case generation and executive summaries
-**Rationale**:
+**Used for**: Use case generation and executive summaries  
+**My rationale**:
 - Higher quality output for critical deliverables
 - Better understanding of complex business contexts
 - More sophisticated reasoning for strategic recommendations
@@ -254,6 +259,8 @@ const summary = await window.llm(summaryPromptText, 'gpt-4o')
 - All stored data persists in browser localStorage
 
 ## Future Enhancement Opportunities
+
+Here are features I'm considering for future releases:
 
 1. **Adaptive Follow-up Questions**: AI generates custom follow-up questions based on previous answers
 2. **Editable Summaries**: Allow users to refine AI-generated summaries with AI assistance

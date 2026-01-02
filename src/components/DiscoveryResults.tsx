@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { DiscoverySession, UseCase } from '@/lib/types'
+import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
+import { getRegulationsForIndustry, getSecurityRequirementsForIndustry, getRegulationsForJurisdiction } from '@/lib/demo-data'
 import { EnhancedDiscoveryWorkflow } from '@/components/EnhancedDiscoveryWorkflow'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -20,6 +21,8 @@ interface SuggestedUseCase {
   description: string
   rationale: string
   selected: boolean
+  aiRegulations?: AIRegulationsInfo
+  cybersecurity?: CybersecurityInfo
 }
 
 export function DiscoveryResults({ session, onCreateUseCases, onBack }: DiscoveryResultsProps) {
@@ -50,12 +53,24 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
         ? `\n\nINDUSTRY CONTEXT: The organization operates in the ${industryLabels[session.industry]} sector. Tailor your suggestions to be relevant to this industry's specific challenges and opportunities.`
         : ''
 
+      // Determine jurisdiction from location
+      const jurisdiction = session.innovationHubLocation?.toLowerCase().includes('johannesburg') ||
+        session.innovationHubLocation?.toLowerCase().includes('south africa') ||
+        session.innovationHubLocation?.toLowerCase().includes('cape town')
+        ? 'South Africa'
+        : session.innovationHubLocation?.toLowerCase().includes('london') || session.innovationHubLocation?.toLowerCase().includes('uk')
+        ? 'United Kingdom'
+        : session.innovationHubLocation?.toLowerCase().includes('europe') || session.innovationHubLocation?.toLowerCase().includes('eu')
+        ? 'European Union'
+        : 'United States'
+
       const useCasesPromptText = `You are an innovation consultant at Microsoft helping identify potential use cases for Microsoft technologies and AI solutions.
 
 DISCOVERY SESSION CONTEXT:
 Customer: ${session.customerName}
 Industry: ${session.industry ? industryLabels[session.industry] : 'General'}
 Location: ${session.innovationHubLocation}
+Primary Jurisdiction: ${jurisdiction}
 
 DISCOVERY RESPONSES:
 ${responsesText}${industryContext}
@@ -66,17 +81,44 @@ For each use case, provide:
 1. A clear, actionable title (max 60 characters) - make it specific and compelling
 2. A detailed description explaining the opportunity and potential solution (2-3 sentences)
 3. A brief rationale explaining why this makes sense based on their specific responses (1 sentence referencing their pain points or goals)
+4. AI Regulations & Compliance considerations:
+   - applicableFrameworks: array of relevant regulation codes (e.g., "gdpr", "popia", "hipaa", "sox", "msha", "osha", "eu-ai-act", "iso-42001")
+   - riskClassification: EU AI Act risk level ("minimal", "limited", "high", or "unacceptable")
+   - complianceNotes: brief note on key compliance considerations
+   - jurisdictions: array of applicable jurisdictions (e.g., ["South Africa", "European Union"])
+5. Cybersecurity considerations:
+   - securityRequirements: array of required controls (e.g., "encryption-at-rest", "access-control", "audit-logging", "scada-protection", "mfa-required")
+   - dataClassification: data sensitivity level ("public", "internal", "confidential", "pii", "operational")
+   - securityNotes: brief note on key security considerations
+
+INDUSTRY-SPECIFIC REGULATIONS TO CONSIDER:
+- Healthcare: HIPAA, GDPR
+- Financial Services: SOX, GLBA, PCI-DSS, GDPR
+- Mining/Energy: MSHA, OSHA, EPA, environmental regulations
+- South Africa: POPIA, DMRE (for mining)
+- European operations: GDPR, EU AI Act
+- US operations: CCPA, NIST AI RMF
 
 GUIDELINES:
 - Focus on practical, implementable solutions that address their stated challenges
 - Consider Azure AI, Microsoft 365 Copilot, Power Platform, Azure OpenAI Service, and other Microsoft innovations
 - Prioritize use cases with clear business value and feasibility
 - Ensure diversity in the types of solutions (don't suggest 5 variations of the same thing)
+- For safety-critical AI (affecting workers, health, critical infrastructure), classify as "high" risk
 
-Return the result as a valid JSON object with a single property called "useCases" that contains an array of use case objects. Each use case should have "title", "description", and "rationale" properties.`
+Return the result as a valid JSON object with a single property called "useCases" that contains an array of use case objects. Each use case should have "title", "description", "rationale", "aiRegulations", and "cybersecurity" properties.`
 
       const useCasesResult = await window.llm(useCasesPromptText, 'gpt-4o-mini', true)
       const parsed = JSON.parse(useCasesResult)
+
+      // Get default regulations based on industry and jurisdiction for fallback
+      const defaultRegulations = session.industry 
+        ? getRegulationsForIndustry(session.industry) 
+        : []
+      const jurisdictionRegs = getRegulationsForJurisdiction(jurisdiction)
+      const defaultSecurityReqs = session.industry 
+        ? getSecurityRequirementsForIndustry(session.industry) 
+        : []
 
       let useCases: SuggestedUseCase[] = []
       if (parsed.useCases && Array.isArray(parsed.useCases)) {
@@ -85,6 +127,15 @@ Return the result as a valid JSON object with a single property called "useCases
           description: uc.description,
           rationale: uc.rationale,
           selected: true,
+          aiRegulations: uc.aiRegulations || {
+            applicableFrameworks: [...new Set([...defaultRegulations, ...jurisdictionRegs])],
+            riskClassification: 'minimal',
+            jurisdictions: [jurisdiction],
+          },
+          cybersecurity: uc.cybersecurity || {
+            securityRequirements: defaultSecurityReqs,
+            dataClassification: 'internal',
+          },
         }))
         setSuggestedUseCases(useCases)
         toast.success(`Generated ${useCases.length} use cases from your discovery session!`)
@@ -94,6 +145,8 @@ Return the result as a valid JSON object with a single property called "useCases
         title: uc.title,
         description: uc.description,
         rationale: uc.rationale,
+        aiRegulations: uc.aiRegulations,
+        cybersecurity: uc.cybersecurity,
       }))
       
       updateSession(session.id, {

@@ -28,9 +28,13 @@ export function useSpeechRecognition({
   const [transcript, setTranscript] = useState('')
   const [interimTranscript, setInterimTranscript] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [isSupported, setIsSupported] = useState(() => {
+    // Check immediately on initialization
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    return !!SpeechRecognition
+  })
   
   const recognitionRef = useRef<any>(null)
-  const isSupported = useRef(false)
   const transcriptRef = useRef('')
   const isStartingRef = useRef(false)
 
@@ -40,7 +44,7 @@ export function useSpeechRecognition({
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    isSupported.current = !!SpeechRecognition
+    setIsSupported(!!SpeechRecognition)
 
     if (!SpeechRecognition) return
 
@@ -110,29 +114,35 @@ export function useSpeechRecognition({
   }, [onTranscriptUpdate, onComplete, onError, language])
 
   const startListening = useCallback(() => {
-    if (recognitionRef.current && !isListening && !isStartingRef.current) {
+    if (recognitionRef.current && !isStartingRef.current) {
       try {
         isStartingRef.current = true
+        // Immediately set listening state for responsive UI
+        setIsListening(true)
         recognitionRef.current.start()
       } catch (error: any) {
         isStartingRef.current = false
+        setIsListening(false)
         if (error.name !== 'InvalidStateError') {
           console.error('Failed to start speech recognition:', error)
           setError('Failed to start speech recognition')
         }
       }
     }
-  }, [isListening])
+  }, [])
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current && isListening) {
+    if (recognitionRef.current) {
       try {
+        // Immediately set state for responsive UI
+        setIsListening(false)
+        isStartingRef.current = false
         recognitionRef.current.stop()
       } catch (error) {
         console.error('Failed to stop speech recognition:', error)
       }
     }
-  }, [isListening])
+  }, [])
 
   const resetTranscript = useCallback(() => {
     setTranscript('')
@@ -142,7 +152,7 @@ export function useSpeechRecognition({
 
   return {
     isListening,
-    isSupported: isSupported.current,
+    isSupported,
     transcript,
     interimTranscript,
     startListening,

@@ -1,8 +1,11 @@
 # Live Discovery Browser Capabilities - Quick Start Guide
 
-## What Was Added?
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
 
-Four new files to handle browser capability detection and provide graceful fallbacks:
+## What I Added
+
+I created four new files to handle browser capability detection and provide graceful fallbacks:
 
 ```
 src/lib/browser-capabilities.ts              (Core detection logic)
@@ -168,9 +171,9 @@ Settings are saved to localStorage automatically.
 
 1. **Review** the implementation summary above
 2. **Test** on different browsers using the testing checklist
-3. **Deploy** - code is backward compatible, no breaking changes
+3. **Deploy** - the code is backward compatible, no breaking changes
 4. **Monitor** - watch for capability-related errors in logs
-5. **Iterate** - gather user feedback on fallback clarity
+5. **Iterate** - I'll gather user feedback to improve the experience
 
 ## File Reference
 

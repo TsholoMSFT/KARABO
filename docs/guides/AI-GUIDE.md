@@ -1,8 +1,11 @@
 # AI Integration Summary
 
+**Author:** Tsholo K. Setati  
+**Project:** Microsoft Innovation Hub Enterprise Discovery
+
 ## What's New? 🤖✨
 
-Your Microsoft Innovation Hub Use Case Assessment tool now features powerful AI capabilities that make the discovery process smarter, faster, and more insightful.
+I've added powerful AI capabilities to the Microsoft Innovation Hub Use Case Assessment tool to make the discovery process smarter, faster, and more insightful.
 
 ## Key AI Features
 
@@ -28,7 +31,7 @@ Your Microsoft Innovation Hub Use Case Assessment tool now features powerful AI 
 
 ## AI Model Information
 
-We use two OpenAI models for optimal performance:
+I chose two OpenAI models for optimal performance:
 
 - **GPT-4o**: Powers use case generation and executive summaries for highest quality strategic output
 - **GPT-4o-mini**: Powers real-time insights and suggestions for fast, responsive assistance
@@ -48,6 +51,8 @@ We use two OpenAI models for optimal performance:
 - You maintain full control over all generated content
 
 ## Tips for Best Results
+
+From my experience, here's what works best:
 
 ✅ **Provide detailed answers**: More context leads to better AI suggestions
 ✅ **Use AI help when stuck**: Don't hesitate to request insights or suggestions
