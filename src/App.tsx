@@ -25,6 +25,7 @@ import { SessionComparison } from '@/components/SessionComparison'
 import { SessionMetadataForm } from '@/components/SessionMetadataForm'
 import { CustomerSelector } from '@/components/CustomerSelector'
 import { EnterpriseDiscoveryOrchestrator } from '@/components/enterprise-discovery/EnterpriseDiscoveryOrchestrator'
+import { Disclaimer } from '@/components/Disclaimer'
 import { DEMO_DISCOVERY_SESSION, DEMO_USE_CASES, DEMO_ENTERPRISE_SESSION } from '@/lib/demo-data'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -438,6 +439,46 @@ function App() {
         />
       )}
 
+      {/* Fallback when live-discovery view is active but conditions not met */}
+      {currentView === 'live-discovery' && !pendingSessionMetadata && (
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <Card className="w-full max-w-md border-2 border-destructive/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <span>Session Error</span>
+              </CardTitle>
+              <CardDescription>
+                Unable to start Live Discovery. Session metadata is missing.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                This can happen if the page was refreshed or the session timed out. 
+                Please start a new discovery session.
+              </p>
+            </CardContent>
+            <CardFooter className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setCurrentView('dashboard')}
+                className="flex-1"
+              >
+                Go to Dashboard
+              </Button>
+              <Button 
+                onClick={() => {
+                  setDiscoveryMode('live')
+                  setCurrentView('session-metadata')
+                }}
+                className="flex-1"
+              >
+                Start New Session
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
+
       {currentView === 'dashboard' && (
         <motion.div
           animate={{
@@ -508,6 +549,8 @@ function App() {
                 <ExecutiveSummary
                   summary={customerMetadata?.executiveSummary || ''}
                 />
+
+                <Disclaimer variant="compact" className="mb-6" />
 
                 <DiscoveryLauncher 
                   onStartDiscovery={handleStartDiscovery} 
@@ -756,6 +799,7 @@ function App() {
             topUseCases={topUseCases}
             scoringMethod={scoringMethod}
             customerMetadata={customerMetadata || undefined}
+            suggestedUseCases={selectedSession?.suggestedUseCases}
           />
 
           <SessionManager

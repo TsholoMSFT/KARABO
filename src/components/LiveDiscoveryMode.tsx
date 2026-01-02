@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { DiscoveryResponse, DiscoverySession, Industry, DiscoveryQuestion } from '@/lib/types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
@@ -19,7 +19,9 @@ import {
   WarningCircle,
   Sparkle,
   Keyboard,
-  Lightbulb
+  Lightbulb,
+  SpinnerGap,
+  Warning
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -54,6 +56,30 @@ export function LiveDiscoveryMode({
   const [followUpQuestions, setFollowUpQuestions] = useState<DiscoveryQuestion[]>([])
   const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false)
   const [showFollowUpPrompt, setShowFollowUpPrompt] = useState(false)
+  const [speechFailCount, setSpeechFailCount] = useState(0)
+  const hasAutoStartedRef = useRef(false)
+  const maxSpeechFailures = 3
+
+  // Memoize callback to prevent hook recreation
+  const handleTranscriptUpdate = useCallback((fullTranscript: string) => {
+    if (fullTranscript.length > 20) {
+      setManualOverride(fullTranscript)
+    }
+  }, [])
+
+  const handleSpeechError = useCallback((errorMessage: string) => {
+    console.error('[LiveDiscovery] Speech error:', errorMessage)
+    toast.error(errorMessage, { duration: 4000 })
+    
+    setSpeechFailCount(prev => {
+      const newCount = prev + 1
+      if (newCount >= maxSpeechFailures) {
+        toast.info('Switching to text input after multiple failures', { duration: 3000 })
+        setUseManualInput(true)
+      }
+      return newCount
+    })
+  }, [])
 
   const { 
     isListening, 
@@ -62,14 +88,13 @@ export function LiveDiscoveryMode({
     interimTranscript, 
     startListening, 
     stopListening, 
-    resetTranscript 
+    resetTranscript,
+    error: speechError,
+    isStarting,
+    retryCount
   } = useSpeechRecognition({
-    onTranscriptUpdate: (fullTranscript) => {
-      // Auto-fill if speech provides enough content
-      if (fullTranscript.length > 20) {
-        setManualOverride(fullTranscript)
-      }
-    },
+    onTranscriptUpdate: handleTranscriptUpdate,
+    onError: handleSpeechError,
   })
 
   const questions = getQuestionsForIndustry(selectedIndustry)
@@ -307,14 +332,31 @@ Keep questions conversational, specific to their answer, and focused on discover
     }
   }
 
+  // Auto-start listening on first question only once
   useEffect(() => {
-    if (!isListening && currentStep === 0 && !useManualInput && isSupported) {
+    if (
+      !isListening && 
+      !isStarting && 
+      currentStep === 0 && 
+      !useManualInput && 
+      isSupported && 
+      !hasAutoStartedRef.current &&
+      speechFailCount < maxSpeechFailures
+    ) {
+      hasAutoStartedRef.current = true
       const timer = setTimeout(() => {
         startListening()
-      }, 500)
+      }, 800) // Slightly longer delay for browser readiness
       return () => clearTimeout(timer)
     }
-  }, [currentStep, isListening, useManualInput, isSupported, startListening])
+  }, [currentStep, isListening, isStarting, useManualInput, isSupported, startListening, speechFailCount])
+
+  // Reset auto-start flag when moving to new questions
+  useEffect(() => {
+    if (currentStep > 0) {
+      hasAutoStartedRef.current = false
+    }
+  }, [currentStep])
 
   useEffect(() => {
     return () => {
@@ -346,7 +388,7 @@ Keep questions conversational, specific to their answer, and focused on discover
               <Button variant="outline" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button variant="outline" onClick={() => window.history.back()}>
+              <Button variant="outline" onClick={onCancel}>
                 Go Back
               </Button>
             </CardFooter>
@@ -468,7 +510,18 @@ Keep questions conversational, specific to their answer, and focused on discover
                   }`}>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        {isListening ? (
+                        {isStarting ? (
+                          <>
+                            <SpinnerGap 
+                              size={24} 
+                              weight="bold" 
+                              className="text-primary animate-spin"
+                            />
+                            <span className="text-sm font-medium text-primary">
+                              {retryCount > 0 ? `Connecting (retry ${retryCount}/3)...` : 'Starting...'}
+                            </span>
+                          </>
+                        ) : isListening ? (
                           <>
                             <Microphone 
                               size={24} 
@@ -476,6 +529,11 @@ Keep questions conversational, specific to their answer, and focused on discover
                               className="text-primary animate-pulse"
                             />
                             <span className="text-sm font-medium text-primary">Recording...</span>
+                          </>
+                        ) : speechError ? (
+                          <>
+                            <Warning size={24} className="text-destructive" />
+                            <span className="text-sm font-medium text-destructive">Error - Try again</span>
                           </>
                         ) : (
                           <>
@@ -489,9 +547,15 @@ Keep questions conversational, specific to their answer, and focused on discover
                           size="sm"
                           variant={isListening ? 'destructive' : 'default'}
                           onClick={isListening ? stopListening : startListening}
+                          disabled={isStarting}
                           className="gap-2"
                         >
-                          {isListening ? (
+                          {isStarting ? (
+                            <>
+                              <SpinnerGap size={16} className="animate-spin" />
+                              Connecting...
+                            </>
+                          ) : isListening ? (
                             <>
                               <MicrophoneSlash size={16} />
                               Stop

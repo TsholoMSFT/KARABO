@@ -17,25 +17,50 @@ export interface Customer {
 // AI REGULATIONS & CYBERSECURITY TYPES
 // ============================================================================
 
+// Note: Full policy details are in ai-policies.ts
 export type AIRegulationFramework = 
-  | 'eu-ai-act'           // EU AI Act
-  | 'nist-ai-rmf'         // NIST AI Risk Management Framework
-  | 'gdpr'                // GDPR (data protection)
-  | 'hipaa'               // HIPAA (healthcare)
-  | 'sox'                 // Sarbanes-Oxley (financial)
-  | 'ccpa'                // California Consumer Privacy Act
-  | 'popia'               // South Africa POPIA
-  | 'iso-42001'           // ISO/IEC 42001 AI Management
-  | 'oecd-ai-principles'  // OECD AI Principles
-  | 'white-house-eo'      // US Executive Order on AI
-  | 'msha'                // Mine Safety and Health (mining)
-  | 'dmre'                // SA Dept of Mineral Resources (mining)
-  | 'epa'                 // Environmental Protection
-  | 'osha'                // Occupational Safety
-  | 'nerc-cip'            // Energy sector cybersecurity
-  | 'pci-dss'             // Payment Card Industry
-  | 'ferpa'               // Education records
-  | 'glba'                // Gramm-Leach-Bliley (financial)
+  // International/Global
+  | 'oecd-ai-principles'      // OECD AI Principles
+  | 'unesco-ai-ethics'        // UNESCO Recommendation on AI Ethics
+  | 'iso-42001'               // ISO/IEC 42001 AI Management System
+  
+  // European Union
+  | 'eu-ai-act'               // EU AI Act (2024)
+  | 'gdpr'                    // General Data Protection Regulation
+  
+  // United States
+  | 'nist-ai-rmf'             // NIST AI Risk Management Framework
+  | 'white-house-eo'          // US Executive Order on AI (Oct 2023)
+  | 'ccpa'                    // California Consumer Privacy Act
+  | 'hipaa'                   // HIPAA (healthcare)
+  | 'sox'                     // Sarbanes-Oxley (financial)
+  | 'ferpa'                   // Education records
+  | 'glba'                    // Gramm-Leach-Bliley (financial)
+  
+  // African Union & Africa
+  | 'au-ai-strategy'          // African Union AI Continental Strategy
+  | 'au-data-policy'          // AU Data Policy Framework
+  | 'smart-africa'            // Smart Africa Alliance AI Blueprint
+  
+  // South Africa
+  | 'sa-ai-policy-draft'      // South Africa Draft National AI Policy
+  | 'popia'                   // Protection of Personal Information Act
+  | 'ecta'                    // Electronic Communications and Transactions Act
+  | 'dmre'                    // Dept of Mineral Resources (mining)
+  | 'sahpra'                  // SA Health Products Regulatory Authority
+  
+  // Industry-Specific
+  | 'msha'                    // Mine Safety and Health (mining)
+  | 'epa'                     // Environmental Protection
+  | 'osha'                    // Occupational Safety
+  | 'nerc-cip'                // Energy sector cybersecurity
+  | 'pci-dss'                 // Payment Card Industry
+  
+  // Microsoft & Technology
+  | 'ms-responsible-ai'       // Microsoft Responsible AI Standard
+  | 'ms-ai-principles'        // Microsoft AI Principles
+  | 'ms-copilot-governance'   // Microsoft Copilot Governance
+  
   | 'other'
 
 export type AIRiskLevel = 
@@ -173,12 +198,25 @@ export interface DiscoverySession {
   solutionEngineer: string
   accountTeamRep: string
   primaryStakeholder: string
+  stockTicker?: string // For public companies - enables earnings/financial analysis
   executiveSummary?: string
   responses: DiscoveryResponse[]
   suggestedUseCases?: SuggestedUseCaseData[]
+  earningsInsights?: EarningsInsight[] // AI-extracted insights from earnings calls
   createdAt: number
   completedAt?: number
   sessionDate?: number
+}
+
+// Earnings/Financial data insights
+export interface EarningsInsight {
+  id: string
+  category: 'strategic-priority' | 'pain-point' | 'investment' | 'opportunity' | 'risk' | 'trend'
+  title: string
+  description: string
+  quote?: string
+  source: string
+  relevanceScore: number
 }
 
 export interface SuggestedUseCaseData {

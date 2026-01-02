@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
-import { Building, User, UserCircle, MapPin, Wrench, GearSix } from '@phosphor-icons/react'
+import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine } from '@phosphor-icons/react'
 
 export interface SessionMetadata {
   customerName: string
@@ -14,6 +14,7 @@ export interface SessionMetadata {
   accountTeamRep: string
   innovationHubLocation: string
   solutionEngineer: string
+  stockTicker?: string // Optional stock ticker for public companies
 }
 
 interface SessionMetadataFormProps {
@@ -69,6 +70,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, initialMetadata }: Ses
     accountTeamRep: initialMetadata?.accountTeamRep || '',
     innovationHubLocation: initialMetadata?.innovationHubLocation || '',
     solutionEngineer: initialMetadata?.solutionEngineer || '',
+    stockTicker: initialMetadata?.stockTicker || '',
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -194,6 +196,23 @@ export function SessionMetadataForm({ onSubmit, onCancel, initialMetadata }: Ses
                   value={metadata.solutionEngineer}
                   onChange={(e) => handleChange('solutionEngineer', e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stock-ticker" className="flex items-center gap-2">
+                  <ChartLine size={16} />
+                  Stock Ticker (Optional)
+                </Label>
+                <Input
+                  id="stock-ticker"
+                  placeholder="e.g., MSFT, NPN.JO, SOL.JO"
+                  value={metadata.stockTicker || ''}
+                  onChange={(e) => handleChange('stockTicker', e.target.value.toUpperCase())}
+                  className="uppercase"
+                />
+                <p className="text-xs text-muted-foreground">
+                  For public companies - enables AI analysis of earnings calls and financial data
+                </p>
               </div>
             </div>
 

@@ -20,5 +20,13 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: false,
+    proxy: {
+      // Proxy /api requests to Azure Functions running on port 7071
+      '/api': {
+        target: 'http://localhost:7071',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   }
 });

@@ -2,9 +2,11 @@
   "name": "karabo-api",
   "version": "1.0.0",
   "description": "Azure Functions API proxy for KARABO",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
+    "prestart": "npm run build",
     "start": "func start",
     "test": "echo \"No tests yet\""
   },

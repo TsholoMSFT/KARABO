@@ -1,4 +1,4 @@
-import { AzureFunction, Context, HttpRequest } from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
 /**
  * Azure Function Proxy for Azure OpenAI
@@ -16,44 +16,38 @@ interface ChatRequest {
   expectJson?: boolean;
 }
 
-const httpTrigger: AzureFunction = async function (
-  context: Context,
-  req: HttpRequest
-): Promise<void> {
-  // CORS headers
-  const headers = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
+// CORS headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
 
+async function chatHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   // Handle preflight
   if (req.method === "OPTIONS") {
-    context.res = { status: 204, headers };
-    return;
+    return { status: 204, headers: corsHeaders };
   }
 
   // Validate configuration
   if (!AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_API_KEY) {
-    context.res = {
+    return {
       status: 500,
-      headers,
-      body: { error: "Azure OpenAI not configured on server" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { error: "Azure OpenAI not configured on server" },
     };
-    return;
   }
 
   try {
-    const { prompt, model = "gpt-4o-mini", expectJson = false }: ChatRequest = req.body;
+    const body = await req.json() as ChatRequest;
+    const { prompt, model = "gpt-4o-mini", expectJson = false } = body;
 
     if (!prompt) {
-      context.res = {
+      return {
         status: 400,
-        headers,
-        body: { error: "Prompt is required" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: { error: "Prompt is required" },
       };
-      return;
     }
 
     // Select deployment based on model
@@ -81,43 +75,46 @@ const httpTrigger: AzureFunction = async function (
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      context.res = {
+      const errorData = await response.json().catch(() => ({})) as any;
+      return {
         status: response.status,
-        headers,
-        body: {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: {
           error: `Azure OpenAI error: ${response.status}`,
           details: errorData.error?.message || response.statusText,
         },
       };
-      return;
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      context.res = {
+      return {
         status: 500,
-        headers,
-        body: { error: "No content in response" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: { error: "No content in response" },
       };
-      return;
     }
 
-    context.res = {
+    return {
       status: 200,
-      headers,
-      body: { content, usage: data.usage },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { content, usage: data.usage },
     };
   } catch (error: any) {
-    context.log.error("Chat function error:", error);
-    context.res = {
+    context.error("Chat function error:", error);
+    return {
       status: 500,
-      headers,
-      body: { error: "Internal server error", details: error.message },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { error: "Internal server error", details: error.message },
     };
   }
-};
+}
 
-export default httpTrigger;
+app.http("chat", {
+  methods: ["POST", "OPTIONS"],
+  authLevel: "anonymous",
+  route: "chat",
+  handler: chatHandler,
+});

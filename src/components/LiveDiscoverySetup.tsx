@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Microphone, Warning } from '@phosphor-icons/react'
+import { Microphone, Warning, SpinnerGap } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import { BrowserCapabilityBanner } from '@/components/BrowserCapabilityChecker'
 import { BrowserCapabilities, getBrowserCapabilities, canUseLiveDiscovery } from '@/lib/browser-capabilities'
 import { LiveDiscoverySettingsDialog, loadLiveDiscoverySettings } from '@/components/LiveDiscoverySettings'
@@ -23,6 +24,8 @@ export function LiveDiscoverySetup({ onStart, onCancel }: LiveDiscoverySetupProp
   const [industry, setIndustry] = useState<Industry>('general')
   const [capabilities, setCapabilities] = useState<BrowserCapabilities | null>(null)
   const [isCheckingCapabilities, setIsCheckingCapabilities] = useState(true)
+  const [isRequestingMicrophone, setIsRequestingMicrophone] = useState(false)
+  const [microphoneGranted, setMicrophoneGranted] = useState<boolean | null>(null)
   const [showFallback, setShowFallback] = useState(false)
 
   useEffect(() => {
@@ -35,6 +38,8 @@ export function LiveDiscoverySetup({ onStart, onCancel }: LiveDiscoverySetupProp
         }
       } catch (error) {
         console.error('Failed to check capabilities:', error)
+        setShowFallback(true)
+        toast.error('Could not verify browser capabilities')
       } finally {
         setIsCheckingCapabilities(false)
       }
@@ -43,8 +48,39 @@ export function LiveDiscoverySetup({ onStart, onCancel }: LiveDiscoverySetupProp
     checkCapabilities()
   }, [])
 
-  const handleStart = () => {
+  // Pre-request microphone permission
+  const requestMicrophoneAccess = async (): Promise<boolean> => {
+    setIsRequestingMicrophone(true)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(track => track.stop())
+      setMicrophoneGranted(true)
+      return true
+    } catch (error: any) {
+      console.error('Microphone access denied:', error)
+      setMicrophoneGranted(false)
+      if (error.name === 'NotAllowedError') {
+        toast.error('Microphone access denied. Please allow microphone permissions to use Live Discovery.')
+      } else if (error.name === 'NotFoundError') {
+        toast.error('No microphone found. Please connect a microphone and try again.')
+      } else {
+        toast.error('Could not access microphone. Please check your device settings.')
+      }
+      return false
+    } finally {
+      setIsRequestingMicrophone(false)
+    }
+  }
+
+  const handleStart = async () => {
     if (!sessionName.trim()) return
+    
+    // Request microphone permission before starting
+    const hasAccess = await requestMicrophoneAccess()
+    if (!hasAccess) {
+      return // Don't proceed if microphone access denied
+    }
+    
     // Load and apply saved settings
     const settings = loadLiveDiscoverySettings()
     onStart(sessionName, industry)
@@ -155,11 +191,30 @@ export function LiveDiscoverySetup({ onStart, onCancel }: LiveDiscoverySetupProp
             </Button>
             <Button 
               onClick={handleStart} 
-              disabled={!sessionName.trim() || (showFallback && !canUseLiveDiscovery(capabilities!))}
+              disabled={
+                !sessionName.trim() || 
+                isCheckingCapabilities || 
+                isRequestingMicrophone ||
+                (showFallback && capabilities && !canUseLiveDiscovery(capabilities))
+              }
               className="flex-1 gap-2"
             >
-              <Microphone size={18} weight="fill" />
-              Start
+              {isCheckingCapabilities ? (
+                <>
+                  <SpinnerGap size={18} className="animate-spin" />
+                  Checking...
+                </>
+              ) : isRequestingMicrophone ? (
+                <>
+                  <SpinnerGap size={18} className="animate-spin" />
+                  Requesting Access...
+                </>
+              ) : (
+                <>
+                  <Microphone size={18} weight="fill" />
+                  Start
+                </>
+              )}
             </Button>
           </CardFooter>
         </Card>

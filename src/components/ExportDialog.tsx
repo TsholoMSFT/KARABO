@@ -3,56 +3,32 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Printer, FilePdf, FileText, FileCsv, Code } from '@phosphor-icons/react'
+import { FilePdf } from '@phosphor-icons/react'
 
 export interface ExportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onOpenPrintView: (effortUnit: 'person-weeks' | 'fte' | 'man-hours') => void
   onExportPDF: (effortUnit: 'person-weeks' | 'fte' | 'man-hours') => void
-  onExportCSV: (effortUnit: 'person-weeks' | 'fte' | 'man-hours') => void
-  onExportExcel: (effortUnit: 'person-weeks' | 'fte' | 'man-hours') => void
-  onExportJSON: (effortUnit: 'person-weeks' | 'fte' | 'man-hours') => void
 }
 
-export function ExportDialog({ open, onOpenChange, onOpenPrintView, onExportPDF, onExportCSV, onExportExcel, onExportJSON }: ExportDialogProps) {
+export function ExportDialog({ open, onOpenChange, onExportPDF }: ExportDialogProps) {
   const [effortUnit, setEffortUnit] = useState<'person-weeks' | 'fte' | 'man-hours'>('person-weeks')
-
-  const handleOpenPrintView = () => {
-    onOpenPrintView(effortUnit)
-    onOpenChange(false)
-  }
 
   const handleExportPDF = () => {
     onExportPDF(effortUnit)
     onOpenChange(false)
   }
 
-  const handleExportCSV = () => {
-    onExportCSV(effortUnit)
-    onOpenChange(false)
-  }
-
-  const handleExportExcel = () => {
-    onExportExcel(effortUnit)
-    onOpenChange(false)
-  }
-
-  const handleExportJSON = () => {
-    onExportJSON(effortUnit)
-    onOpenChange(false)
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FilePdf size={24} weight="duotone" />
-            Export Assessment
+            <FilePdf size={24} weight="duotone" className="text-red-600" />
+            Export Assessment Report
           </DialogTitle>
           <DialogDescription>
-            Configure export options and select your preferred format
+            Generate a comprehensive PDF report with all metrics, analyses, and AI insights
           </DialogDescription>
         </DialogHeader>
 
@@ -98,51 +74,26 @@ export function ExportDialog({ open, onOpenChange, onOpenPrintView, onExportPDF,
             </RadioGroup>
           </div>
 
-          <div className="space-y-3">
-            <Label className="text-sm font-semibold">Export Formats</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Button onClick={handleExportPDF} className="justify-start gap-2" variant="outline">
-                <FilePdf size={18} weight="bold" className="text-red-600" />
-                <div className="text-left">
-                  <div className="font-medium">PDF Report</div>
-                  <div className="text-xs text-muted-foreground">Professional formatted report</div>
-                </div>
-              </Button>
-              
-              <Button onClick={handleExportExcel} className="justify-start gap-2" variant="outline">
-                <FileCsv size={18} weight="bold" className="text-green-600" />
-                <div className="text-left">
-                  <div className="font-medium">Excel (XLSX)</div>
-                  <div className="text-xs text-muted-foreground">Multi-sheet workbook</div>
-                </div>
-              </Button>
-
-              <Button onClick={handleExportCSV} className="justify-start gap-2" variant="outline">
-                <FileText size={18} weight="bold" className="text-blue-600" />
-                <div className="text-left">
-                  <div className="font-medium">CSV</div>
-                  <div className="text-xs text-muted-foreground">Spreadsheet compatible</div>
-                </div>
-              </Button>
-
-              <Button onClick={handleExportJSON} className="justify-start gap-2" variant="outline">
-                <Code size={18} weight="bold" className="text-gray-600" />
-                <div className="text-left">
-                  <div className="font-medium">JSON</div>
-                  <div className="text-xs text-muted-foreground">Raw data export</div>
-                </div>
-              </Button>
-            </div>
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <h4 className="font-medium text-sm">Report Contents</h4>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>✓ Customer Information & Metadata</li>
+              <li>✓ AI-Generated Executive Summary</li>
+              <li>✓ Scoring Methodology Explanation</li>
+              <li>✓ Top Recommendations with AI Rationales</li>
+              <li>✓ Complete Use Case Analysis</li>
+              <li>✓ KPI Mappings & Metrics</li>
+            </ul>
           </div>
         </div>
 
-        <div className="flex justify-between">
-          <Button onClick={handleOpenPrintView} className="gap-2" variant="secondary">
-            <Printer size={18} weight="bold" />
-            Print View
-          </Button>
+        <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
+          </Button>
+          <Button onClick={handleExportPDF} className="gap-2">
+            <FilePdf size={18} weight="bold" />
+            Export PDF Report
           </Button>
         </div>
       </DialogContent>

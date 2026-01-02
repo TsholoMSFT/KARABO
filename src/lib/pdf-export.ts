@@ -1,11 +1,14 @@
 import jsPDF from 'jspdf'
-import { UseCase, ScoringMethod, CustomerMetadata } from './types'
+import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData } from './types'
 import { calculateRICEScore, getQuadrant } from './scoring'
 import { getKPIById } from './kpis'
+import { DISCLAIMERS, getPolicyById } from './ai-policies'
 
 export interface ExportOptions {
   effortUnit: 'person-weeks' | 'fte' | 'man-hours'
   customerMetadata?: CustomerMetadata
+  suggestedUseCases?: SuggestedUseCaseData[]
+  includeDisclaimers?: boolean
 }
 
 export function convertEffort(personWeeks: number, unit: 'person-weeks' | 'fte' | 'man-hours'): number {
@@ -456,6 +459,209 @@ export function exportToPDF(
     })
   }
 
-  const fileName = `microsoft-innovation-hub-assessment-${Date.now()}.pdf`
+  // ============ AI REGULATIONS & COMPLIANCE (if any use cases have regulations) ============
+  const useCasesWithRegulations = useCases.filter(uc => uc.aiRegulations?.applicableFrameworks?.length)
+  if (useCasesWithRegulations.length > 0) {
+    doc.addPage()
+    y = margin
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.setTextColor(80, 50, 180)
+    doc.text('AI Regulatory Considerations', margin, y)
+    y += 10
+
+    // Collect unique frameworks
+    const uniqueFrameworks = new Set<string>()
+    useCasesWithRegulations.forEach(uc => {
+      uc.aiRegulations?.applicableFrameworks?.forEach(fw => uniqueFrameworks.add(fw))
+    })
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(60, 60, 60)
+    doc.text('The following regulatory frameworks may be applicable to the identified use cases:', margin, y)
+    y += 8
+
+    Array.from(uniqueFrameworks).forEach(frameworkId => {
+      const policy = getPolicyById(frameworkId as any)
+      if (policy) {
+        addPageIfNeeded(25)
+        
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(10)
+        doc.setTextColor(40, 40, 40)
+        doc.text(`• ${policy.name}`, margin, y)
+        y += 5
+        
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        doc.setTextColor(80, 80, 80)
+        
+        const statusText = `Status: ${policy.status.charAt(0).toUpperCase() + policy.status.slice(1)} | Jurisdiction: ${policy.jurisdiction.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`
+        doc.text(statusText, margin + 5, y)
+        y += 4
+        
+        const descLines = doc.splitTextToSize(policy.description, pageWidth - 2 * margin - 10)
+        descLines.slice(0, 2).forEach((line: string) => {
+          doc.text(line, margin + 5, y)
+          y += 3.5
+        })
+        y += 5
+      }
+    })
+  }
+
+  // ============ DISCLAIMERS PAGE ============
+  if (options.includeDisclaimers !== false) {
+    doc.addPage()
+    y = margin
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.setTextColor(180, 100, 50)
+    doc.text('Important Disclaimers & Legal Notices', margin, y)
+    y += 12
+
+    // General Disclaimer
+    doc.setFillColor(255, 248, 240)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 35, 2, 2, 'F')
+    doc.setDrawColor(200, 150, 100)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 35, 2, 2, 'S')
+    
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(150, 80, 30)
+    doc.text(DISCLAIMERS.general.title, margin + 5, y + 4)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(80, 60, 40)
+    const generalLines = doc.splitTextToSize(DISCLAIMERS.general.text, pageWidth - 2 * margin - 12)
+    generalLines.slice(0, 4).forEach((line: string, idx: number) => {
+      doc.text(line, margin + 5, y + 12 + (idx * 4))
+    })
+    y += 42
+
+    // AI Generated Content Disclaimer
+    addPageIfNeeded(45)
+    doc.setFillColor(248, 240, 255)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 32, 2, 2, 'F')
+    doc.setDrawColor(150, 100, 200)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 32, 2, 2, 'S')
+    
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(100, 60, 150)
+    doc.text(DISCLAIMERS.aiGenerated.title, margin + 5, y + 4)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(80, 60, 100)
+    const aiLines = doc.splitTextToSize(DISCLAIMERS.aiGenerated.text, pageWidth - 2 * margin - 12)
+    aiLines.slice(0, 3).forEach((line: string, idx: number) => {
+      doc.text(line, margin + 5, y + 12 + (idx * 4))
+    })
+    y += 40
+
+    // Not Legal Advice
+    addPageIfNeeded(35)
+    doc.setFillColor(255, 245, 240)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 28, 2, 2, 'F')
+    doc.setDrawColor(200, 130, 100)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 28, 2, 2, 'S')
+    
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(180, 100, 60)
+    doc.text(DISCLAIMERS.notLegalAdvice.title, margin + 5, y + 4)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(120, 80, 60)
+    const legalLines = doc.splitTextToSize(DISCLAIMERS.notLegalAdvice.text, pageWidth - 2 * margin - 12)
+    legalLines.slice(0, 2).forEach((line: string, idx: number) => {
+      doc.text(line, margin + 5, y + 12 + (idx * 4))
+    })
+    y += 35
+
+    // Not Financial Advice
+    addPageIfNeeded(35)
+    doc.setFillColor(240, 255, 245)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 28, 2, 2, 'F')
+    doc.setDrawColor(100, 180, 130)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 28, 2, 2, 'S')
+    
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(60, 130, 90)
+    doc.text(DISCLAIMERS.notFinancialAdvice.title, margin + 5, y + 4)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(60, 100, 80)
+    const finLines = doc.splitTextToSize(DISCLAIMERS.notFinancialAdvice.text, pageWidth - 2 * margin - 12)
+    finLines.slice(0, 2).forEach((line: string, idx: number) => {
+      doc.text(line, margin + 5, y + 12 + (idx * 4))
+    })
+    y += 35
+
+    // South Africa / Africa Region Notice
+    addPageIfNeeded(45)
+    doc.setFillColor(240, 248, 255)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 38, 2, 2, 'F')
+    doc.setDrawColor(100, 150, 200)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 38, 2, 2, 'S')
+    
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(60, 100, 150)
+    doc.text('South Africa & Africa Region Compliance', margin + 5, y + 4)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(60, 80, 120)
+    const saText = 'For deployments in South Africa and across African jurisdictions, organizations must ensure compliance with the Protection of Personal Information Act (POPIA), the African Union Continental AI Strategy, and relevant national policies. Consider data sovereignty requirements, cross-border data transfer restrictions, and local capacity building priorities.'
+    const saLines = doc.splitTextToSize(saText, pageWidth - 2 * margin - 12)
+    saLines.slice(0, 4).forEach((line: string, idx: number) => {
+      doc.text(line, margin + 5, y + 12 + (idx * 4))
+    })
+    y += 45
+
+    // Microsoft Position
+    addPageIfNeeded(35)
+    doc.setFillColor(245, 245, 250)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 30, 2, 2, 'F')
+    doc.setDrawColor(150, 150, 170)
+    doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 30, 2, 2, 'S')
+    
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(80, 80, 100)
+    doc.text(DISCLAIMERS.microsoftPosition.title, margin + 5, y + 4)
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(80, 80, 100)
+    const msLines = doc.splitTextToSize(DISCLAIMERS.microsoftPosition.text, pageWidth - 2 * margin - 12)
+    msLines.slice(0, 3).forEach((line: string, idx: number) => {
+      doc.text(line, margin + 5, y + 12 + (idx * 4))
+    })
+  }
+
+  // ============ ADD PAGE NUMBERS TO ALL PAGES ============
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(150, 150, 150)
+    doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    doc.text('Microsoft Innovation Hub - Confidential', margin, pageHeight - 10)
+    doc.text(new Date().toLocaleDateString(), pageWidth - margin, pageHeight - 10, { align: 'right' })
+  }
+
+  const customerSlug = (options.customerMetadata?.customerName || 'assessment').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 30)
+  const fileName = `innovation-hub-${customerSlug}-${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
 }

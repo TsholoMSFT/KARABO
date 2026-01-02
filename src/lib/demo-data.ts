@@ -438,24 +438,48 @@ export const DEMO_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
 // ============================================================================
 
 export const REGULATION_LABELS: Record<AIRegulationFramework, string> = {
+  // International/Global
+  'oecd-ai-principles': 'OECD AI Principles',
+  'unesco-ai-ethics': 'UNESCO AI Ethics',
+  'iso-42001': 'ISO 42001',
+  
+  // European Union
   'eu-ai-act': 'EU AI Act',
-  'nist-ai-rmf': 'NIST AI RMF',
   'gdpr': 'GDPR',
+  
+  // United States
+  'nist-ai-rmf': 'NIST AI RMF',
+  'white-house-eo': 'US AI Executive Order',
+  'ccpa': 'CCPA',
   'hipaa': 'HIPAA',
   'sox': 'SOX',
-  'ccpa': 'CCPA',
+  'ferpa': 'FERPA',
+  'glba': 'GLBA',
+  
+  // African Union & Africa
+  'au-ai-strategy': 'AU AI Continental Strategy',
+  'au-data-policy': 'AU Data Policy Framework',
+  'smart-africa': 'Smart Africa AI Blueprint',
+  
+  // South Africa
+  'sa-ai-policy-draft': 'SA AI Policy (Draft)',
   'popia': 'POPIA',
-  'iso-42001': 'ISO 42001',
-  'oecd-ai-principles': 'OECD AI Principles',
-  'white-house-eo': 'US AI Executive Order',
-  'msha': 'MSHA',
+  'ecta': 'ECTA',
   'dmre': 'DMRE (SA Mining)',
+  'sahpra': 'SAHPRA',
+  
+  // Industry-Specific
+  'msha': 'MSHA',
   'epa': 'EPA',
   'osha': 'OSHA',
   'nerc-cip': 'NERC CIP',
   'pci-dss': 'PCI DSS',
-  'ferpa': 'FERPA',
-  'glba': 'GLBA',
+  
+  // Microsoft & Technology
+  'ms-responsible-ai': 'MS Responsible AI',
+  'ms-ai-principles': 'MS AI Principles',
+  'ms-copilot-governance': 'MS Copilot Governance',
+  
   'other': 'Other',
 }
 
@@ -492,4 +516,367 @@ export const DATA_CLASSIFICATION_LABELS: Record<string, string> = {
   'phi': 'PHI (Health Data)',
   'financial': 'Financial',
   'operational': 'Operational/Industrial',
+}
+
+// ============================================================================
+// FALLBACK SAMPLE USE CASES BY INDUSTRY
+// When AI generation fails or returns empty, these provide industry-relevant samples
+// ============================================================================
+
+export interface FallbackUseCase {
+  title: string
+  description: string
+  rationale: string
+  aiRegulations: {
+    applicableFrameworks: AIRegulationFramework[]
+    riskClassification: 'minimal' | 'limited' | 'high' | 'unacceptable'
+    jurisdictions: string[]
+  }
+  cybersecurity: {
+    securityRequirements: SecurityRequirement[]
+    dataClassification: string
+  }
+}
+
+export const INDUSTRY_FALLBACK_USE_CASES: Record<Industry, FallbackUseCase[]> = {
+  general: [
+    {
+      title: 'Intelligent Document Processing',
+      description: 'Automate document classification, data extraction, and routing using Azure AI Document Intelligence. Reduce manual data entry by up to 80% and improve accuracy.',
+      rationale: 'Document handling is a universal pain point with significant time savings potential.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'iso-42001'], riskClassification: 'minimal', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'internal' }
+    },
+    {
+      title: 'Employee Knowledge Assistant with Copilot',
+      description: 'Deploy Microsoft 365 Copilot to help employees find information, draft documents, summarize meetings, and automate routine tasks across Office applications.',
+      rationale: 'Knowledge workers spend 20%+ of their time searching for information.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'iso-42001'], riskClassification: 'minimal', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'mfa-required', 'access-control'], dataClassification: 'internal' }
+    },
+    {
+      title: 'AI-Powered Customer Service Bot',
+      description: 'Implement an Azure OpenAI-powered chatbot to handle common customer inquiries 24/7, reducing response times and support costs by 40%.',
+      rationale: 'Customer service automation delivers immediate ROI through reduced call volumes.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'iso-42001'], riskClassification: 'limited', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-in-transit', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Predictive Analytics Dashboard',
+      description: 'Build a Power BI dashboard with Azure Machine Learning integration for forecasting sales, demand, or operational metrics with 90%+ accuracy.',
+      rationale: 'Data-driven decision making improves business outcomes by 5-10%.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'iso-42001'], riskClassification: 'minimal', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control'], dataClassification: 'internal' }
+    },
+    {
+      title: 'Automated Compliance Reporting',
+      description: 'Use Power Automate and Azure AI to automatically generate compliance reports, track regulatory changes, and alert teams to potential issues.',
+      rationale: 'Compliance reporting is time-consuming and error-prone when done manually.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'iso-42001'], riskClassification: 'minimal', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'audit-logging', 'access-control'], dataClassification: 'confidential' }
+    },
+  ],
+  healthcare: [
+    {
+      title: 'Clinical Documentation Assistant',
+      description: 'Use Azure AI and Microsoft 365 Copilot to help clinicians create, summarize, and manage patient documentation, reducing administrative burden by 50%.',
+      rationale: 'Healthcare providers spend up to 50% of their time on documentation.',
+      aiRegulations: { applicableFrameworks: ['hipaa', 'gdpr', 'eu-ai-act', 'iso-42001'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'data-masking', 'mfa-required'], dataClassification: 'phi' }
+    },
+    {
+      title: 'Patient Appointment Scheduling Bot',
+      description: 'Deploy an AI-powered scheduling assistant that handles appointment booking, reminders, and rescheduling, reducing no-shows by 30%.',
+      rationale: 'No-shows and scheduling inefficiencies cost healthcare providers billions annually.',
+      aiRegulations: { applicableFrameworks: ['hipaa', 'gdpr'], riskClassification: 'limited', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-in-transit', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Medical Image Analysis Assistant',
+      description: 'Implement Azure AI Vision for preliminary analysis of medical images (X-rays, scans) to assist radiologists and reduce diagnosis times by 40%.',
+      rationale: 'AI-assisted imaging can improve diagnostic accuracy and reduce radiologist workload.',
+      aiRegulations: { applicableFrameworks: ['hipaa', 'eu-ai-act', 'iso-42001'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'mfa-required'], dataClassification: 'phi' }
+    },
+    {
+      title: 'Population Health Analytics',
+      description: 'Build predictive models using Azure Machine Learning to identify at-risk patient populations and enable proactive care interventions.',
+      rationale: 'Preventive care reduces costs by 25% compared to reactive treatment.',
+      aiRegulations: { applicableFrameworks: ['hipaa', 'gdpr', 'eu-ai-act'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'data-masking', 'access-control', 'audit-logging'], dataClassification: 'phi' }
+    },
+    {
+      title: 'Drug Interaction Checker',
+      description: 'Implement an AI system that alerts pharmacists and physicians to potential drug interactions and contraindications in real-time.',
+      rationale: 'Medication errors are a leading cause of preventable patient harm.',
+      aiRegulations: { applicableFrameworks: ['hipaa', 'eu-ai-act'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'mfa-required'], dataClassification: 'phi' }
+    },
+  ],
+  'financial-services': [
+    {
+      title: 'Real-Time Fraud Detection',
+      description: 'Deploy Azure Machine Learning for real-time fraud detection to identify suspicious transactions, reducing fraud losses by 60%.',
+      rationale: 'Financial fraud costs institutions billions annually and damages trust.',
+      aiRegulations: { applicableFrameworks: ['sox', 'gdpr', 'pci-dss', 'eu-ai-act'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'mfa-required', 'soc2-compliance'], dataClassification: 'financial' }
+    },
+    {
+      title: 'Automated KYC & Risk Assessment',
+      description: 'Automate Know Your Customer and credit risk assessments using Azure AI, reducing onboarding time from days to minutes.',
+      rationale: 'Manual KYC processes are slow, expensive, and create poor customer experiences.',
+      aiRegulations: { applicableFrameworks: ['sox', 'glba', 'gdpr', 'eu-ai-act'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'mfa-required'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Regulatory Compliance Monitoring',
+      description: 'Use Azure AI to monitor transactions and communications for regulatory compliance, automatically flagging potential violations.',
+      rationale: 'Regulatory fines in financial services can reach billions of dollars.',
+      aiRegulations: { applicableFrameworks: ['sox', 'glba', 'gdpr'], riskClassification: 'limited', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'audit-logging', 'access-control'], dataClassification: 'confidential' }
+    },
+    {
+      title: 'Wealth Advisory Copilot',
+      description: 'Implement Microsoft 365 Copilot for financial advisors to analyze portfolios, generate recommendations, and prepare client reports 5x faster.',
+      rationale: 'Advisors spend too much time on analysis instead of client relationships.',
+      aiRegulations: { applicableFrameworks: ['sox', 'gdpr'], riskClassification: 'limited', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'mfa-required', 'access-control'], dataClassification: 'financial' }
+    },
+    {
+      title: 'Claims Processing Automation',
+      description: 'Automate insurance claims intake and initial assessment using Azure Document Intelligence, reducing processing time by 70%.',
+      rationale: 'Claims processing is labor-intensive and delays frustrate customers.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'sox'], riskClassification: 'limited', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+  ],
+  manufacturing: [
+    {
+      title: 'Predictive Equipment Maintenance',
+      description: 'Use Azure IoT Hub and Machine Learning to predict equipment failures before they occur, reducing unplanned downtime by 50%.',
+      rationale: 'Unplanned downtime is the single largest cost in manufacturing operations.',
+      aiRegulations: { applicableFrameworks: ['osha', 'iso-42001'], riskClassification: 'limited', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'scada-protection'], dataClassification: 'operational' }
+    },
+    {
+      title: 'AI-Powered Quality Inspection',
+      description: 'Deploy Azure AI Vision on production lines to automatically detect defects and quality issues with 99% accuracy.',
+      rationale: 'Manual quality inspection is slow, inconsistent, and misses subtle defects.',
+      aiRegulations: { applicableFrameworks: ['iso-42001', 'osha'], riskClassification: 'limited', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['access-control', 'audit-logging'], dataClassification: 'operational' }
+    },
+    {
+      title: 'Supply Chain Demand Forecasting',
+      description: 'Implement AI-driven demand forecasting to reduce inventory costs by 20% and prevent stockouts.',
+      rationale: 'Supply chain disruptions directly impact profitability and customer satisfaction.',
+      aiRegulations: { applicableFrameworks: ['iso-42001'], riskClassification: 'minimal', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control'], dataClassification: 'internal' }
+    },
+    {
+      title: 'Worker Safety Monitoring',
+      description: 'Use computer vision and IoT sensors to monitor workplace safety, detecting PPE compliance and hazardous situations in real-time.',
+      rationale: 'Workplace accidents are costly in human and financial terms.',
+      aiRegulations: { applicableFrameworks: ['osha', 'eu-ai-act', 'iso-42001'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Production Schedule Optimization',
+      description: 'Apply Azure AI to optimize production schedules based on orders, resources, and constraints, improving throughput by 15%.',
+      rationale: 'Manual scheduling is suboptimal and cannot adapt quickly to changes.',
+      aiRegulations: { applicableFrameworks: ['iso-42001'], riskClassification: 'minimal', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['access-control', 'audit-logging'], dataClassification: 'internal' }
+    },
+  ],
+  retail: [
+    {
+      title: 'Personalized Product Recommendations',
+      description: 'Implement AI-powered product recommendations across channels to increase basket size by 25% and improve customer satisfaction.',
+      rationale: 'Personalization drives significant revenue uplift and customer loyalty.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'ccpa', 'popia'], riskClassification: 'limited', jurisdictions: ['European Union', 'United States', 'South Africa'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Inventory Demand Forecasting',
+      description: 'Use Azure Machine Learning to predict demand patterns and optimize inventory levels, reducing stockouts by 40%.',
+      rationale: 'Stockouts and overstock both significantly impact profitability.',
+      aiRegulations: { applicableFrameworks: ['iso-42001'], riskClassification: 'minimal', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['access-control', 'audit-logging'], dataClassification: 'internal' }
+    },
+    {
+      title: '24/7 Customer Service Chatbot',
+      description: 'Deploy an Azure OpenAI-powered chatbot to handle product inquiries, order status, and returns around the clock.',
+      rationale: 'Customer service volumes spike during seasons and AI handles routine queries instantly.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'ccpa'], riskClassification: 'limited', jurisdictions: ['European Union', 'United States'] },
+      cybersecurity: { securityRequirements: ['encryption-in-transit', 'access-control'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Dynamic Price Optimization',
+      description: 'Implement AI-driven dynamic pricing to optimize margins based on demand, competition, and inventory levels.',
+      rationale: 'Static pricing leaves money on the table and fails to respond to market conditions.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'eu-ai-act'], riskClassification: 'limited', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['access-control', 'audit-logging'], dataClassification: 'internal' }
+    },
+    {
+      title: 'Loss Prevention Analytics',
+      description: 'Use computer vision and transaction analytics to identify theft patterns and reduce shrinkage by 30%.',
+      rationale: 'Retail shrinkage costs billions globally each year.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'popia'], riskClassification: 'limited', jurisdictions: ['European Union', 'South Africa'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'confidential' }
+    },
+  ],
+  government: [
+    {
+      title: 'Citizen Service Virtual Assistant',
+      description: 'Deploy an AI assistant to help citizens navigate government services, answer questions, and complete applications online 24/7.',
+      rationale: 'Citizens expect modern, accessible digital services from government.',
+      aiRegulations: { applicableFrameworks: ['nist-ai-rmf', 'gdpr', 'popia', 'white-house-eo'], riskClassification: 'limited', jurisdictions: ['United States', 'South Africa'] },
+      cybersecurity: { securityRequirements: ['encryption-in-transit', 'access-control', 'audit-logging', 'mfa-required'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Document Processing Automation',
+      description: 'Automate processing of permit applications and license renewals using Azure AI Document Intelligence, reducing backlogs by 60%.',
+      rationale: 'Document processing backlogs frustrate citizens and staff.',
+      aiRegulations: { applicableFrameworks: ['nist-ai-rmf', 'gdpr', 'popia'], riskClassification: 'limited', jurisdictions: ['United States', 'South Africa'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Public Safety Resource Optimization',
+      description: 'Use predictive analytics to optimize emergency services deployment and improve response times by 20%.',
+      rationale: 'Data-driven resource allocation saves lives and improves outcomes.',
+      aiRegulations: { applicableFrameworks: ['nist-ai-rmf', 'eu-ai-act', 'white-house-eo'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'zero-trust'], dataClassification: 'confidential' }
+    },
+    {
+      title: 'Benefits Fraud Detection',
+      description: 'Implement AI to detect fraudulent benefit claims while maintaining fairness and reducing false positives.',
+      rationale: 'Benefits fraud wastes public resources while aggressive detection harms legitimate claimants.',
+      aiRegulations: { applicableFrameworks: ['nist-ai-rmf', 'gdpr', 'eu-ai-act', 'white-house-eo'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'mfa-required'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Policy Impact Analysis',
+      description: 'Use Azure AI and data analytics to model and predict impacts of policy changes before implementation.',
+      rationale: 'Evidence-based policymaking leads to better outcomes for citizens.',
+      aiRegulations: { applicableFrameworks: ['nist-ai-rmf', 'iso-42001'], riskClassification: 'limited', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['access-control', 'audit-logging'], dataClassification: 'internal' }
+    },
+  ],
+  education: [
+    {
+      title: 'Personalized AI Learning Tutor',
+      description: 'Deploy an AI tutor that adapts to each student\'s learning style, pace, and knowledge gaps, improving outcomes by 30%.',
+      rationale: 'One-size-fits-all education fails to meet individual student needs.',
+      aiRegulations: { applicableFrameworks: ['ferpa', 'gdpr', 'popia', 'eu-ai-act'], riskClassification: 'limited', jurisdictions: ['United States', 'European Union', 'South Africa'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'data-masking', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Automated Essay Grading Assistant',
+      description: 'Use Azure AI to provide initial grading and feedback on written assignments, giving teachers 40% more time for personalized instruction.',
+      rationale: 'Teachers spend excessive time on routine grading instead of teaching.',
+      aiRegulations: { applicableFrameworks: ['ferpa', 'gdpr', 'eu-ai-act'], riskClassification: 'limited', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control'], dataClassification: 'internal' }
+    },
+    {
+      title: 'Student Success Early Warning',
+      description: 'Implement ML-based early warning systems to identify at-risk students and enable timely interventions.',
+      rationale: 'Early intervention significantly improves student retention and success.',
+      aiRegulations: { applicableFrameworks: ['ferpa', 'gdpr', 'eu-ai-act'], riskClassification: 'high', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'data-masking'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Administrative Process Automation',
+      description: 'Automate enrollment, scheduling, and transcript requests using Power Automate and AI, reducing admin workload by 50%.',
+      rationale: 'Administrative burden diverts resources from education.',
+      aiRegulations: { applicableFrameworks: ['ferpa', 'gdpr'], riskClassification: 'minimal', jurisdictions: ['United States', 'European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Research Knowledge Copilot',
+      description: 'Deploy Microsoft 365 Copilot for researchers to accelerate literature review and grant writing by 60%.',
+      rationale: 'Researchers spend too much time on literature review instead of research.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'iso-42001'], riskClassification: 'minimal', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['access-control', 'mfa-required'], dataClassification: 'internal' }
+    },
+  ],
+  energy: [
+    {
+      title: 'Predictive Grid Maintenance',
+      description: 'Use Azure IoT and ML to predict failures in turbines, transformers, and grid equipment, reducing outages by 40%.',
+      rationale: 'Equipment failures cause costly outages and safety risks.',
+      aiRegulations: { applicableFrameworks: ['nerc-cip', 'osha', 'iso-42001'], riskClassification: 'high', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'scada-protection', 'air-gapped'], dataClassification: 'operational' }
+    },
+    {
+      title: 'Smart Grid Load Optimization',
+      description: 'Implement AI to optimize electricity distribution, balance renewable sources, and reduce transmission losses by 15%.',
+      rationale: 'Grid efficiency directly impacts costs and carbon footprint.',
+      aiRegulations: { applicableFrameworks: ['nerc-cip', 'iso-42001'], riskClassification: 'high', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'scada-protection', 'air-gapped', 'iso27001'], dataClassification: 'operational' }
+    },
+    {
+      title: 'Renewable Energy Forecasting',
+      description: 'Use ML to predict solar and wind generation based on weather patterns, improving grid stability and reducing backup costs.',
+      rationale: 'Accurate renewable forecasting is essential for grid reliability.',
+      aiRegulations: { applicableFrameworks: ['iso-42001'], riskClassification: 'limited', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['access-control', 'audit-logging'], dataClassification: 'internal' }
+    },
+    {
+      title: 'Field Worker Safety Assistant',
+      description: 'Deploy mobile AI assistants for field workers with safety protocols, hazard identification, and emergency procedures.',
+      rationale: 'Field work in energy is dangerous and workers need real-time support.',
+      aiRegulations: { applicableFrameworks: ['osha', 'iso-42001'], riskClassification: 'high', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['encryption-in-transit', 'access-control', 'mfa-required'], dataClassification: 'operational' }
+    },
+    {
+      title: 'Environmental Compliance Automation',
+      description: 'Automate emissions monitoring, reporting, and compliance tracking using IoT sensors and Azure AI.',
+      rationale: 'Environmental compliance is critical and manual monitoring is insufficient.',
+      aiRegulations: { applicableFrameworks: ['epa', 'iso-42001'], riskClassification: 'limited', jurisdictions: ['United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'operational' }
+    },
+  ],
+  telecommunications: [
+    {
+      title: 'Network Anomaly Detection',
+      description: 'Use Azure AI to detect network anomalies and predict outages, reducing downtime by 50% through proactive remediation.',
+      rationale: 'Network downtime directly impacts revenue and customer satisfaction.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'iso-42001'], riskClassification: 'limited', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'soc2-compliance'], dataClassification: 'operational' }
+    },
+    {
+      title: 'Customer Churn Prediction',
+      description: 'Implement ML models to identify customers at risk of churning and enable proactive retention, reducing churn by 25%.',
+      rationale: 'Customer acquisition costs 5-7x more than retention.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'ccpa', 'popia'], riskClassification: 'limited', jurisdictions: ['European Union', 'United States', 'South Africa'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Virtual Technical Support Agent',
+      description: 'Deploy Azure OpenAI-powered support agent to handle billing, troubleshooting, and service changes, resolving 60% of issues without human intervention.',
+      rationale: 'Call center volumes are high and AI can resolve many issues instantly.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'ccpa'], riskClassification: 'limited', jurisdictions: ['European Union', 'United States'] },
+      cybersecurity: { securityRequirements: ['encryption-in-transit', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Network Capacity Planning',
+      description: 'Use AI to forecast network demand and optimize infrastructure investments, avoiding over/under-provisioning.',
+      rationale: 'Over-provisioning wastes capital; under-provisioning degrades service.',
+      aiRegulations: { applicableFrameworks: ['iso-42001'], riskClassification: 'minimal', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['access-control', 'audit-logging'], dataClassification: 'internal' }
+    },
+    {
+      title: 'Telecom Fraud Detection',
+      description: 'Implement real-time AI to detect SIM swaps, subscription fraud, and unauthorized usage, reducing fraud losses by 70%.',
+      rationale: 'Telecom fraud causes significant revenue loss annually.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'popia'], riskClassification: 'limited', jurisdictions: ['European Union', 'South Africa'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'mfa-required'], dataClassification: 'pii' }
+    },
+  ],
+}
+
+/**
+ * Get fallback use cases for an industry when AI generation fails or returns empty
+ */
+export function getFallbackUseCasesForIndustry(industry: Industry): FallbackUseCase[] {
+  return INDUSTRY_FALLBACK_USE_CASES[industry] || INDUSTRY_FALLBACK_USE_CASES.general
 }

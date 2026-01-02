@@ -1,4 +1,4 @@
-import { AzureFunction, Context, HttpRequest } from "@azure/functions";
+import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
 /**
  * Azure Function for Earnings Transcript Search
@@ -29,6 +29,13 @@ interface SearchRequest {
   region?: "US" | "ZA" | "EU" | "GLOBAL";
 }
 
+// CORS headers
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 // SEC EDGAR Search (US Companies - Free, no key needed)
 async function searchSECEdgar(companyName: string, ticker?: string): Promise<EarningsTranscript[]> {
   try {
@@ -44,7 +51,7 @@ async function searchSECEdgar(companyName: string, ticker?: string): Promise<Ear
 
     if (!response.ok) return [];
 
-    const data = await response.json();
+    const data = await response.json() as any;
     const transcripts: EarningsTranscript[] = [];
 
     if (data.hits?.hits) {
@@ -102,7 +109,7 @@ async function searchJSESens(companyName: string, ticker?: string): Promise<Earn
       }];
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     const transcripts: EarningsTranscript[] = [];
 
     // Parse SENS announcements for earnings-related items
@@ -195,7 +202,7 @@ async function searchYahooFinance(companyName: string, ticker?: string): Promise
       }];
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     const transcripts: EarningsTranscript[] = [];
 
     // Extract earnings history
@@ -267,7 +274,7 @@ async function searchAlphaVantage(ticker: string): Promise<EarningsTranscript[]>
     const response = await fetch(url);
     if (!response.ok) return [];
 
-    const data = await response.json();
+    const data = await response.json() as any;
     const transcripts: EarningsTranscript[] = [];
 
     if (data.quarterlyEarnings) {
@@ -348,25 +355,21 @@ function extractQuarter(dateStr: string): string {
 }
 
 // Main function
-const httpTrigger: AzureFunction = async function (context: Context, req: HttpRequest): Promise<void> {
-  const headers = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
-
+async function earningsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   if (req.method === "OPTIONS") {
-    context.res = { status: 204, headers };
-    return;
+    return { status: 204, headers: corsHeaders };
   }
 
   try {
-    const { companyName, ticker, region = "GLOBAL" }: SearchRequest = req.body || {};
+    const body = await req.json().catch(() => ({})) as Partial<SearchRequest>;
+    const { companyName, ticker, region = "GLOBAL" } = body;
 
     if (!companyName) {
-      context.res = { status: 400, headers, body: { error: "companyName is required" } };
-      return;
+      return { 
+        status: 400, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: { error: "companyName is required" } 
+      };
     }
 
     // Search all sources in parallel
@@ -422,10 +425,10 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
       return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
 
-    context.res = {
+    return {
       status: 200,
-      headers,
-      body: {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: {
         transcripts: unique.slice(0, 12),
         sources: {
           secEdgar: region === "US" || region === "GLOBAL",
@@ -436,13 +439,18 @@ const httpTrigger: AzureFunction = async function (context: Context, req: HttpRe
       },
     };
   } catch (error: any) {
-    context.log.error("Earnings search error:", error);
-    context.res = {
+    context.error("Earnings search error:", error);
+    return {
       status: 500,
-      headers,
-      body: { error: "Search failed", details: error.message },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      jsonBody: { error: "Search failed", details: error.message },
     };
   }
-};
+}
 
-export default httpTrigger;
+app.http("earnings", {
+  methods: ["POST", "OPTIONS"],
+  authLevel: "anonymous",
+  route: "earnings/search",
+  handler: earningsHandler,
+});
