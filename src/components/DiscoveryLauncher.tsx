@@ -166,6 +166,17 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
                     <Briefcase size={20} weight="fill" />
                     Start Enterprise Discovery
                   </Button>
+                  {onStartLiveDiscovery && (
+                    <Button 
+                      onClick={onStartLiveDiscovery} 
+                      size="lg" 
+                      variant="outline" 
+                      className="gap-2 border-[#0078D4]/50 text-[#0078D4] hover:bg-[#0078D4]/10"
+                    >
+                      <Microphone size={20} weight="fill" />
+                      Live Enterprise Discovery
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
