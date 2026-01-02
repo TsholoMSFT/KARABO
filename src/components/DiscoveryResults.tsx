@@ -608,13 +608,14 @@ Return the result as a valid JSON object with a single property called "useCases
                               <li key={insight.id} className="flex items-start gap-2">
                                 <span className="text-primary font-bold">•</span>
                                 <span><strong>{insight.title}:</strong> {insight.description}</span>
-                            </li>
-                          ))}
-                          {earningsInsights.length > 3 && (
-                            <li className="text-muted-foreground/70 italic">+{earningsInsights.length - 3} more insights analyzed</li>
-                          )}
-                        </ul>
-                      </div>
+                              </li>
+                            ))}
+                            {earningsInsights.length > 3 && (
+                              <li className="text-muted-foreground/70 italic">+{earningsInsights.length - 3} more insights analyzed</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

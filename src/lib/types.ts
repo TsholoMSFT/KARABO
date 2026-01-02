@@ -232,7 +232,7 @@ export interface SuggestedUseCaseData {
 // ENTERPRISE DISCOVERY TYPES
 // ============================================================================
 
-export type DiscoveryType = 'new-opportunity' | 'expansion' | 'renewal'
+export type DiscoveryType = 'new-opportunity' | 'expansion' | 'renewal' | 'macc'
 export type StageStatus = 'not-started' | 'in-progress' | 'completed'
 export type SCQStatus = 'confirmed' | 'adjusted' | 'rejected' | 'pending'
 

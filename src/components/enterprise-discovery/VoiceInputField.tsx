@@ -79,7 +79,15 @@ export function VoiceInputField({
   if (!isSupported) {
     return (
       <div className={cn('space-y-2', className)}>
-        {label && <label className="text-sm font-medium">{label}</label>}
+        {label && (
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">{label}</label>
+            <Badge variant="outline" className="text-xs gap-1 text-muted-foreground">
+              <MicrophoneSlash size={12} />
+              Voice not supported
+            </Badge>
+          </div>
+        )}
         <Textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -87,6 +95,9 @@ export function VoiceInputField({
           rows={rows}
           disabled={disabled}
         />
+        <p className="text-xs text-muted-foreground">
+          Voice input is not supported in this browser. Please use Chrome or Edge for voice features.
+        </p>
       </div>
     )
   }

@@ -76,6 +76,11 @@ export function Stage1Opportunity({ initialData, onComplete, onBack, isLiveMode 
   }
 
   const generateSCQ = async () => {
+    if (typeof window.llm !== 'function') {
+      alert('AI service is not available. Please check your connection and try again, or enter SCQ manually.')
+      return
+    }
+    
     setIsGeneratingSCQ(true)
     try {
       const prompt = `You are a business discovery consultant. Generate a concise SCQ (Situation-Complication-Question) framework based on the following:

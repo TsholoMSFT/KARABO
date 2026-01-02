@@ -26,6 +26,7 @@ const PAUSED_SESSIONS_KEY = 'karabo-paused-enterprise-sessions'
 
 interface EnterpriseDiscoveryOrchestratorProps {
   initialSession?: EnterpriseDiscoverySession
+  initialCustomerName?: string
   onSave: (session: EnterpriseDiscoverySession) => void
   onComplete: (session: EnterpriseDiscoverySession) => void
   onCancel: () => void
@@ -34,6 +35,7 @@ interface EnterpriseDiscoveryOrchestratorProps {
 
 export function EnterpriseDiscoveryOrchestrator({
   initialSession,
+  initialCustomerName,
   onSave,
   onComplete,
   onCancel,
@@ -232,6 +234,7 @@ export function EnterpriseDiscoveryOrchestrator({
               sessionDate: session.sessionDate,
               discoveryType: session.discoveryType,
             }}
+            initialCustomerName={initialCustomerName}
             onComplete={handleStage0Complete}
             onBack={onCancel}
             isLiveMode={isLiveMode}

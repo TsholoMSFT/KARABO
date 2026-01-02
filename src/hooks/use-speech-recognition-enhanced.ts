@@ -73,10 +73,15 @@ export function useSpeechRecognition({
   const isStartingRef = useRef(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastResultTimeRef = useRef<number>(0)
+  const isListeningRef = useRef(false)
 
   useEffect(() => {
     transcriptRef.current = transcript
   }, [transcript])
+
+  useEffect(() => {
+    isListeningRef.current = isListening
+  }, [isListening])
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -101,7 +106,8 @@ export function useSpeechRecognition({
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
       if (showWarnings) {
         timeoutRef.current = setTimeout(() => {
-          if (isListening) {
+          // Use ref instead of state to avoid stale closure
+          if (isListeningRef.current) {
             const warningMsg = 'No speech detected. Please speak now or click Stop to provide text manually.'
             setWarning(warningMsg)
             onWarning?.(warningMsg)

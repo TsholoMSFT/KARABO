@@ -385,6 +385,7 @@ function App() {
         <div className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
           <EnterpriseDiscoveryOrchestrator
             initialSession={currentEnterpriseSession || undefined}
+            initialCustomerName={selectedCustomerId ? customers.find(c => c.id === selectedCustomerId)?.name : undefined}
             onSave={handleEnterpriseSessionSave}
             onComplete={handleEnterpriseSessionComplete}
             onCancel={handleEnterpriseDiscoveryCancel}
@@ -407,6 +408,7 @@ function App() {
         <SessionMetadataForm
           onSubmit={handleSessionMetadataSubmit}
           onCancel={handleDiscoveryCancel}
+          initialMetadata={selectedCustomerId ? { customerName: customers.find(c => c.id === selectedCustomerId)?.name || '' } : undefined}
         />
       )}
 

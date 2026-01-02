@@ -25,13 +25,14 @@ interface Stage0Data {
 
 interface Stage0StartProps {
   initialData?: Stage0Data
+  initialCustomerName?: string // Pre-populate from existing customer selection
   onComplete: (data: Stage0Data) => void
   onBack?: () => void
   isLiveMode?: boolean
 }
 
-export function Stage0Start({ initialData, onComplete, onBack, isLiveMode = false }: Stage0StartProps) {
-  const [clientName, setClientName] = useState(initialData?.clientName || '')
+export function Stage0Start({ initialData, initialCustomerName, onComplete, onBack, isLiveMode = false }: Stage0StartProps) {
+  const [clientName, setClientName] = useState(initialData?.clientName || initialCustomerName || '')
   const [attendees, setAttendees] = useState<Attendee[]>(
     initialData?.attendees || [{ name: '', role: '' }]
   )
@@ -146,6 +147,7 @@ export function Stage0Start({ initialData, onComplete, onBack, isLiveMode = fals
                 <SelectItem value="new-opportunity">New Opportunity</SelectItem>
                 <SelectItem value="expansion">Expansion</SelectItem>
                 <SelectItem value="renewal">Renewal</SelectItem>
+                <SelectItem value="macc">MACC (Microsoft AI Cloud Commitment)</SelectItem>
               </SelectContent>
             </Select>
           </div>
