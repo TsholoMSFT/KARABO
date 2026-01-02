@@ -6,7 +6,7 @@ A comprehensive web application for evaluating and prioritizing use cases using 
 
 ### Prerequisites
 - Node.js 18+ and npm
-- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+- Azure OpenAI API key (configured in `api/local.settings.json`)
 
 ### Installation
 
@@ -17,29 +17,43 @@ cd KARABO
 ```
 
 2. **Install dependencies**
-```bash
-npm install
+```powershell
+# PowerShell (Windows) - use cmd /c prefix
+cmd /c "npm install"
+
+# Also install API dependencies
+cmd /c "cd api && npm install"
 ```
 
-3. **Configure environment variables**
-```bash
-cp .env.example .env
-```
+3. **Configure API keys**
 
-Edit `.env` and add your OpenAI API key:
-```env
-VITE_OPENAI_API_KEY=sk-your-api-key-here
-VITE_OPENAI_ORG_ID=org-your-org-id (optional)
-VITE_APP_NAME=KARABO Discovery
+Edit `api/local.settings.json` with your Azure OpenAI credentials:
+```json
+{
+  "Values": {
+    "AZURE_OPENAI_ENDPOINT": "https://your-resource.openai.azure.com/",
+    "AZURE_OPENAI_API_KEY": "your-key-here"
+  }
+}
 ```
 
 4. **Start the development server**
-```bash
-npm run dev
+```powershell
+cmd /c "npm run dev"
 ```
 
 5. **Open your browser**
 Navigate to `http://localhost:5173`
+
+### Common Commands
+
+| Command | Purpose |
+|---------|---------|
+| `cmd /c "npm run dev"` | Start development server |
+| `cmd /c "npm run build"` | Build for production |
+| `cmd /c "npm run preview"` | Preview production build |
+| `cmd /c "cd api && npm install"` | Install API dependencies |
+| `cmd /c "git add -A && git commit -m message && git push"` | Commit and push |
 
 ## 🤖 AI-Powered Features
 
