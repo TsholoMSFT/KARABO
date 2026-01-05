@@ -17,6 +17,8 @@ import {
   IndustryResearchResult
 } from '@/lib/earnings-service'
 import { EnhancedDiscoveryWorkflow } from '@/components/EnhancedDiscoveryWorkflow'
+import { NavigationHeader } from '@/components/NavigationHeader'
+import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -616,6 +618,15 @@ Return the result as a valid JSON object with a single property called "useCases
                           </ul>
                         </div>
                       )}
+
+                      {/* Quick Financial Quantification */}
+                      <div className="mt-4">
+                        <QuickCOICalculator 
+                          variant="compact"
+                          customerName={session.customerName}
+                          opportunityTitle={session.name}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

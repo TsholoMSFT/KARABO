@@ -27,6 +27,8 @@ import { CustomerSelector } from '@/components/CustomerSelector'
 import { EnterpriseDiscoveryOrchestrator } from '@/components/enterprise-discovery/EnterpriseDiscoveryOrchestrator'
 import { Disclaimer } from '@/components/Disclaimer'
 import { LandingPage } from '@/components/LandingPage'
+import { NavigationHeader } from '@/components/NavigationHeader'
+import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { DEMO_DISCOVERY_SESSION, DEMO_USE_CASES, DEMO_ENTERPRISE_SESSION } from '@/lib/demo-data'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -281,6 +283,14 @@ function App() {
     setCurrentView('dashboard')
     setCurrentEnterpriseSession(null)
   }
+
+  const handleBackToLanding = () => {
+    setCurrentView('landing')
+    setCurrentDiscoverySession(null)
+    setSessionState(null)
+    setPendingSessionMetadata(null)
+    setCurrentEnterpriseSession(null)
+  }
   
   const handleSessionMetadataSubmit = (metadata: SessionMetadata) => {
     setPendingSessionMetadata(metadata)
@@ -382,16 +392,25 @@ function App() {
       )}
 
       {currentView === 'enterprise-discovery' && (
-        <div className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
-          <EnterpriseDiscoveryOrchestrator
+        <>
+          <NavigationHeader 
+            onBackToLanding={handleBackToLanding}
+            onBack={handleEnterpriseDiscoveryCancel}
+            backLabel="Exit Discovery"
+            title="Enterprise Discovery"
+            subtitle="Comprehensive opportunity assessment"
+          />
+          <div className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
+            <EnterpriseDiscoveryOrchestrator
             initialSession={currentEnterpriseSession || undefined}
             initialCustomerName={selectedCustomerId ? customers.find(c => c.id === selectedCustomerId)?.name : undefined}
             onSave={handleEnterpriseSessionSave}
             onComplete={handleEnterpriseSessionComplete}
             onCancel={handleEnterpriseDiscoveryCancel}
             onPause={handleEnterpriseSessionPause}
-          />
-        </div>
+            />
+          </div>
+        </>
       )}
 
       {currentView === 'session-comparison' && (
@@ -503,6 +522,11 @@ function App() {
           transition={{ duration: 0.6, ease: 'easeInOut' }}
           className="min-h-screen"
         >
+          <NavigationHeader 
+            onBackToLanding={handleBackToLanding}
+            title="Microsoft Innovation Hub"
+            subtitle="Use Case Assessment Platform"
+          />
           <div className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
             <motion.header
               initial={{ opacity: 0, y: -20 }}
@@ -574,6 +598,18 @@ function App() {
                   onStartDemo={handleStartDemo}
                   onStartEnterpriseDemo={handleStartEnterpriseDemo}
                 />
+
+                {/* Quick Financial Quantification Tool */}
+                <div className="mb-8">
+                  <QuickCOICalculator 
+                    variant="inline"
+                    customerName={customerMetadata?.customerName}
+                    opportunityTitle={selectedSession?.name}
+                    onSave={(coiData) => {
+                      toast.success(`COI of ${coiData.totalCOI.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} saved for ${customerMetadata?.customerName || 'customer'}`)
+                    }}
+                  />
+                </div>
 
                 <Card className="border-2 bg-card mb-8">
                   <CardHeader className="pb-4">
