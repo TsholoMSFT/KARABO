@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -521,6 +522,18 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                         </Card>
                       ))}
                     </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Quick Financial Quantification */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-3">Financial Quantification (Optional)</h3>
+                    <QuickCOICalculator 
+                      variant="compact"
+                      customerName={session.customerName}
+                      opportunityTitle={session.name}
+                    />
                   </div>
                 </CardContent>
                 <CardFooter className="flex gap-3">

@@ -387,6 +387,7 @@ function App() {
             setDiscoveryMode('standard')
             setCurrentView('session-metadata')
           }}
+          onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
           onViewExisting={() => setCurrentView('dashboard')}
         />
       )}
