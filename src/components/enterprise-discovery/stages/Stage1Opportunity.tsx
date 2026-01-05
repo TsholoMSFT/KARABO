@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,22 +9,95 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import { Loader2, Sparkles, CheckCircle2, XCircle, Edit, Mic } from 'lucide-react'
+import { Loader2, Sparkles, CheckCircle2, XCircle, Edit, Mic, Info, Target } from 'lucide-react'
 import { VoiceInputField } from '../VoiceInputField'
 import { calculateTotalCOI } from '@/lib/financial-calculations'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
-import type { OpportunityStageData, ProblemCategory, AffectedArea, TimelineExpectation, SCQStatus } from '@/lib/types'
+import type { OpportunityStageData, ProblemCategory, AffectedArea, TimelineExpectation, SCQStatus, BusinessEnvisioningData } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface Stage1OpportunityProps {
   initialData?: OpportunityStageData
+  businessEnvisioning?: BusinessEnvisioningData
   onComplete: (data: OpportunityStageData) => void
   onBack?: () => void
   isLiveMode?: boolean
 }
 
-export function Stage1Opportunity({ initialData, onComplete, onBack, isLiveMode = false }: Stage1OpportunityProps) {
+export function Stage1Opportunity({ initialData, businessEnvisioning, onComplete, onBack, isLiveMode = false }: Stage1OpportunityProps) {
   const { isAIFeatureEnabled } = useDiscoverySettings()
+  
+  // Check if we have Business Envisioning data to pre-populate
+  const hasBusinessEnvisioningData = businessEnvisioning && (
+    (businessEnvisioning.strategicPriorities && businessEnvisioning.strategicPriorities.length > 0) ||
+    (businessEnvisioning.businessOutcomes && businessEnvisioning.businessOutcomes.length > 0) ||
+    (businessEnvisioning.businessProcesses && businessEnvisioning.businessProcesses.length > 0)
+  )
+  
+  // Helper to derive problem statement from Business Envisioning
+  const deriveProblemStatement = (): string => {
+    if (!businessEnvisioning) return ''
+    const parts: string[] = []
+    
+    // From strategic priorities
+    if (businessEnvisioning.strategicPriorities && businessEnvisioning.strategicPriorities.length > 0) {
+      const topPriority = businessEnvisioning.strategicPriorities[0]
+      parts.push(`Strategic Priority: ${topPriority.priority}`)
+      if (topPriority.sourceDetail) {
+        parts.push(`Context: ${topPriority.sourceDetail}`)
+      }
+    }
+    
+    // From business processes - look for pain points
+    if (businessEnvisioning.businessProcesses && businessEnvisioning.businessProcesses.length > 0) {
+      const painPoints: string[] = []
+      businessEnvisioning.businessProcesses.forEach(process => {
+        process.steps?.forEach(step => {
+          step.painPoints?.forEach(pp => {
+            painPoints.push(pp.description)
+          })
+        })
+      })
+      if (painPoints.length > 0) {
+        parts.push(`Key Pain Points: ${painPoints.slice(0, 3).join('; ')}`)
+      }
+    }
+    
+    return parts.join('\n\n')
+  }
+  
+  // Helper to derive success metrics from Business Envisioning outcomes
+  const deriveSuccessMetrics = (): string[] => {
+    if (!businessEnvisioning?.businessOutcomes || businessEnvisioning.businessOutcomes.length === 0) {
+      return ['']
+    }
+    return businessEnvisioning.businessOutcomes.slice(0, 5).map(outcome => {
+      const metric = outcome.metric || outcome.outcome
+      if (outcome.targetValue && outcome.timeframe) {
+        return `${metric}: Achieve ${outcome.targetValue} by ${outcome.timeframe}`
+      }
+      return metric
+    })
+  }
+  
+  // Helper to derive desired outcome from Business Envisioning
+  const deriveDesiredOutcome = (): string => {
+    if (!businessEnvisioning) return ''
+    const parts: string[] = []
+    
+    if (businessEnvisioning.businessOutcomes && businessEnvisioning.businessOutcomes.length > 0) {
+      const outcomes = businessEnvisioning.businessOutcomes.slice(0, 3).map(o => o.outcome)
+      parts.push(`Target Outcomes: ${outcomes.join('; ')}`)
+    }
+    
+    // From current state assessment
+    if (businessEnvisioning.currentState?.aiMaturity) {
+      parts.push(`AI Readiness: Currently at ${businessEnvisioning.currentState.aiMaturity.currentLevel} maturity, targeting ${businessEnvisioning.currentState.aiMaturity.targetLevel || 'higher'} level`)
+    }
+    
+    return parts.join('\n\n')
+  }
   
   // 1A: Current State
   const [problemStatement, setProblemStatement] = useState(initialData?.problemStatement || '')
@@ -56,6 +129,24 @@ export function Stage1Opportunity({ initialData, onComplete, onBack, isLiveMode 
     }
   )
   const [isGeneratingSCQ, setIsGeneratingSCQ] = useState(false)
+  
+  // Track if we've shown the pre-population prompt
+  const [showPrePopulatePrompt, setShowPrePopulatePrompt] = useState(hasBusinessEnvisioningData && !initialData)
+  
+  // Pre-populate from Business Envisioning if available
+  const handlePrePopulate = () => {
+    if (!businessEnvisioning) return
+    
+    const derivedProblem = deriveProblemStatement()
+    const derivedOutcome = deriveDesiredOutcome()
+    const derivedMetrics = deriveSuccessMetrics()
+    
+    if (derivedProblem) setProblemStatement(derivedProblem)
+    if (derivedOutcome) setDesiredOutcome(derivedOutcome)
+    if (derivedMetrics.length > 0 && derivedMetrics[0] !== '') setSuccessMetrics(derivedMetrics)
+    
+    setShowPrePopulatePrompt(false)
+  }
 
   const totalCOI = calculateTotalCOI(coi)
 
@@ -147,6 +238,75 @@ Return ONLY a JSON object with keys: situation, complication, question`
           Understand the problem and quantify what's at stake
         </p>
       </div>
+
+      {/* Business Envisioning Pre-Population Prompt */}
+      {showPrePopulatePrompt && businessEnvisioning && (
+        <Alert className="bg-purple-500/10 border-purple-500/30">
+          <Target className="h-4 w-4 text-purple-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <div>
+              <span className="font-medium text-purple-600">Business Envisioning Data Available</span>
+              <p className="text-sm text-muted-foreground mt-1">
+                Pre-populate fields with strategic priorities and business outcomes from your previous discovery session?
+              </p>
+              {businessEnvisioning.strategicPriorities && businessEnvisioning.strategicPriorities.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {businessEnvisioning.strategicPriorities.slice(0, 3).map((sp, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/30">
+                      {sp.priority}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 ml-4">
+              <Button variant="outline" size="sm" onClick={() => setShowPrePopulatePrompt(false)}>
+                Skip
+              </Button>
+              <Button size="sm" onClick={handlePrePopulate} className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Sparkles className="mr-1 h-3 w-3" />
+                Pre-Populate
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Business Envisioning Context Card (collapsed view after pre-population or skip) */}
+      {hasBusinessEnvisioningData && !showPrePopulatePrompt && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-md cursor-help">
+                <Target className="h-3 w-3 text-purple-600" />
+                <span>Linked to Business Envisioning</span>
+                {businessEnvisioning?.strategicPriorities && businessEnvisioning.strategicPriorities.length > 0 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-purple-500/10 text-purple-600 border-purple-500/30">
+                    {businessEnvisioning.strategicPriorities.length} priorities
+                  </Badge>
+                )}
+                {businessEnvisioning?.businessOutcomes && businessEnvisioning.businessOutcomes.length > 0 && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-600 border-blue-500/30">
+                    {businessEnvisioning.businessOutcomes.length} outcomes
+                  </Badge>
+                )}
+                <Info className="h-3 w-3 ml-auto" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-md">
+              <div className="space-y-2">
+                <p className="font-medium">Business Envisioning Context</p>
+                {businessEnvisioning?.strategicPriorities?.slice(0, 2).map((sp, idx) => (
+                  <p key={idx} className="text-xs">• {sp.priority}</p>
+                ))}
+                {businessEnvisioning?.businessOutcomes?.slice(0, 2).map((bo, idx) => (
+                  <p key={idx} className="text-xs">• {bo.outcome}</p>
+                ))}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
 
       <Tabs defaultValue="current-state" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">

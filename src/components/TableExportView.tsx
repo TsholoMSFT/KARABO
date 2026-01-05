@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
-import { FilePdf, X, Info, ShieldCheck, FileText } from '@phosphor-icons/react'
+import { FilePdf, X, Info, ShieldCheck, FileText, Calculator, TrendUp, ChartLine } from '@phosphor-icons/react'
 import { exportToPDF } from '@/lib/pdf-export'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Disclaimer } from './Disclaimer'
 
 interface TableExportViewProps {
@@ -30,7 +30,28 @@ export function TableExportView({
 }: TableExportViewProps) {
   const [effortUnit, setEffortUnit] = useState<'person-weeks' | 'fte' | 'man-hours'>('person-weeks')
   const [includeDisclaimers, setIncludeDisclaimers] = useState(true)
+  const [includeCOI, setIncludeCOI] = useState(true)
+  const [includeExpectedValue, setIncludeExpectedValue] = useState(true)
+  const [includeDataSources, setIncludeDataSources] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
+
+  // Calculate financial summary stats
+  const financialSummary = useMemo(() => {
+    const useCasesWithCOI = useCases.filter(uc => uc.costOfInaction?.totalAnnualCOI)
+    const useCasesWithEV = useCases.filter(uc => uc.expectedValue?.totalAnnualValue)
+    const totalCOI = useCasesWithCOI.reduce((sum, uc) => sum + (uc.costOfInaction?.totalAnnualCOI || 0), 0)
+    const totalEV = useCasesWithEV.reduce((sum, uc) => sum + (uc.expectedValue?.totalAnnualValue || 0), 0)
+    const avgPayback = useCasesWithEV.length > 0 
+      ? useCasesWithEV.reduce((sum, uc) => sum + (uc.expectedValue?.paybackMonths || 0), 0) / useCasesWithEV.length
+      : 0
+    return { useCasesWithCOI: useCasesWithCOI.length, useCasesWithEV: useCasesWithEV.length, totalCOI, totalEV, avgPayback }
+  }, [useCases])
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
+    if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
+    return `$${value.toFixed(0)}`
+  }
 
   const handleExportPDF = async () => {
     setIsExporting(true)
@@ -40,6 +61,9 @@ export function TableExportView({
         customerMetadata,
         suggestedUseCases,
         includeDisclaimers,
+        includeCOI,
+        includeExpectedValue,
+        includeDataSources,
       })
       onOpenChange(false)
     } finally {
@@ -50,6 +74,10 @@ export function TableExportView({
   const reportContents = [
     { label: 'Cover Page', description: 'Customer information and report title' },
     { label: 'Executive Summary', description: 'AI-generated strategic overview' },
+    ...(financialSummary.totalCOI > 0 || financialSummary.totalEV > 0 ? [{ 
+      label: 'Financial Impact Summary', 
+      description: `${financialSummary.useCasesWithCOI} use cases with COI, ${financialSummary.useCasesWithEV} with expected value` 
+    }] : []),
     { label: 'Top Recommendations', description: `${topUseCases.length} highest-scoring use cases` },
     { label: 'Scoring Methodology', description: scoringMethod === 'rice' ? 'RICE Framework explanation' : 'Impact/Feasibility Matrix explanation' },
     { label: 'All Use Cases', description: `Complete list of ${useCases.length} evaluated use cases` },
@@ -128,6 +156,45 @@ export function TableExportView({
               <div className="flex flex-col gap-3">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
+                    id="coi" 
+                    checked={includeCOI}
+                    onCheckedChange={(checked) => setIncludeCOI(checked as boolean)}
+                  />
+                  <Label htmlFor="coi" className="cursor-pointer text-sm flex items-center gap-1.5">
+                    <Calculator size={14} className="text-red-500" />
+                    Include Cost of Inaction
+                    {financialSummary.useCasesWithCOI > 0 && (
+                      <span className="text-xs text-muted-foreground">({financialSummary.useCasesWithCOI} use cases)</span>
+                    )}
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="ev" 
+                    checked={includeExpectedValue}
+                    onCheckedChange={(checked) => setIncludeExpectedValue(checked as boolean)}
+                  />
+                  <Label htmlFor="ev" className="cursor-pointer text-sm flex items-center gap-1.5">
+                    <TrendUp size={14} className="text-green-500" />
+                    Include Expected Value & ROI
+                    {financialSummary.useCasesWithEV > 0 && (
+                      <span className="text-xs text-muted-foreground">({financialSummary.useCasesWithEV} use cases)</span>
+                    )}
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="dataSources" 
+                    checked={includeDataSources}
+                    onCheckedChange={(checked) => setIncludeDataSources(checked as boolean)}
+                  />
+                  <Label htmlFor="dataSources" className="cursor-pointer text-sm flex items-center gap-1.5">
+                    <ChartLine size={14} className="text-blue-500" />
+                    Include Data Sources
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
                     id="disclaimers" 
                     checked={includeDisclaimers}
                     onCheckedChange={(checked) => setIncludeDisclaimers(checked as boolean)}
@@ -139,6 +206,40 @@ export function TableExportView({
               </div>
             </div>
           </div>
+
+          {/* Financial Summary Banner */}
+          {(financialSummary.totalCOI > 0 || financialSummary.totalEV > 0) && (
+            <div className="bg-gradient-to-r from-red-500/10 via-transparent to-green-500/10 rounded-lg p-4 border border-border/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {financialSummary.totalCOI > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Calculator size={18} className="text-red-500" />
+                      <div>
+                        <div className="text-xs text-muted-foreground">Total COI</div>
+                        <div className="text-sm font-bold text-red-600">{formatCurrency(financialSummary.totalCOI)}/year</div>
+                      </div>
+                    </div>
+                  )}
+                  {financialSummary.totalEV > 0 && (
+                    <div className="flex items-center gap-2">
+                      <TrendUp size={18} className="text-green-500" />
+                      <div>
+                        <div className="text-xs text-muted-foreground">Total Value</div>
+                        <div className="text-sm font-bold text-green-600">{formatCurrency(financialSummary.totalEV)}/year</div>
+                      </div>
+                    </div>
+                  )}
+                  {financialSummary.avgPayback > 0 && (
+                    <div>
+                      <div className="text-xs text-muted-foreground">Avg Payback</div>
+                      <div className="text-sm font-bold">{financialSummary.avgPayback.toFixed(0)} months</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* AI Disclaimer Banner */}
           <Disclaimer variant="compact" />

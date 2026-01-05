@@ -13,7 +13,11 @@ import {
   MagnifyingGlass,
   Briefcase,
   ChartLine,
-  Calculator
+  Calculator,
+  Play,
+  HardHat,
+  ShoppingCart,
+  Bank
 } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 
@@ -22,9 +26,18 @@ interface LandingPageProps {
   onStartNew: () => void
   onStartEnterpriseDiscovery: () => void
   onViewExisting: () => void
+  onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
+  onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
 }
 
-export function LandingPage({ customers, onStartNew, onStartEnterpriseDiscovery, onViewExisting }: LandingPageProps) {
+export function LandingPage({ 
+  customers, 
+  onStartNew, 
+  onStartEnterpriseDiscovery, 
+  onViewExisting,
+  onStartDemo,
+  onStartEnterpriseDemo
+}: LandingPageProps) {
   const hasExistingCustomers = customers.length > 0
 
   return (
@@ -284,6 +297,102 @@ export function LandingPage({ customers, onStartNew, onStartEnterpriseDiscovery,
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Try Demo Section */}
+        {(onStartDemo || onStartEnterpriseDemo) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.85 }}
+            className="mt-8"
+          >
+            <Card className="bg-gradient-to-r from-primary/5 via-transparent to-primary/5 border-primary/20">
+              <CardContent className="py-6">
+                <div className="text-center mb-4">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Play size={20} weight="fill" className="text-primary" />
+                    <h3 className="font-semibold text-lg">Try a Demo</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Explore pre-populated sessions with real-world scenarios</p>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
+                  {/* Mining Demo */}
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 h-auto py-3"
+                      onClick={() => onStartDemo?.('mining')}
+                    >
+                      <HardHat size={18} weight="duotone" className="text-amber-600" />
+                      <div className="text-left">
+                        <div className="font-medium text-sm">Zava Mining</div>
+                        <div className="text-[10px] text-muted-foreground">Quick Discovery</div>
+                      </div>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs gap-1"
+                      onClick={() => onStartEnterpriseDemo?.('mining')}
+                    >
+                      <Briefcase size={12} />
+                      Enterprise
+                    </Button>
+                  </div>
+                  
+                  {/* Retail Demo */}
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 h-auto py-3"
+                      onClick={() => onStartDemo?.('retail')}
+                    >
+                      <ShoppingCart size={18} weight="duotone" className="text-green-600" />
+                      <div className="text-left">
+                        <div className="font-medium text-sm">MegaMart Retail</div>
+                        <div className="text-[10px] text-muted-foreground">Quick Discovery</div>
+                      </div>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs gap-1"
+                      onClick={() => onStartEnterpriseDemo?.('retail')}
+                    >
+                      <Briefcase size={12} />
+                      Enterprise
+                    </Button>
+                  </div>
+                  
+                  {/* Financial Demo */}
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 h-auto py-3"
+                      onClick={() => onStartDemo?.('financial')}
+                    >
+                      <Bank size={18} weight="duotone" className="text-blue-600" />
+                      <div className="text-left">
+                        <div className="font-medium text-sm">Apex Financial</div>
+                        <div className="text-[10px] text-muted-foreground">Quick Discovery</div>
+                      </div>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs gap-1"
+                      onClick={() => onStartEnterpriseDemo?.('financial')}
+                    >
+                      <Briefcase size={12} />
+                      Enterprise
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         <motion.p
           initial={{ opacity: 0 }}

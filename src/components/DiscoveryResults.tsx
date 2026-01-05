@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, EarningsInsight } from '@/lib/types'
+import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, EarningsInsight, StrategicAlignmentInfo, UseCaseBusinessProcess, UseCaseMicrosoftSolution, UseCaseAgenticOpportunity, ImplementationComplexityInfo } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
 import { getRegulationsForIndustry, getSecurityRequirementsForIndustry, getRegulationsForJurisdiction, getFallbackUseCasesForIndustry } from '@/lib/demo-data'
@@ -39,6 +39,13 @@ interface SuggestedUseCase {
   selected: boolean
   aiRegulations?: AIRegulationsInfo
   cybersecurity?: CybersecurityInfo
+  // Innovation Hub Methodology additions
+  strategicAlignment?: StrategicAlignmentInfo
+  businessProcesses?: (UseCaseBusinessProcess & { processData?: any })[]
+  microsoftSolutions?: UseCaseMicrosoftSolution[]
+  referenceArchitecture?: string
+  agenticOpportunities?: UseCaseAgenticOpportunity[]
+  implementationComplexity?: ImplementationComplexityInfo
 }
 
 export function DiscoveryResults({ session, onCreateUseCases, onBack }: DiscoveryResultsProps) {
@@ -269,7 +276,7 @@ IMPORTANT: Ensure use cases align with industry standards and address key trends
 
       setGenerationPhase('generating')
 
-      const useCasesPromptText = `You are an innovation consultant at Microsoft helping identify potential use cases for Microsoft technologies and AI solutions.
+      const useCasesPromptText = `You are an innovation consultant at Microsoft using the Innovation Hub Methodology to help identify high-value use cases for Microsoft technologies and AI solutions.
 
 DISCOVERY SESSION CONTEXT:
 Customer: ${session.customerName}
@@ -281,42 +288,149 @@ ${session.stockTicker ? `Stock Ticker: ${session.stockTicker} (Public Company)` 
 DISCOVERY RESPONSES:
 ${responsesText}${industryContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}
 
-TASK: Analyze ALL available data sources to suggest 5-8 high-value use cases that could benefit from AI, automation, or digital transformation using Microsoft technologies.
+TASK: Using the Microsoft Innovation Hub Methodology, analyze ALL available data sources to suggest 5-8 high-value use cases. For each use case, apply both Business Envisioning (the WHY and HOW) and Solution Envisioning (the WHAT and WITH WHAT).
 
 DATA SOURCES AVAILABLE:
 ${dataSources.map(ds => `- ${ds.toUpperCase()}`).join('\n')}
 
+=== BUSINESS ENVISIONING (Phase 1) ===
+
+For each use case, extract:
+
+1. STRATEGIC ALIGNMENT (The "Why"):
+   - Which strategic priority does this address? (e.g., "Digital Transformation", "Cost Optimization", "Growth")
+   - Source of the priority (earnings-call, annual-report, discovery-session, industry-research)
+   - Alignment score (1-10)
+   - Brief rationale explaining WHY this supports the company's strategy
+
+2. BUSINESS PROCESS MAPPING (The "How"):
+   - Which business process does this improve?
+   - Key steps in that process (3-5 steps with name and description)
+   - Current pain points in the process
+   - Where AI can intervene (which steps)
+   - Expected cycle time or efficiency improvement
+
+=== SOLUTION ENVISIONING (Phase 2) ===
+
 For each use case, provide:
-1. A clear, actionable title (max 60 characters) - make it specific and compelling
-2. A detailed description explaining the opportunity and potential solution (2-3 sentences)
-3. A brief rationale explaining why this makes sense based on the available data sources (1-2 sentences referencing specific insights from earnings, financials, news, or industry research)
-4. AI Regulations & Compliance considerations:
-   - applicableFrameworks: array of relevant regulation codes (e.g., "gdpr", "popia", "hipaa", "sox", "msha", "osha", "eu-ai-act", "iso-42001")
-   - riskClassification: EU AI Act risk level ("minimal", "limited", "high", or "unacceptable")
+
+3. MICROSOFT SOLUTION RECOMMENDATIONS:
+   - Primary product family: azure-ai, azure-data, power-platform, microsoft-365, dynamics-365, microsoft-fabric, microsoft-security
+   - Specific services to use (e.g., ["azure-openai", "azure-ai-search", "copilot-studio"])
+   - Role of each product family: primary, supporting, or integration
+   - Reference architecture pattern if applicable (conversational-ai, document-processing, predictive-analytics, process-automation, agentic-ai, etc.)
+
+4. AGENTIC AI OPPORTUNITIES:
+   - If this use case could benefit from autonomous AI agents, describe:
+     - Agent type: task-agent, orchestrator-agent, specialist-agent, assistant-agent
+     - Key capabilities: reasoning, planning, tool-use, memory, multi-step-execution, human-in-loop
+     - Human oversight level: none, approval, review, supervision
+     - Automation level: assisted, semi-autonomous, autonomous
+     - Tools/APIs the agent would use
+
+5. IMPLEMENTATION COMPLEXITY:
+   - Level: low, medium, high, very-high
+   - Key complexity factors (e.g., "Multiple integrations", "Custom ML models", "Legacy system migration")
+   - Estimated duration (e.g., "3-6 months")
+   - Estimated team size (e.g., "5-8 people")
+   - Key risks
+
+=== COMPLIANCE & SECURITY ===
+
+6. AI Regulations & Compliance:
+   - applicableFrameworks: array of relevant regulation codes (gdpr, popia, hipaa, sox, msha, eu-ai-act, iso-42001, ms-responsible-ai)
+   - riskClassification: EU AI Act risk level (minimal, limited, high, unacceptable)
    - complianceNotes: brief note on key compliance considerations
    - jurisdictions: array of applicable jurisdictions (e.g., ["South Africa", "European Union"])
-5. Cybersecurity considerations:
-   - securityRequirements: array of required controls (e.g., "encryption-at-rest", "access-control", "audit-logging", "scada-protection", "mfa-required")
-   - dataClassification: data sensitivity level ("public", "internal", "confidential", "pii", "operational")
+
+7. Cybersecurity:
+   - securityRequirements: array of required controls (encryption-at-rest, access-control, audit-logging, mfa-required)
+   - dataClassification: data sensitivity level (public, internal, confidential, pii, operational)
    - securityNotes: brief note on key security considerations
 
-INDUSTRY-SPECIFIC REGULATIONS TO CONSIDER:
-- Healthcare: HIPAA, GDPR
-- Financial Services: SOX, GLBA, PCI-DSS, GDPR
-- Mining/Energy: MSHA, OSHA, EPA, environmental regulations
-- South Africa: POPIA, DMRE (for mining)
-- European operations: GDPR, EU AI Act
-- US operations: CCPA, NIST AI RMF
+=== OUTPUT FORMAT ===
+
+Return a valid JSON object with structure:
+{
+  "useCases": [
+    {
+      "title": "string (max 60 chars, specific and compelling)",
+      "description": "string (2-3 sentences explaining the opportunity)",
+      "rationale": "string (1-2 sentences referencing specific data sources)",
+      "strategicAlignment": {
+        "primaryPriority": "string",
+        "linkedPriorities": ["string"],
+        "source": "earnings-call | annual-report | discovery-session | industry-research",
+        "alignmentScore": 1-10,
+        "alignmentRationale": "string"
+      },
+      "businessProcess": {
+        "processName": "string",
+        "category": "core | support | management",
+        "steps": [
+          {
+            "order": 1,
+            "name": "string",
+            "description": "string",
+            "painPoint": "string (optional)",
+            "aiOpportunity": {
+              "interventionType": "automate | augment | analyze | generate",
+              "description": "string"
+            }
+          }
+        ],
+        "currentPainPoints": ["string"],
+        "expectedImprovement": "string"
+      },
+      "microsoftSolutions": [
+        {
+          "productFamily": "azure-ai | power-platform | microsoft-365 | dynamics-365 | azure-data | microsoft-fabric | microsoft-security",
+          "services": ["string"],
+          "role": "primary | supporting | integration",
+          "justification": "string"
+        }
+      ],
+      "referenceArchitecture": "conversational-ai | document-processing | predictive-analytics | process-automation | agentic-ai | knowledge-mining | customer-360 | (optional)",
+      "agenticOpportunity": {
+        "hasOpportunity": true | false,
+        "title": "string (if hasOpportunity)",
+        "description": "string (if hasOpportunity)",
+        "agentType": "task-agent | orchestrator-agent | specialist-agent | assistant-agent",
+        "capabilities": ["reasoning", "planning", "tool-use", "memory", "multi-step-execution", "human-in-loop"],
+        "humanOversight": "none | approval | review | supervision",
+        "automationLevel": "assisted | semi-autonomous | autonomous",
+        "tools": ["string"]
+      },
+      "implementationComplexity": {
+        "level": "low | medium | high | very-high",
+        "factors": ["string"],
+        "estimatedDuration": "string",
+        "estimatedTeamSize": "string",
+        "keyRisks": ["string"]
+      },
+      "aiRegulations": {
+        "applicableFrameworks": ["string"],
+        "riskClassification": "minimal | limited | high",
+        "complianceNotes": "string",
+        "jurisdictions": ["string"]
+      },
+      "cybersecurity": {
+        "securityRequirements": ["string"],
+        "dataClassification": "public | internal | confidential | pii | operational",
+        "securityNotes": "string"
+      }
+    }
+  ]
+}
 
 GUIDELINES:
 - Focus on practical, implementable solutions that address their stated challenges
-- Consider Azure AI, Microsoft 365 Copilot, Power Platform, Azure OpenAI Service, and other Microsoft innovations
-- Prioritize use cases with clear business value and feasibility
+- ALWAYS recommend specific Microsoft products - consider Azure AI, Microsoft 365 Copilot, Power Platform, Azure OpenAI Service, Dynamics 365, Microsoft Fabric
+- Prioritize use cases with clear business value and strategic alignment
 - Ensure diversity in the types of solutions (don't suggest 5 variations of the same thing)
 - For safety-critical AI (affecting workers, health, critical infrastructure), classify as "high" risk
-${earningsContext ? '- PRIORITIZE use cases that directly address strategic priorities, pain points, or investment areas from earnings calls' : ''}
-
-Return the result as a valid JSON object with a single property called "useCases" that contains an array of use case objects. Each use case should have "title", "description", "rationale", "aiRegulations", and "cybersecurity" properties.`
+- Identify agentic AI opportunities where autonomous reasoning and multi-step execution can add value
+${earningsContext ? '- PRIORITIZE use cases that directly address strategic priorities, pain points, or investment areas from earnings calls' : ''}`
 
       const useCasesResult = await window.llm(useCasesPromptText, 'gpt-4o-mini', true)
       const parsed = JSON.parse(useCasesResult)
@@ -346,9 +460,37 @@ Return the result as a valid JSON object with a single property called "useCases
             securityRequirements: defaultSecurityReqs,
             dataClassification: 'internal',
           },
+          // Innovation Hub Methodology additions
+          strategicAlignment: uc.strategicAlignment ? {
+            primaryPriority: uc.strategicAlignment.primaryPriority,
+            linkedPriorities: uc.strategicAlignment.linkedPriorities,
+            alignmentScore: uc.strategicAlignment.alignmentScore,
+            alignmentRationale: uc.strategicAlignment.alignmentRationale,
+          } : undefined,
+          businessProcesses: uc.businessProcess ? [{
+            processId: `process-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            processName: uc.businessProcess.processName,
+            affectedSteps: uc.businessProcess.steps?.map((s: any) => s.name) || [],
+            currentPainPoints: uc.businessProcess.currentPainPoints || [],
+            proposedImprovement: uc.businessProcess.expectedImprovement || '',
+            processData: uc.businessProcess, // Keep full process data for visualization
+          }] : undefined,
+          microsoftSolutions: uc.microsoftSolutions || undefined,
+          referenceArchitecture: uc.referenceArchitecture || undefined,
+          agenticOpportunities: uc.agenticOpportunity?.hasOpportunity ? [{
+            id: `agent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            title: uc.agenticOpportunity.title,
+            description: uc.agenticOpportunity.description,
+            agentType: uc.agenticOpportunity.agentType,
+            capabilities: uc.agenticOpportunity.capabilities || [],
+            humanOversight: uc.agenticOpportunity.humanOversight || 'review',
+            automationLevel: uc.agenticOpportunity.automationLevel || 'assisted',
+            tools: uc.agenticOpportunity.tools || [],
+          }] : undefined,
+          implementationComplexity: uc.implementationComplexity || undefined,
         }))
         setSuggestedUseCases(useCases)
-        toast.success(`Generated ${useCases.length} use cases from your discovery session!`)
+        toast.success(`Generated ${useCases.length} use cases with Microsoft solution recommendations!`)
       }
       
       const useCaseData = useCases.map((uc: SuggestedUseCase) => ({
@@ -357,7 +499,14 @@ Return the result as a valid JSON object with a single property called "useCases
         rationale: uc.rationale,
         aiRegulations: uc.aiRegulations,
         cybersecurity: uc.cybersecurity,
-        dataSources: dataSources, // Include all data sources used during generation
+        dataSources: dataSources,
+        // Innovation Hub Methodology additions
+        strategicAlignment: uc.strategicAlignment,
+        businessProcesses: uc.businessProcesses,
+        microsoftSolutions: uc.microsoftSolutions,
+        referenceArchitecture: uc.referenceArchitecture,
+        agenticOpportunities: uc.agenticOpportunities,
+        implementationComplexity: uc.implementationComplexity,
       }))
       
       updateSession(session.id, {

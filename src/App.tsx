@@ -29,7 +29,17 @@ import { Disclaimer } from '@/components/Disclaimer'
 import { LandingPage } from '@/components/LandingPage'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
-import { DEMO_DISCOVERY_SESSION, DEMO_USE_CASES, DEMO_ENTERPRISE_SESSION } from '@/lib/demo-data'
+import { 
+  DEMO_DISCOVERY_SESSION, 
+  DEMO_USE_CASES, 
+  DEMO_ENTERPRISE_SESSION,
+  DEMO_RETAIL_SESSION,
+  DEMO_RETAIL_USE_CASES,
+  DEMO_RETAIL_ENTERPRISE_SESSION,
+  DEMO_FINANCIAL_SESSION,
+  DEMO_FINANCIAL_USE_CASES,
+  DEMO_FINANCIAL_ENTERPRISE_SESSION,
+} from '@/lib/demo-data'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -201,15 +211,24 @@ function App() {
     setCurrentView('enterprise-discovery')
   }
 
-  // Demo mode handlers - load pre-populated Zava Mining data
-  const handleStartDemo = () => {
+  // Demo mode handlers - load pre-populated demo data for selected industry
+  const handleStartDemo = (demoType: 'mining' | 'retail' | 'financial') => {
+    // Select the appropriate demo data based on type
+    const demoDataMap = {
+      mining: { session: DEMO_DISCOVERY_SESSION, useCases: DEMO_USE_CASES, name: 'Zava Mining', desc: 'AI-powered mining innovations with regulatory compliance' },
+      retail: { session: DEMO_RETAIL_SESSION, useCases: DEMO_RETAIL_USE_CASES, name: 'MegaMart Retail', desc: 'Retail AI for inventory, shrinkage, and customer experience' },
+      financial: { session: DEMO_FINANCIAL_SESSION, useCases: DEMO_FINANCIAL_USE_CASES, name: 'Apex Financial', desc: 'Financial services AI for fraud, onboarding, and credit' },
+    }
+    const demoData = demoDataMap[demoType]
+
     // Create a fresh demo session with unique IDs
     const demoSession: DiscoverySession = {
-      ...DEMO_DISCOVERY_SESSION,
+      ...demoData.session,
       id: `demo-session-${Date.now()}`,
       customerId: `demo-customer-${Date.now()}`,
       createdAt: Date.now(),
       completedAt: Date.now(),
+      isDemo: true,
     }
     
     // Create customer and add session
@@ -218,7 +237,7 @@ function App() {
     addSession(demoSession)
     
     // Add demo use cases with updated session ID
-    const demoUseCasesWithIds = DEMO_USE_CASES.map(uc => ({
+    const demoUseCasesWithIds = demoData.useCases.map(uc => ({
       ...uc,
       id: `demo-uc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       discoverySessionId: demoSession.id,
@@ -230,25 +249,34 @@ function App() {
     setSelectedCustomerId(customer.id)
     setSelectedSessionId(demoSession.id)
     
-    toast.success('Demo loaded! Exploring Zava Mining use cases...', {
-      description: 'This demo showcases AI-powered mining innovations with regulatory compliance.',
+    toast.success(`Demo loaded! Exploring ${demoData.name} use cases...`, {
+      description: demoData.desc,
     })
   }
 
-  const handleStartEnterpriseDemo = () => {
+  const handleStartEnterpriseDemo = (demoType: 'mining' | 'retail' | 'financial') => {
+    // Select the appropriate enterprise demo data based on type
+    const demoDataMap = {
+      mining: { session: DEMO_ENTERPRISE_SESSION, name: 'Zava Mining', desc: 'Predictive maintenance opportunity' },
+      retail: { session: DEMO_RETAIL_ENTERPRISE_SESSION, name: 'MegaMart Retail', desc: 'Inventory optimization opportunity' },
+      financial: { session: DEMO_FINANCIAL_ENTERPRISE_SESSION, name: 'Apex Financial', desc: 'Fraud detection and onboarding opportunity' },
+    }
+    const demoData = demoDataMap[demoType]
+
     // Load pre-populated enterprise discovery session
     const demoEnterpriseSession: EnterpriseDiscoverySession = {
-      ...DEMO_ENTERPRISE_SESSION,
+      ...demoData.session,
       id: `demo-enterprise-${Date.now()}`,
       createdAt: Date.now(),
       sessionDate: Date.now(),
+      isDemo: true,
     }
     
     setCurrentEnterpriseSession(demoEnterpriseSession)
     setCurrentView('enterprise-discovery')
     
-    toast.success('Enterprise Demo loaded!', {
-      description: 'Exploring Zava Mining predictive maintenance opportunity.',
+    toast.success(`Enterprise Demo loaded!`, {
+      description: `Exploring ${demoData.name} ${demoData.desc}.`,
     })
   }
 
@@ -428,6 +456,7 @@ function App() {
         <SessionMetadataForm
           onSubmit={handleSessionMetadataSubmit}
           onCancel={handleDiscoveryCancel}
+          onBackToLanding={() => setCurrentView('landing')}
           initialMetadata={selectedCustomerId ? { customerName: customers.find(c => c.id === selectedCustomerId)?.name || '' } : undefined}
         />
       )}
@@ -437,6 +466,7 @@ function App() {
           sessionMetadata={pendingSessionMetadata}
           onComplete={handleDiscoveryComplete} 
           onCancel={handleDiscoveryCancel}
+          onBackToLanding={() => setCurrentView('landing')}
           onSwitchToLive={handleSwitchToLive}
           initialSessionName={sessionState?.sessionName}
           initialIndustry={sessionState?.industry}
@@ -458,6 +488,7 @@ function App() {
             setSessionState({ sessionName, industry, responses: [] })
           }}
           onCancel={handleDiscoveryCancel}
+          onBackToLanding={() => setCurrentView('landing')}
         />
       )}
 
@@ -469,6 +500,7 @@ function App() {
           initialResponses={sessionState.responses}
           onComplete={handleDiscoveryComplete}
           onCancel={handleDiscoveryCancel}
+          onBackToLanding={() => setCurrentView('landing')}
           onSwitchToStandard={handleSwitchToStandard}
         />
       )}

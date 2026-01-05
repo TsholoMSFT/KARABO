@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
+import { NavigationHeader } from '@/components/NavigationHeader'
 import { useCustomers } from '@/hooks/use-customers'
 import { lookupTickerSymbol, TickerLookupResult } from '@/lib/earnings-service'
 import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info } from '@phosphor-icons/react'
@@ -26,6 +27,7 @@ export interface SessionMetadata {
 interface SessionMetadataFormProps {
   onSubmit: (metadata: SessionMetadata) => void
   onCancel: () => void
+  onBackToLanding?: () => void
   initialMetadata?: Partial<SessionMetadata>
 }
 
@@ -68,7 +70,7 @@ const INNOVATION_HUB_LOCATIONS = [
   'Zurich, Switzerland',
 ]
 
-export function SessionMetadataForm({ onSubmit, onCancel, initialMetadata }: SessionMetadataFormProps) {
+export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initialMetadata }: SessionMetadataFormProps) {
   const { customers, getCustomerById } = useCustomers()
   const [metadata, setMetadata] = useState<SessionMetadata>({
     customerName: initialMetadata?.customerName || '',
@@ -172,7 +174,16 @@ export function SessionMetadataForm({ onSubmit, onCancel, initialMetadata }: Ses
 
   return (
     <>
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <NavigationHeader
+            variant="minimal"
+            onBackToLanding={onBackToLanding}
+            onBack={onCancel}
+            backLabel="Cancel"
+          />
+        </div>
+        <div className="flex items-center justify-center p-4">
         <Card className="w-full max-w-3xl bg-card border-2">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -396,6 +407,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, initialMetadata }: Ses
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
       
       <DiscoverySettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />

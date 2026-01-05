@@ -19,7 +19,7 @@ import {
   Stage7Commit,
 } from './stages/StagesPlaceholder'
 import { exportEnterpriseDiscoveryToPDF } from '@/lib/enterprise-pdf-export'
-import type { EnterpriseDiscoverySession, YellowLight, StageStatus } from '@/lib/types'
+import type { EnterpriseDiscoverySession, YellowLight, StageStatus, BusinessEnvisioningData } from '@/lib/types'
 import { toast } from 'sonner'
 
 const PAUSED_SESSIONS_KEY = 'karabo-paused-enterprise-sessions'
@@ -27,6 +27,7 @@ const PAUSED_SESSIONS_KEY = 'karabo-paused-enterprise-sessions'
 interface EnterpriseDiscoveryOrchestratorProps {
   initialSession?: EnterpriseDiscoverySession
   initialCustomerName?: string
+  businessEnvisioning?: BusinessEnvisioningData
   onSave: (session: EnterpriseDiscoverySession) => void
   onComplete: (session: EnterpriseDiscoverySession) => void
   onCancel: () => void
@@ -36,6 +37,7 @@ interface EnterpriseDiscoveryOrchestratorProps {
 export function EnterpriseDiscoveryOrchestrator({
   initialSession,
   initialCustomerName,
+  businessEnvisioning,
   onSave,
   onComplete,
   onCancel,
@@ -244,6 +246,7 @@ export function EnterpriseDiscoveryOrchestrator({
         return (
           <Stage1Opportunity
             initialData={session.stages[1].data}
+            businessEnvisioning={businessEnvisioning}
             onComplete={(data) => handleStageComplete(1, data)}
             onBack={() => handleStageBack(0)}
             isLiveMode={isLiveMode}

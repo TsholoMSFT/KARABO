@@ -9,6 +9,26 @@ export interface ExportOptions {
   customerMetadata?: CustomerMetadata
   suggestedUseCases?: SuggestedUseCaseData[]
   includeDisclaimers?: boolean
+  includeCOI?: boolean
+  includeExpectedValue?: boolean
+  includeDataSources?: boolean
+}
+
+function formatCurrency(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
+  return `$${value.toFixed(0)}`
+}
+
+function getDataSourceLabel(source: string): string {
+  const labels: Record<string, string> = {
+    'earnings': 'Earnings Calls',
+    'financials': 'Financial Statements',
+    'news': 'News & Market',
+    'industry-research': 'Industry Research',
+    'discovery': 'Discovery Session'
+  }
+  return labels[source] || source
 }
 
 export function convertEffort(personWeeks: number, unit: 'person-weeks' | 'fte' | 'man-hours'): number {
@@ -141,6 +161,91 @@ export function exportToPDF(
       })
       y += 8
     }
+  }
+
+  // ============ FINANCIAL IMPACT SUMMARY ============
+  const useCasesWithCOI = useCases.filter(uc => uc.costOfInaction?.totalAnnualCOI)
+  const useCasesWithEV = useCases.filter(uc => uc.expectedValue?.totalAnnualValue)
+  const totalCOI = useCasesWithCOI.reduce((sum, uc) => sum + (uc.costOfInaction?.totalAnnualCOI || 0), 0)
+  const totalEV = useCasesWithEV.reduce((sum, uc) => sum + (uc.expectedValue?.totalAnnualValue || 0), 0)
+  const totalImplementationCost = useCasesWithEV.reduce((sum, uc) => sum + (uc.expectedValue?.implementationCost || 0), 0)
+
+  if ((options.includeCOI !== false || options.includeExpectedValue !== false) && (totalCOI > 0 || totalEV > 0)) {
+    addPageIfNeeded(80)
+    doc.setDrawColor(200, 200, 200)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 8
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(13)
+    doc.setTextColor(60, 60, 60)
+    doc.text('Financial Impact Summary', margin, y)
+    y += 10
+
+    // COI Summary Box
+    if (options.includeCOI !== false && totalCOI > 0) {
+      doc.setFillColor(255, 240, 240)
+      doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 25, 2, 2, 'F')
+      doc.setDrawColor(200, 100, 100)
+      doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 25, 2, 2, 'S')
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.setTextColor(180, 60, 60)
+      doc.text('Total Cost of Inaction', margin + 5, y + 4)
+      
+      doc.setFontSize(16)
+      doc.text(`${formatCurrency(totalCOI)}/year`, pageWidth - margin - 5, y + 4, { align: 'right' })
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(120, 60, 60)
+      doc.text(`Based on ${useCasesWithCOI.length} use cases with quantified cost of inaction`, margin + 5, y + 14)
+      
+      // Breakdown
+      const totalDirect = useCasesWithCOI.reduce((sum, uc) => sum + (uc.costOfInaction?.directCosts || 0), 0)
+      const totalOpportunity = useCasesWithCOI.reduce((sum, uc) => sum + (uc.costOfInaction?.opportunityCosts || 0), 0)
+      const totalRisk = useCasesWithCOI.reduce((sum, uc) => sum + (uc.costOfInaction?.riskCosts || 0), 0)
+      doc.text(`Direct: ${formatCurrency(totalDirect)} | Opportunity: ${formatCurrency(totalOpportunity)} | Risk: ${formatCurrency(totalRisk)}`, pageWidth - margin - 5, y + 14, { align: 'right' })
+      
+      y += 32
+    }
+
+    // Expected Value Summary Box
+    if (options.includeExpectedValue !== false && totalEV > 0) {
+      doc.setFillColor(240, 255, 240)
+      doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 30, 2, 2, 'F')
+      doc.setDrawColor(100, 180, 100)
+      doc.roundedRect(margin, y - 3, pageWidth - 2 * margin, 30, 2, 2, 'S')
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.setTextColor(60, 140, 60)
+      doc.text('Total Expected Value', margin + 5, y + 4)
+      
+      doc.setFontSize(16)
+      doc.text(`${formatCurrency(totalEV)}/year`, pageWidth - margin - 5, y + 4, { align: 'right' })
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(60, 100, 60)
+      doc.text(`Based on ${useCasesWithEV.length} use cases with quantified expected value`, margin + 5, y + 14)
+
+      if (totalImplementationCost > 0) {
+        const paybackMonths = (totalImplementationCost / totalEV) * 12
+        const threeYearROI = ((totalEV * 3 - totalImplementationCost) / totalImplementationCost) * 100
+        doc.text(`Implementation: ${formatCurrency(totalImplementationCost)} | Payback: ${paybackMonths.toFixed(0)} months | 3-Year ROI: ${threeYearROI.toFixed(0)}%`, pageWidth - margin - 5, y + 14, { align: 'right' })
+      }
+
+      // Breakdown
+      const totalRevenue = useCasesWithEV.reduce((sum, uc) => sum + (uc.expectedValue?.revenueImpact || 0), 0)
+      const totalSavings = useCasesWithEV.reduce((sum, uc) => sum + (uc.expectedValue?.costSavings || 0), 0)
+      doc.text(`Revenue Impact: ${formatCurrency(totalRevenue)} | Cost Savings: ${formatCurrency(totalSavings)}`, margin + 5, y + 20)
+      
+      y += 38
+    }
+
+    y += 4
   }
 
   if (scoringMethod === 'rice') {
@@ -295,7 +400,7 @@ export function exportToPDF(
   y += 10
 
   topUseCases.forEach((useCase, index) => {
-    addPageIfNeeded(50)
+    addPageIfNeeded(70)
 
     doc.setFillColor(165, 120, 255)
     doc.roundedRect(margin, y - 5, 10, 10, 2, 2, 'F')
@@ -322,6 +427,19 @@ export function exportToPDF(
       y += 4
     }
 
+    // Data Sources
+    if (options.includeDataSources !== false && useCase.dataSources && useCase.dataSources.length > 0) {
+      addPageIfNeeded(8)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(7)
+      doc.setTextColor(100, 100, 150)
+      doc.text('Data Sources:', margin + 5, y)
+      doc.setFont('helvetica', 'normal')
+      const sourcesText = useCase.dataSources.map(s => getDataSourceLabel(s)).join(' • ')
+      doc.text(sourcesText, margin + 30, y)
+      y += 5
+    }
+
     if (useCase.kpis && useCase.kpis.length > 0) {
       addPageIfNeeded(10)
       doc.setFont('helvetica', 'bold')
@@ -343,6 +461,43 @@ export function exportToPDF(
         y += 3.5
       })
       y += 4
+    }
+
+    // COI and Expected Value for top recommendations
+    if ((options.includeCOI !== false && useCase.costOfInaction?.totalAnnualCOI) || 
+        (options.includeExpectedValue !== false && useCase.expectedValue?.totalAnnualValue)) {
+      addPageIfNeeded(16)
+      
+      doc.setFillColor(248, 248, 255)
+      doc.roundedRect(margin + 5, y - 2, pageWidth - 2 * margin - 10, 12, 2, 2, 'F')
+      
+      let xPos = margin + 8
+      
+      if (options.includeCOI !== false && useCase.costOfInaction?.totalAnnualCOI) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(8)
+        doc.setTextColor(180, 60, 60)
+        doc.text(`COI: ${formatCurrency(useCase.costOfInaction.totalAnnualCOI)}/yr`, xPos, y + 5)
+        xPos += 45
+      }
+      
+      if (options.includeExpectedValue !== false && useCase.expectedValue?.totalAnnualValue) {
+        doc.setTextColor(60, 140, 60)
+        doc.text(`Value: ${formatCurrency(useCase.expectedValue.totalAnnualValue)}/yr`, xPos, y + 5)
+        xPos += 45
+        
+        if (useCase.expectedValue.paybackMonths) {
+          doc.setTextColor(80, 80, 120)
+          doc.text(`Payback: ${useCase.expectedValue.paybackMonths}mo`, xPos, y + 5)
+          xPos += 35
+        }
+        
+        if (useCase.expectedValue.threeYearROI) {
+          doc.text(`3Y ROI: ${useCase.expectedValue.threeYearROI}%`, xPos, y + 5)
+        }
+      }
+      
+      y += 14
     }
 
     doc.setFont('helvetica', 'bold')
@@ -390,7 +545,7 @@ export function exportToPDF(
     y += 10
 
     useCases.forEach((useCase) => {
-      addPageIfNeeded(38)
+      addPageIfNeeded(50)
 
       const isTopPick = topUseCases.some(top => top.id === useCase.id)
       
@@ -420,6 +575,17 @@ export function exportToPDF(
         y += 3
       }
 
+      // Data Sources
+      if (options.includeDataSources !== false && useCase.dataSources && useCase.dataSources.length > 0) {
+        addPageIfNeeded(6)
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(7)
+        doc.setTextColor(100, 100, 150)
+        const sourcesText = 'Sources: ' + useCase.dataSources.map(s => getDataSourceLabel(s)).join(' • ')
+        doc.text(sourcesText, margin + 3, y)
+        y += 4
+      }
+
       if (useCase.kpis && useCase.kpis.length > 0) {
         addPageIfNeeded(8)
         doc.setFont('helvetica', 'bold')
@@ -432,6 +598,32 @@ export function exportToPDF(
           return kpi ? kpi.name : null
         }).filter(Boolean).join(', ')
         doc.text(kpiNames, margin + 13, y, { maxWidth: pageWidth - 2 * margin - 16 })
+        y += 5
+      }
+
+      // COI and Expected Value for all use cases (compact format)
+      const hasCOI = options.includeCOI !== false && useCase.costOfInaction?.totalAnnualCOI
+      const hasEV = options.includeExpectedValue !== false && useCase.expectedValue?.totalAnnualValue
+      if (hasCOI || hasEV) {
+        addPageIfNeeded(6)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(7)
+        
+        let financialText = ''
+        if (hasCOI) {
+          doc.setTextColor(180, 60, 60)
+          financialText += `COI: ${formatCurrency(useCase.costOfInaction!.totalAnnualCOI)}/yr`
+        }
+        if (hasEV) {
+          if (financialText) financialText += ' | '
+          financialText += `Value: ${formatCurrency(useCase.expectedValue!.totalAnnualValue)}/yr`
+          if (useCase.expectedValue!.paybackMonths) {
+            financialText += ` (${useCase.expectedValue!.paybackMonths}mo payback)`
+          }
+        }
+        
+        doc.setTextColor(80, 80, 120)
+        doc.text(financialText, margin + 3, y)
         y += 5
       }
 

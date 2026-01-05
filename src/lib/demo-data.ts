@@ -12,7 +12,12 @@ import {
   SecurityRequirement,
   EnterpriseDiscoverySession,
   OpportunityStageData,
-  ResourcesStageData
+  ResourcesStageData,
+  StrategicAlignmentInfo,
+  UseCaseBusinessProcess,
+  UseCaseMicrosoftSolution,
+  UseCaseAgenticOpportunity,
+  ImplementationComplexityInfo
 } from './types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 
@@ -168,6 +173,45 @@ export const DEMO_USE_CASES: UseCase[] = [
     feasibility: 7,
     rice: { reach: 200, users: 200, period: 'quarter', impact: 3, confidence: 80, effort: 12 },
     kpis: ['equipment-uptime', 'maintenance-cost', 'production-output'],
+    // Innovation Hub Methodology: Business Envisioning
+    strategicAlignment: {
+      primaryPriority: 'Operational Excellence & Cost Optimization',
+      linkedPriorities: ['Digital Transformation', 'Safety Improvement'],
+      alignmentScore: 9,
+      alignmentRationale: 'Directly addresses R50M annual losses from unplanned downtime, a stated strategic priority. Aligns with digital transformation goals and supports safety through preventive interventions.',
+    },
+    businessProcesses: [{
+      processId: 'bp-maintenance-1',
+      processName: 'Equipment Maintenance',
+      affectedSteps: ['Inspection', 'Failure Detection', 'Work Order Creation', 'Parts Procurement'],
+      currentPainPoints: ['Reactive repairs dominate', 'Manual inspections miss early warnings', 'Parts not always available'],
+      proposedImprovement: 'AI predicts failures 48-72 hours in advance, enabling planned interventions',
+      expectedCycleTimeReduction: 'Reduce unplanned downtime by 40%',
+    }],
+    // Innovation Hub Methodology: Solution Envisioning
+    microsoftSolutions: [
+      { productFamily: 'azure-infrastructure', services: ['azure-iot-hub', 'azure-digital-twins'], role: 'primary', justification: 'IoT Hub ingests sensor data from equipment; Digital Twins provides virtual representation' },
+      { productFamily: 'azure-ai', services: ['azure-machine-learning', 'azure-ai-studio'], role: 'primary', justification: 'ML models predict equipment failures based on sensor patterns' },
+      { productFamily: 'power-platform', services: ['power-bi', 'power-automate'], role: 'supporting', justification: 'Dashboards for maintenance KPIs and automated alerting workflows' },
+    ],
+    referenceArchitecture: 'predictive-analytics',
+    agenticOpportunities: [{
+      id: 'agent-maintenance-1',
+      title: 'Autonomous Maintenance Orchestrator',
+      description: 'AI agent that monitors equipment health, predicts failures, automatically schedules maintenance windows, coordinates with parts inventory, and dispatches work orders to technicians',
+      agentType: 'orchestrator-agent',
+      capabilities: ['reasoning', 'planning', 'tool-use', 'multi-step-execution'],
+      humanOversight: 'approval',
+      automationLevel: 'semi-autonomous',
+      tools: ['SAP PM API', 'IoT Telemetry API', 'Scheduling System', 'Parts Inventory API'],
+    }],
+    implementationComplexity: {
+      level: 'high',
+      factors: ['IoT sensor integration across 5 sites', 'SCADA/OT system connectivity', 'ML model training with historical data', 'SAP PM integration'],
+      estimatedDuration: '6-9 months',
+      estimatedTeamSize: '8-12 people',
+      keyRisks: ['Legacy SCADA compatibility', 'Data quality from sensors', 'Change management for maintenance teams'],
+    },
     aiRegulations: {
       applicableFrameworks: ['msha', 'dmre', 'iso-42001', 'popia'],
       riskClassification: 'limited',
@@ -191,6 +235,46 @@ export const DEMO_USE_CASES: UseCase[] = [
     feasibility: 6,
     rice: { reach: 3500, users: 3500, period: 'quarter', impact: 3, confidence: 70, effort: 16 },
     kpis: ['safety-incidents', 'response-time', 'compliance-rate'],
+    // Innovation Hub Methodology: Business Envisioning
+    strategicAlignment: {
+      primaryPriority: 'Zero Harm Safety Target',
+      linkedPriorities: ['Regulatory Compliance', 'Operational Excellence'],
+      alignmentScore: 10,
+      alignmentRationale: 'Core strategic imperative - achieving zero fatalities and reducing safety incidents. Addresses regulatory requirements under MHSA and DMRE.',
+    },
+    businessProcesses: [{
+      processId: 'bp-safety-1',
+      processName: 'Safety Monitoring & Response',
+      affectedSteps: ['Hazard Identification', 'Risk Assessment', 'Alert & Response', 'Incident Investigation'],
+      currentPainPoints: ['Manual safety checks insufficient for real-time detection', 'Paper-based reporting delays', 'Underground communication gaps'],
+      proposedImprovement: 'Real-time AI monitoring with automated alerts and worker tracking',
+      expectedCycleTimeReduction: 'Reduce incident response time from hours to seconds',
+    }],
+    // Innovation Hub Methodology: Solution Envisioning
+    microsoftSolutions: [
+      { productFamily: 'azure-ai', services: ['azure-ai-vision', 'azure-openai'], role: 'primary', justification: 'Computer vision detects unsafe conditions; AI analyzes patterns for risk prediction' },
+      { productFamily: 'azure-infrastructure', services: ['azure-iot-hub'], role: 'primary', justification: 'Ingests data from wearables, cameras, and environmental sensors' },
+      { productFamily: 'power-platform', services: ['power-apps', 'power-automate'], role: 'supporting', justification: 'Mobile safety app for workers; automated incident workflows' },
+      { productFamily: 'microsoft-365', services: ['teams'], role: 'integration', justification: 'Emergency communication and coordination' },
+    ],
+    referenceArchitecture: 'iot-telemetry',
+    agenticOpportunities: [{
+      id: 'agent-safety-1',
+      title: 'Safety Guardian Agent',
+      description: 'AI agent that continuously monitors all safety feeds, detects anomalies, assesses risk severity, initiates appropriate response protocols, and coordinates with emergency services',
+      agentType: 'specialist-agent',
+      capabilities: ['reasoning', 'multi-step-execution', 'human-in-loop'],
+      humanOversight: 'supervision',
+      automationLevel: 'assisted',
+      tools: ['CCTV Feeds', 'Wearable APIs', 'Alert System', 'Emergency Response API'],
+    }],
+    implementationComplexity: {
+      level: 'very-high',
+      factors: ['Underground connectivity challenges', 'Integration with existing safety systems', 'Wearable device deployment', 'Real-time processing requirements', 'Regulatory approval process'],
+      estimatedDuration: '12-18 months',
+      estimatedTeamSize: '15-20 people',
+      keyRisks: ['Underground network reliability', 'Worker adoption of wearables', 'False positive management', 'Regulatory certification'],
+    },
     aiRegulations: {
       applicableFrameworks: ['msha', 'dmre', 'eu-ai-act', 'popia', 'osha'],
       riskClassification: 'high',
@@ -214,6 +298,45 @@ export const DEMO_USE_CASES: UseCase[] = [
     feasibility: 9,
     rice: { reach: 50, users: 50, period: 'month', impact: 2, confidence: 90, effort: 6 },
     kpis: ['processing-time', 'error-rate', 'compliance-rate'],
+    // Innovation Hub Methodology: Business Envisioning
+    strategicAlignment: {
+      primaryPriority: 'Carbon Neutrality by 2030',
+      linkedPriorities: ['Regulatory Compliance', 'Operational Efficiency'],
+      alignmentScore: 8,
+      alignmentRationale: 'Supports sustainability targets and reduces compliance burden. Environmental reporting to DMRE is mandatory.',
+    },
+    businessProcesses: [{
+      processId: 'bp-enviro-1',
+      processName: 'Environmental Compliance Reporting',
+      affectedSteps: ['Data Collection', 'Data Aggregation', 'Report Generation', 'Review & Approval', 'Submission'],
+      currentPainPoints: ['Manual data gathering from multiple systems', '40 hours/month per site', 'High error rate in manual compilation'],
+      proposedImprovement: 'Automated data aggregation and AI-assisted report generation',
+      expectedCycleTimeReduction: 'Reduce from 40 hours to 4 hours per site (90% reduction)',
+    }],
+    // Innovation Hub Methodology: Solution Envisioning
+    microsoftSolutions: [
+      { productFamily: 'power-platform', services: ['power-apps', 'power-automate', 'dataverse'], role: 'primary', justification: 'Low-code app for data collection; workflows for aggregation and approval' },
+      { productFamily: 'azure-ai', services: ['azure-openai'], role: 'supporting', justification: 'AI generates narrative sections of compliance reports' },
+      { productFamily: 'microsoft-365', services: ['m365-copilot', 'sharepoint'], role: 'supporting', justification: 'Copilot assists with report drafting; SharePoint stores documents' },
+    ],
+    referenceArchitecture: 'process-automation',
+    agenticOpportunities: [{
+      id: 'agent-enviro-1',
+      title: 'Compliance Report Compiler Agent',
+      description: 'AI agent that collects environmental data from all sources, validates data quality, generates draft reports, flags anomalies for review, and prepares submission packages',
+      agentType: 'task-agent',
+      capabilities: ['tool-use', 'multi-step-execution'],
+      humanOversight: 'review',
+      automationLevel: 'semi-autonomous',
+      tools: ['Environmental Sensors API', 'SAP Data API', 'SharePoint API', 'DMRE Portal API'],
+    }],
+    implementationComplexity: {
+      level: 'low',
+      factors: ['Well-defined regulatory requirements', 'Existing data sources', 'Power Platform expertise available'],
+      estimatedDuration: '2-3 months',
+      estimatedTeamSize: '3-5 people',
+      keyRisks: ['Data source access and quality', 'Regulatory template changes'],
+    },
     aiRegulations: {
       applicableFrameworks: ['dmre', 'epa', 'iso-42001', 'popia'],
       riskClassification: 'minimal',
@@ -237,6 +360,45 @@ export const DEMO_USE_CASES: UseCase[] = [
     feasibility: 6,
     rice: { reach: 100, users: 100, period: 'quarter', impact: 3, confidence: 60, effort: 20 },
     kpis: ['production-output', 'resource-utilization', 'quality-metrics'],
+    // Innovation Hub Methodology: Business Envisioning
+    strategicAlignment: {
+      primaryPriority: 'Operational Excellence',
+      linkedPriorities: ['Digital Transformation', 'Cost Optimization'],
+      alignmentScore: 8,
+      alignmentRationale: 'Addresses 15% ore extraction efficiency goal. Enables data-driven optimization of processing parameters.',
+    },
+    businessProcesses: [{
+      processId: 'bp-processing-1',
+      processName: 'Ore Processing',
+      affectedSteps: ['Crushing', 'Grinding', 'Flotation', 'Recovery'],
+      currentPainPoints: ['Suboptimal crusher settings', 'Trial-and-error parameter tuning', 'Recovery rate variations'],
+      proposedImprovement: 'Digital twin enables what-if simulation before implementing changes',
+      expectedCycleTimeReduction: 'Improve ore extraction efficiency by 15%',
+    }],
+    // Innovation Hub Methodology: Solution Envisioning
+    microsoftSolutions: [
+      { productFamily: 'azure-infrastructure', services: ['azure-digital-twins', 'azure-iot-hub'], role: 'primary', justification: 'Digital Twins models processing plant; IoT provides real-time sensor data' },
+      { productFamily: 'azure-ai', services: ['azure-machine-learning'], role: 'primary', justification: 'ML optimizes processing parameters based on simulation outcomes' },
+      { productFamily: 'power-platform', services: ['power-bi'], role: 'supporting', justification: 'Visualization of twin status and optimization recommendations' },
+    ],
+    referenceArchitecture: 'digital-twin',
+    agenticOpportunities: [{
+      id: 'agent-twin-1',
+      title: 'Process Optimization Agent',
+      description: 'AI agent that continuously monitors processing parameters, runs simulations on digital twin, identifies optimization opportunities, and recommends settings adjustments',
+      agentType: 'specialist-agent',
+      capabilities: ['reasoning', 'planning', 'tool-use'],
+      humanOversight: 'approval',
+      automationLevel: 'semi-autonomous',
+      tools: ['Digital Twin API', 'SCADA Interface', 'ML Model API'],
+    }],
+    implementationComplexity: {
+      level: 'very-high',
+      factors: ['Complex physical process modeling', 'High-fidelity twin requirements', 'SCADA integration', 'Domain expertise needed'],
+      estimatedDuration: '12-18 months',
+      estimatedTeamSize: '10-15 people',
+      keyRisks: ['Model accuracy validation', 'Processing domain expertise', 'Legacy system integration'],
+    },
     aiRegulations: {
       applicableFrameworks: ['iso-42001', 'dmre'],
       riskClassification: 'minimal',
@@ -260,6 +422,44 @@ export const DEMO_USE_CASES: UseCase[] = [
     feasibility: 9,
     rice: { reach: 200, users: 200, period: 'quarter', impact: 2, confidence: 85, effort: 4 },
     kpis: ['employee-productivity', 'decision-speed', 'data-accessibility'],
+    // Innovation Hub Methodology: Business Envisioning
+    strategicAlignment: {
+      primaryPriority: 'Digital Transformation',
+      linkedPriorities: ['Operational Visibility', 'Employee Productivity'],
+      alignmentScore: 7,
+      alignmentRationale: 'Addresses need for real-time visibility across all 5 sites. Quick win with immediate productivity gains.',
+    },
+    businessProcesses: [{
+      processId: 'bp-reporting-1',
+      processName: 'Operational Reporting & Handover',
+      affectedSteps: ['Data Gathering', 'Report Compilation', 'Shift Handover', 'Management Briefing'],
+      currentPainPoints: ['Manual data gathering from multiple systems', 'Slow report compilation', 'Inconsistent handover quality'],
+      proposedImprovement: 'Natural language queries and AI-generated summaries',
+      expectedCycleTimeReduction: 'Reduce report preparation time by 70%',
+    }],
+    // Innovation Hub Methodology: Solution Envisioning
+    microsoftSolutions: [
+      { productFamily: 'microsoft-365', services: ['m365-copilot', 'teams'], role: 'primary', justification: 'Copilot for natural language data queries and meeting summaries' },
+      { productFamily: 'power-platform', services: ['power-bi'], role: 'primary', justification: 'Interactive dashboards with Copilot integration' },
+    ],
+    referenceArchitecture: 'content-generation',
+    agenticOpportunities: [{
+      id: 'agent-ops-1',
+      title: 'Operations Briefing Assistant',
+      description: 'AI assistant that monitors operations data, generates shift summaries, prepares management briefings, and answers ad-hoc data questions',
+      agentType: 'assistant-agent',
+      capabilities: ['tool-use', 'memory'],
+      humanOversight: 'none',
+      automationLevel: 'assisted',
+      tools: ['Power BI API', 'SharePoint API', 'Teams API'],
+    }],
+    implementationComplexity: {
+      level: 'low',
+      factors: ['Existing Microsoft 365 environment', 'Power BI already deployed', 'Standard Copilot rollout'],
+      estimatedDuration: '1-2 months',
+      estimatedTeamSize: '2-3 people',
+      keyRisks: ['User adoption', 'Data governance for Copilot'],
+    },
     aiRegulations: {
       applicableFrameworks: ['popia', 'iso-42001'],
       riskClassification: 'minimal',
@@ -283,6 +483,35 @@ export const DEMO_USE_CASES: UseCase[] = [
     feasibility: 7,
     rice: { reach: 150, users: 150, period: 'quarter', impact: 2, confidence: 75, effort: 10 },
     kpis: ['carbon-emissions', 'fuel-costs', 'operational-efficiency'],
+    // Innovation Hub Methodology: Business Envisioning
+    strategicAlignment: {
+      primaryPriority: 'Carbon Neutrality by 2030',
+      linkedPriorities: ['Cost Optimization', 'Sustainability Leadership'],
+      alignmentScore: 9,
+      alignmentRationale: 'Directly supports carbon neutrality target. Addresses R200M annual diesel cost.',
+    },
+    businessProcesses: [{
+      processId: 'bp-fleet-1',
+      processName: 'Fleet Management & Fuel Procurement',
+      affectedSteps: ['Route Planning', 'Fuel Consumption Tracking', 'Fleet Scheduling', 'Infrastructure Planning'],
+      currentPainPoints: ['High diesel costs (R200M/year)', 'Suboptimal route planning', 'No visibility into electrification ROI'],
+      proposedImprovement: 'Analytics-driven fleet electrification roadmap',
+      expectedCycleTimeReduction: 'N/A - strategic planning use case',
+    }],
+    // Innovation Hub Methodology: Solution Envisioning
+    microsoftSolutions: [
+      { productFamily: 'azure-ai', services: ['azure-machine-learning'], role: 'primary', justification: 'Predictive models for consumption and ROI analysis' },
+      { productFamily: 'azure-data', services: ['azure-synapse', 'azure-data-lake'], role: 'primary', justification: 'Data lake for fleet telemetry; Synapse for advanced analytics' },
+      { productFamily: 'power-platform', services: ['power-bi'], role: 'supporting', justification: 'Executive dashboards for electrification planning' },
+    ],
+    referenceArchitecture: 'predictive-analytics',
+    implementationComplexity: {
+      level: 'medium',
+      factors: ['Fleet telemetry data integration', 'Route optimization modeling', 'Infrastructure cost modeling'],
+      estimatedDuration: '3-4 months',
+      estimatedTeamSize: '5-7 people',
+      keyRisks: ['Data quality from legacy fleet systems', 'Accuracy of charging infrastructure projections'],
+    },
     aiRegulations: {
       applicableFrameworks: ['epa', 'dmre', 'iso-42001'],
       riskClassification: 'minimal',
@@ -332,6 +561,7 @@ The mining sector in South Africa requires compliance with MHSA, DMRE regulation
     description: uc.description,
     rationale: 'Based on discovery responses highlighting operational challenges and digital transformation goals.',
   })),
+  isDemo: true,
   createdAt: Date.now() - 86400000, // 1 day ago
   completedAt: Date.now(),
   sessionDate: Date.now(),
@@ -430,6 +660,600 @@ export const DEMO_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
     },
   ],
   isLiveMode: false,
+  isDemo: true,
+  createdAt: Date.now() - 86400000,
+}
+
+// ============================================================================
+// RETAIL DEMO DATA (MegaMart)
+// ============================================================================
+
+export const DEMO_RETAIL_RESPONSES: DiscoveryResponse[] = [
+  {
+    questionId: 'current-landscape',
+    answer: 'MegaMart operates 150 stores across Southern Africa with a growing e-commerce platform (12% of revenue). We use SAP S/4HANA for ERP, Oracle for supply chain, and legacy POS systems. Customer data is fragmented across loyalty programs, POS, and e-commerce platforms.',
+    timestamp: Date.now(),
+  },
+  {
+    questionId: 'biggest-challenges',
+    answer: 'Inventory management is our biggest pain point - R200M in shrinkage annually, stockouts causing lost sales of R50M per month. Customer experience is inconsistent across channels. Manual processes in pricing and promotions take 2 weeks to execute.',
+    timestamp: Date.now(),
+  },
+  {
+    questionId: 'digital-initiatives',
+    answer: 'We launched click-and-collect last year and are piloting self-checkout. Exploring personalized marketing but limited by data silos. Board has approved R100M for digital transformation over 3 years.',
+    timestamp: Date.now(),
+  },
+]
+
+export const DEMO_RETAIL_USE_CASES: UseCase[] = [
+  {
+    id: 'retail-uc-1',
+    discoverySessionId: 'demo-retail-session-1',
+    title: 'AI-Powered Demand Forecasting & Inventory Optimization',
+    description: 'Deploy Azure Machine Learning to analyze sales patterns, weather, events, and social trends. Predict demand at SKU-store level with 95% accuracy, automatically triggering replenishment orders and reducing stockouts by 60%.',
+    impact: 9,
+    feasibility: 8,
+    rice: { reach: 150, users: 150, period: 'quarter', impact: 3, confidence: 85, effort: 10 },
+    kpis: ['revenue-growth', 'inventory-turnover', 'customer-satisfaction'],
+    costOfInaction: {
+      annualizedCost: 600000000, // R50M/month stockouts = R600M/year
+      costType: 'lost-revenue',
+      confidence: 'high',
+      assumptions: 'Based on current R50M monthly lost sales from stockouts, 60% reduction achievable',
+      sourceData: 'Internal sales analytics, lost sale tracking',
+    },
+    // Innovation Hub Methodology: Business Envisioning
+    strategicAlignment: {
+      primaryPriority: 'Revenue Growth & Customer Satisfaction',
+      linkedPriorities: ['Supply Chain Optimization', 'Working Capital Efficiency'],
+      alignmentScore: 9,
+      alignmentRationale: 'Directly addresses R600M annual lost sales from stockouts. Critical for competitive positioning against online retailers.',
+    },
+    businessProcesses: [{
+      processId: 'bp-inventory-1',
+      processName: 'Inventory Replenishment',
+      affectedSteps: ['Demand Forecasting', 'Order Generation', 'DC Allocation', 'Store Receiving'],
+      currentPainPoints: ['Inaccurate manual forecasts', 'Stockouts on fast movers', 'Overstock on slow movers'],
+      proposedImprovement: 'AI-driven demand sensing with automatic replenishment triggers',
+      expectedCycleTimeReduction: 'Reduce stockouts by 60%, improve inventory turns by 25%',
+    }],
+    // Innovation Hub Methodology: Solution Envisioning
+    microsoftSolutions: [
+      { productFamily: 'azure-ai', services: ['azure-machine-learning'], role: 'primary', justification: 'ML models for demand forecasting at SKU-store level' },
+      { productFamily: 'azure-data', services: ['azure-synapse', 'azure-data-lake'], role: 'primary', justification: 'Data lake for sales history; Synapse for analytics' },
+      { productFamily: 'power-platform', services: ['power-bi', 'power-automate'], role: 'supporting', justification: 'Inventory dashboards and replenishment alerts' },
+      { productFamily: 'dynamics-365', services: ['d365-supply-chain'], role: 'integration', justification: 'Integration with supply chain execution' },
+    ],
+    referenceArchitecture: 'predictive-analytics',
+    agenticOpportunities: [{
+      id: 'agent-inventory-1',
+      title: 'Inventory Optimization Agent',
+      description: 'AI agent that monitors stock levels, predicts demand, generates replenishment orders, coordinates with distribution centers, and adjusts for promotional events',
+      agentType: 'orchestrator-agent',
+      capabilities: ['reasoning', 'planning', 'tool-use', 'multi-step-execution'],
+      humanOversight: 'approval',
+      automationLevel: 'semi-autonomous',
+      tools: ['Demand Forecast API', 'Inventory System API', 'Order Management API', 'Weather API'],
+    }],
+    implementationComplexity: {
+      level: 'medium',
+      factors: ['Integration with SAP/Oracle systems', 'Historical data quality', 'ML model training', 'Store-level rollout'],
+      estimatedDuration: '4-6 months',
+      estimatedTeamSize: '6-8 people',
+      keyRisks: ['Data quality from legacy POS', 'Change management for buyers', 'ML model accuracy validation'],
+    },
+    aiRegulations: {
+      applicableFrameworks: ['popia', 'gdpr', 'iso-42001'],
+      riskClassification: 'minimal',
+      complianceNotes: 'Uses aggregated sales data. No personal data in forecasting models.',
+      jurisdictions: ['South Africa'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging'],
+      threatCategories: ['data-breach', 'data-exfiltration'],
+      dataClassification: 'confidential',
+      securityNotes: 'Sales and inventory data is commercially sensitive. Standard enterprise controls.',
+    },
+    createdAt: Date.now(),
+  },
+  {
+    id: 'retail-uc-2',
+    discoverySessionId: 'demo-retail-session-1',
+    title: 'Computer Vision for Shrinkage Prevention',
+    description: 'Implement Azure AI Vision at self-checkout and high-risk areas to detect scan avoidance, suspicious behavior, and inventory discrepancies in real-time. Integrate with existing CCTV infrastructure.',
+    impact: 8,
+    feasibility: 7,
+    rice: { reach: 150, users: 150, period: 'quarter', impact: 3, confidence: 75, effort: 14 },
+    kpis: ['shrinkage-rate', 'loss-prevention-savings', 'incident-detection-rate'],
+    costOfInaction: {
+      annualizedCost: 200000000, // R200M shrinkage
+      costType: 'operational-losses',
+      confidence: 'high',
+      assumptions: 'Current shrinkage at R200M annually, AI can reduce by 35%',
+      sourceData: 'Annual shrinkage audit reports',
+    },
+    // Innovation Hub Methodology: Business Envisioning
+    strategicAlignment: {
+      primaryPriority: 'Profitability & Loss Prevention',
+      linkedPriorities: ['Operational Efficiency', 'Store Safety'],
+      alignmentScore: 8,
+      alignmentRationale: 'Addresses R200M annual shrinkage. Essential for protecting margins in competitive retail environment.',
+    },
+    businessProcesses: [{
+      processId: 'bp-lp-1',
+      processName: 'Loss Prevention',
+      affectedSteps: ['Surveillance Monitoring', 'Incident Detection', 'Response & Intervention', 'Investigation'],
+      currentPainPoints: ['Manual CCTV monitoring insufficient', 'Self-checkout vulnerabilities', 'Delayed incident response'],
+      proposedImprovement: 'AI-powered real-time detection with automated alerts',
+      expectedCycleTimeReduction: 'Reduce shrinkage by 35%',
+    }],
+    // Innovation Hub Methodology: Solution Envisioning
+    microsoftSolutions: [
+      { productFamily: 'azure-ai', services: ['azure-ai-vision', 'azure-ai-studio'], role: 'primary', justification: 'Computer vision for behavior and object detection' },
+      { productFamily: 'azure-infrastructure', services: ['azure-iot-hub'], role: 'supporting', justification: 'IoT edge processing for cameras' },
+      { productFamily: 'power-platform', services: ['power-apps', 'power-automate'], role: 'supporting', justification: 'Alert notifications and incident logging' },
+    ],
+    referenceArchitecture: 'iot-telemetry',
+    agenticOpportunities: [{
+      id: 'agent-lp-1',
+      title: 'Loss Prevention Guardian',
+      description: 'AI agent that monitors camera feeds, detects suspicious patterns, correlates with POS data, triggers alerts to security, and logs incidents for investigation',
+      agentType: 'specialist-agent',
+      capabilities: ['reasoning', 'tool-use', 'human-in-loop'],
+      humanOversight: 'supervision',
+      automationLevel: 'assisted',
+      tools: ['CCTV Feed API', 'POS Transaction API', 'Alert System', 'Incident Management API'],
+    }],
+    implementationComplexity: {
+      level: 'high',
+      factors: ['CCTV infrastructure integration', 'Edge processing requirements', 'Privacy compliance', 'Staff training'],
+      estimatedDuration: '6-9 months',
+      estimatedTeamSize: '8-10 people',
+      keyRisks: ['Camera quality and coverage', 'False positive management', 'Privacy concerns', 'Union considerations'],
+    },
+    aiRegulations: {
+      applicableFrameworks: ['popia', 'eu-ai-act', 'gdpr', 'iso-42001'],
+      riskClassification: 'high',
+      complianceNotes: 'Video surveillance with AI requires POPIA compliance, signage, and data retention policies. Human review before any action.',
+      jurisdictions: ['South Africa'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging'],
+      threatCategories: ['data-breach', 'insider-threat', 'adversarial-attacks'],
+      dataClassification: 'pii',
+      securityNotes: 'Video data containing customer images requires strict access controls and retention limits.',
+    },
+    createdAt: Date.now(),
+  },
+  {
+    id: 'retail-uc-3',
+    discoverySessionId: 'demo-retail-session-1',
+    title: 'Personalized Customer Experience with Copilot',
+    description: 'Deploy Microsoft 365 Copilot and Azure OpenAI to power personalized product recommendations, shopping assistants, and dynamic pricing. Unify customer profiles across channels for 360° view.',
+    impact: 8,
+    feasibility: 8,
+    rice: { reach: 500000, users: 500000, period: 'quarter', impact: 2, confidence: 80, effort: 12 },
+    kpis: ['customer-lifetime-value', 'conversion-rate', 'average-basket-size'],
+    costOfInaction: {
+      annualizedCost: 180000000,
+      costType: 'lost-revenue',
+      confidence: 'medium',
+      assumptions: 'Personalization typically increases revenue by 10-15%, estimated R180M opportunity',
+      sourceData: 'Industry benchmarks, competitor analysis',
+    },
+    aiRegulations: {
+      applicableFrameworks: ['popia', 'gdpr', 'ccpa', 'iso-42001'],
+      riskClassification: 'limited',
+      complianceNotes: 'Personalization requires explicit consent. Customers must be able to opt-out.',
+      jurisdictions: ['South Africa', 'European Union'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'data-masking', 'audit-logging'],
+      threatCategories: ['data-breach', 'prompt-injection', 'data-exfiltration'],
+      dataClassification: 'pii',
+      securityNotes: 'Customer profile data requires privacy-preserving techniques. LLM guardrails for shopping assistant.',
+    },
+    createdAt: Date.now(),
+  },
+  {
+    id: 'retail-uc-4',
+    discoverySessionId: 'demo-retail-session-1',
+    title: 'Automated Pricing & Promotion Engine',
+    description: 'Build AI-powered dynamic pricing system that analyzes competitor prices, demand elasticity, and margins. Reduce pricing decision cycle from 2 weeks to real-time, with Copilot for merchandising team.',
+    impact: 7,
+    feasibility: 7,
+    rice: { reach: 30, users: 30, period: 'quarter', impact: 3, confidence: 70, effort: 16 },
+    kpis: ['margin-improvement', 'promotion-roi', 'competitive-price-index'],
+    costOfInaction: {
+      annualizedCost: 120000000,
+      costType: 'efficiency-loss',
+      confidence: 'medium',
+      assumptions: 'Slow pricing responses losing 2% margin annually on R6B revenue',
+      sourceData: 'Pricing team estimates, margin analysis',
+    },
+    aiRegulations: {
+      applicableFrameworks: ['iso-42001', 'popia'],
+      riskClassification: 'minimal',
+      complianceNotes: 'Pricing algorithms must be auditable. No discriminatory pricing based on customer demographics.',
+      jurisdictions: ['South Africa'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'],
+      threatCategories: ['competitor-intelligence', 'data-exfiltration'],
+      dataClassification: 'confidential',
+      securityNotes: 'Pricing strategies are highly confidential. Strict access controls.',
+    },
+    createdAt: Date.now(),
+  },
+  {
+    id: 'retail-uc-5',
+    discoverySessionId: 'demo-retail-session-1',
+    title: 'Supply Chain Visibility & Optimization',
+    description: 'Implement Azure Digital Twins for end-to-end supply chain visibility. AI-powered supplier risk monitoring, route optimization, and carbon footprint tracking for sustainability goals.',
+    impact: 7,
+    feasibility: 6,
+    rice: { reach: 50, users: 50, period: 'quarter', impact: 2, confidence: 65, effort: 18 },
+    kpis: ['supply-chain-cost', 'delivery-performance', 'carbon-footprint'],
+    costOfInaction: {
+      annualizedCost: 90000000,
+      costType: 'operational-losses',
+      confidence: 'medium',
+      assumptions: 'Supply chain inefficiencies costing 1.5% of COGS, estimated R90M',
+      sourceData: 'Logistics analysis, supplier performance data',
+    },
+    aiRegulations: {
+      applicableFrameworks: ['iso-42001', 'epa'],
+      riskClassification: 'minimal',
+      complianceNotes: 'Supplier data sharing requires contractual agreements.',
+      jurisdictions: ['South Africa'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'third-party-security'],
+      threatCategories: ['supply-chain-attack', 'data-exfiltration'],
+      dataClassification: 'confidential',
+      securityNotes: 'Supplier integration requires secure APIs. Third-party risk assessment needed.',
+    },
+    createdAt: Date.now(),
+  },
+]
+
+export const DEMO_RETAIL_SESSION: DiscoverySession = {
+  id: 'demo-retail-session-1',
+  customerId: 'demo-customer-megamart',
+  customerName: 'MegaMart Retail',
+  innovationHubSPOC: 'Themba Mokoena',
+  name: 'MegaMart Digital Transformation Assessment',
+  industry: 'retail',
+  innovationHubLocation: 'Cape Town',
+  solutionEngineer: 'Priya Naidoo',
+  accountTeamRep: 'Michael du Plessis',
+  primaryStakeholder: 'Naledi Khumalo (Chief Digital Officer)',
+  executiveSummary: `MegaMart Retail is a leading Southern African retailer operating 150 stores with a growing e-commerce presence. The discovery revealed significant opportunities to leverage AI for inventory optimization, loss prevention, and customer experience.
+
+**Key Opportunities Identified:**
+1. **Demand Forecasting** - R600M annual lost sales from stockouts can be dramatically reduced with AI-powered forecasting
+2. **Shrinkage Prevention** - Computer vision can help reduce R200M annual shrinkage
+3. **Personalization** - Unified customer data and AI can drive 10-15% revenue uplift
+4. **Pricing Agility** - Reduce pricing decisions from weeks to real-time
+5. **Supply Chain** - End-to-end visibility for cost optimization and sustainability
+
+**Regulatory Considerations:**
+Retail AI applications must comply with POPIA for customer data, especially for personalization and video analytics. High-risk AI systems like surveillance require human oversight.
+
+**Recommended Next Steps:**
+- Quick win: Deploy Copilot for merchandising team
+- Priority: Implement demand forecasting for top 1000 SKUs
+- Phase 2: Computer vision pilot at 10 high-shrinkage stores`,
+  responses: DEMO_RETAIL_RESPONSES,
+  suggestedUseCases: DEMO_RETAIL_USE_CASES.map(uc => ({
+    title: uc.title,
+    description: uc.description,
+    rationale: 'Based on discovery responses highlighting retail operational challenges.',
+  })),
+  stockTicker: 'MEGA.JSE',
+  isDemo: true,
+  createdAt: Date.now() - 86400000,
+  completedAt: Date.now(),
+  sessionDate: Date.now(),
+}
+
+export const DEMO_RETAIL_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
+  id: 'demo-retail-enterprise-1',
+  clientName: 'MegaMart Retail',
+  attendees: [
+    { name: 'Naledi Khumalo', role: 'Chief Digital Officer' },
+    { name: 'David Botha', role: 'Head of Merchandising' },
+    { name: 'Fatima Patel', role: 'Supply Chain Director' },
+    { name: 'Trevor Moloi', role: 'CIO' },
+  ],
+  sessionDate: Date.now(),
+  discoveryType: 'new-opportunity',
+  currentStageId: 1,
+  stages: {
+    0: { status: 'completed', completedAt: Date.now() - 3600000, data: null },
+    1: {
+      status: 'in-progress',
+      data: {
+        opportunity: 'AI-powered inventory optimization and demand forecasting across 150 stores',
+        businessProblem: 'R600M annual lost sales from stockouts, R200M shrinkage, fragmented customer data',
+        desiredOutcome: 'Reduce stockouts by 60%, shrinkage by 35%, unified customer 360 view',
+        successMetrics: ['Inventory turnover improvement', 'Shrinkage reduction %', 'Customer NPS', 'Revenue per sqm'],
+        timeline: '18-month phased rollout starting with top 20 stores',
+        budgetRange: 'R80M-R120M',
+        stakeholders: ['CDO', 'CIO', 'Merchandising', 'Operations', 'Finance'],
+        yellowLights: [],
+        notes: 'Strong executive sponsorship. IT modernization already in progress.',
+      } as OpportunityStageData,
+    },
+    2: { status: 'not-started', data: null },
+    3: { status: 'not-started', data: null },
+    4: { status: 'not-started', data: null },
+    5: { status: 'not-started', data: null },
+    6: { status: 'not-started', data: null },
+    7: { status: 'not-started', data: null },
+    8: { status: 'not-started', data: null },
+  },
+  allYellowLights: [],
+  isLiveMode: false,
+  isDemo: true,
+  createdAt: Date.now() - 86400000,
+}
+
+// ============================================================================
+// FINANCIAL SERVICES DEMO DATA (Apex Financial)
+// ============================================================================
+
+export const DEMO_FINANCIAL_RESPONSES: DiscoveryResponse[] = [
+  {
+    questionId: 'current-landscape',
+    answer: 'Apex Financial is a mid-tier bank with 2M retail customers and R80B in assets under management. Core banking on legacy mainframe (30 years old), with modern digital banking layer. Using Azure for some workloads but limited AI adoption.',
+    timestamp: Date.now(),
+  },
+  {
+    questionId: 'biggest-challenges',
+    answer: 'Fraud losses at R150M annually and growing. Customer onboarding takes 5 days on average, losing prospects to neo-banks. Manual credit decisioning is slow and inconsistent. AML compliance is resource-intensive.',
+    timestamp: Date.now(),
+  },
+  {
+    questionId: 'digital-initiatives',
+    answer: 'Launched mobile banking app last year (500K active users). Exploring AI for credit scoring but regulatory concerns. Board wants to reduce cost-to-income ratio from 62% to 55% over 3 years.',
+    timestamp: Date.now(),
+  },
+]
+
+export const DEMO_FINANCIAL_USE_CASES: UseCase[] = [
+  {
+    id: 'fin-uc-1',
+    discoverySessionId: 'demo-financial-session-1',
+    title: 'AI-Powered Fraud Detection & Prevention',
+    description: 'Deploy Azure Machine Learning for real-time transaction fraud detection using behavioral analytics, device fingerprinting, and network analysis. Reduce fraud losses by 70% while decreasing false positives by 50%.',
+    impact: 10,
+    feasibility: 8,
+    rice: { reach: 2000000, users: 2000000, period: 'quarter', impact: 3, confidence: 85, effort: 12 },
+    kpis: ['fraud-loss-reduction', 'false-positive-rate', 'detection-time'],
+    costOfInaction: {
+      annualizedCost: 150000000,
+      costType: 'operational-losses',
+      confidence: 'high',
+      assumptions: 'Current R150M fraud losses, 70% reduction achievable with AI',
+      sourceData: 'Fraud operations quarterly reports',
+    },
+    aiRegulations: {
+      applicableFrameworks: ['popia', 'gdpr', 'glba', 'iso-42001', 'sox'],
+      riskClassification: 'high',
+      complianceNotes: 'Fraud models must be explainable. Decisions affecting customers require human review. SARB guidelines compliance.',
+      jurisdictions: ['South Africa'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging', 'siem-integration'],
+      threatCategories: ['data-breach', 'adversarial-attacks', 'model-poisoning', 'insider-threat'],
+      dataClassification: 'highly-confidential',
+      securityNotes: 'Transaction data requires highest security controls. Model integrity monitoring essential.',
+    },
+    createdAt: Date.now(),
+  },
+  {
+    id: 'fin-uc-2',
+    discoverySessionId: 'demo-financial-session-1',
+    title: 'Intelligent Document Processing for Onboarding',
+    description: 'Use Azure AI Document Intelligence and OpenAI to automate KYC document verification, extract data from IDs and proof documents, and reduce customer onboarding from 5 days to same-day.',
+    impact: 8,
+    feasibility: 9,
+    rice: { reach: 50000, users: 50000, period: 'quarter', impact: 3, confidence: 90, effort: 8 },
+    kpis: ['onboarding-time', 'customer-acquisition-cost', 'document-accuracy'],
+    costOfInaction: {
+      annualizedCost: 75000000,
+      costType: 'lost-revenue',
+      confidence: 'medium',
+      assumptions: 'Losing 30% of applicants to faster neo-banks, estimated R75M in lifetime value',
+      sourceData: 'Customer journey analytics, competitor analysis',
+    },
+    aiRegulations: {
+      applicableFrameworks: ['popia', 'fica', 'gdpr', 'iso-42001'],
+      riskClassification: 'limited',
+      complianceNotes: 'FICA compliance mandatory. Document verification must maintain audit trail. Human review for edge cases.',
+      jurisdictions: ['South Africa'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'data-masking', 'audit-logging'],
+      threatCategories: ['identity-fraud', 'data-breach', 'document-forgery'],
+      dataClassification: 'pii',
+      securityNotes: 'ID documents and personal data require strict handling. Temporary storage only.',
+    },
+    createdAt: Date.now(),
+  },
+  {
+    id: 'fin-uc-3',
+    discoverySessionId: 'demo-financial-session-1',
+    title: 'AI Credit Decisioning Engine',
+    description: 'Implement explainable AI for credit scoring using alternative data sources (utility payments, rental history). Reduce manual underwriting by 80% while improving approval rates for thin-file customers.',
+    impact: 9,
+    feasibility: 6,
+    rice: { reach: 100000, users: 100000, period: 'quarter', impact: 3, confidence: 70, effort: 18 },
+    kpis: ['approval-rate', 'default-rate', 'decisioning-time', 'cost-per-decision'],
+    costOfInaction: {
+      annualizedCost: 120000000,
+      costType: 'efficiency-loss',
+      confidence: 'medium',
+      assumptions: 'Manual underwriting costs + lost opportunity from thin-file rejections',
+      sourceData: 'Credit operations cost analysis',
+    },
+    aiRegulations: {
+      applicableFrameworks: ['ncr', 'popia', 'eu-ai-act', 'glba', 'iso-42001'],
+      riskClassification: 'high',
+      complianceNotes: 'High-risk AI under EU AI Act. NCR compliance for credit decisioning. Full explainability required. Regular bias audits mandatory.',
+      jurisdictions: ['South Africa', 'European Union'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging', 'model-governance'],
+      threatCategories: ['model-poisoning', 'data-breach', 'adversarial-attacks', 'bias-exploitation'],
+      dataClassification: 'highly-confidential',
+      securityNotes: 'Credit models require strict governance. Alternative data sources need vetting.',
+    },
+    createdAt: Date.now(),
+  },
+  {
+    id: 'fin-uc-4',
+    discoverySessionId: 'demo-financial-session-1',
+    title: 'Copilot for Relationship Managers',
+    description: 'Deploy Microsoft 365 Copilot integrated with CRM and core banking to provide relationship managers with customer insights, next-best-action recommendations, and automated meeting preparation.',
+    impact: 7,
+    feasibility: 9,
+    rice: { reach: 200, users: 200, period: 'quarter', impact: 2, confidence: 85, effort: 6 },
+    kpis: ['relationship-manager-productivity', 'cross-sell-rate', 'customer-retention'],
+    costOfInaction: {
+      annualizedCost: 45000000,
+      costType: 'efficiency-loss',
+      confidence: 'medium',
+      assumptions: 'RM spending 40% time on admin tasks, 15% productivity gain achievable',
+      sourceData: 'Time and motion study, RM feedback surveys',
+    },
+    aiRegulations: {
+      applicableFrameworks: ['popia', 'gdpr', 'iso-42001', 'ms-copilot-governance'],
+      riskClassification: 'limited',
+      complianceNotes: 'Customer data access via Copilot must respect existing permissions. No storage of customer data in Copilot.',
+      jurisdictions: ['South Africa'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-in-transit', 'access-control', 'data-masking', 'audit-logging'],
+      threatCategories: ['prompt-injection', 'data-exfiltration', 'insider-threat'],
+      dataClassification: 'confidential',
+      securityNotes: 'Copilot guardrails essential. Data loss prevention policies apply.',
+    },
+    createdAt: Date.now(),
+  },
+  {
+    id: 'fin-uc-5',
+    discoverySessionId: 'demo-financial-session-1',
+    title: 'AML Transaction Monitoring Enhancement',
+    description: 'Enhance existing AML system with Azure AI to reduce false positives by 60% through behavioral profiling and network analysis. Automate SAR narrative generation with Azure OpenAI.',
+    impact: 8,
+    feasibility: 7,
+    rice: { reach: 50, users: 50, period: 'quarter', impact: 3, confidence: 75, effort: 14 },
+    kpis: ['false-positive-reduction', 'investigation-time', 'sar-filing-accuracy'],
+    costOfInaction: {
+      annualizedCost: 60000000,
+      costType: 'efficiency-loss',
+      confidence: 'high',
+      assumptions: 'AML team spending 70% time on false positives, R60M annual cost',
+      sourceData: 'Compliance operations cost analysis',
+    },
+    aiRegulations: {
+      applicableFrameworks: ['fica', 'popia', 'glba', 'iso-42001'],
+      riskClassification: 'high',
+      complianceNotes: 'SARB and FIC oversight. AI cannot replace human judgment for SAR decisions. Full audit trail required.',
+      jurisdictions: ['South Africa'],
+    },
+    cybersecurity: {
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging', 'siem-integration'],
+      threatCategories: ['data-breach', 'insider-threat', 'model-evasion'],
+      dataClassification: 'highly-confidential',
+      securityNotes: 'AML data is highly sensitive. Segregated access. Audit everything.',
+    },
+    createdAt: Date.now(),
+  },
+]
+
+export const DEMO_FINANCIAL_SESSION: DiscoverySession = {
+  id: 'demo-financial-session-1',
+  customerId: 'demo-customer-apex',
+  customerName: 'Apex Financial Services',
+  innovationHubSPOC: 'Kagiso Mabena',
+  name: 'Apex Financial AI Transformation Assessment',
+  industry: 'financial-services',
+  innovationHubLocation: 'Sandton',
+  solutionEngineer: 'Reuben Govender',
+  accountTeamRep: 'Anele Sithole',
+  primaryStakeholder: 'Grace Moyo (Chief Digital & Innovation Officer)',
+  executiveSummary: `Apex Financial Services is a mid-tier South African bank undergoing digital transformation. The discovery revealed significant opportunities to leverage AI for fraud prevention, customer onboarding, and operational efficiency.
+
+**Key Opportunities Identified:**
+1. **Fraud Prevention** - R150M annual fraud losses can be reduced by 70% with AI-powered detection
+2. **Digital Onboarding** - Reduce customer onboarding from 5 days to same-day with intelligent document processing
+3. **Credit Decisioning** - Explainable AI can improve approval rates while maintaining risk standards
+4. **RM Productivity** - Copilot can free relationship managers from 40% administrative burden
+5. **AML Efficiency** - AI can reduce false positives by 60%, saving R60M annually
+
+**Regulatory Considerations:**
+Financial services AI requires compliance with SARB, NCR, FICA, and POPIA. High-risk AI systems for credit and fraud must be explainable with human oversight. Regular bias audits are essential.
+
+**Recommended Next Steps:**
+- Quick win: Copilot for relationship managers and document processing
+- Priority: Deploy fraud detection enhancement
+- Phase 2: Explainable AI credit decisioning pilot`,
+  responses: DEMO_FINANCIAL_RESPONSES,
+  suggestedUseCases: DEMO_FINANCIAL_USE_CASES.map(uc => ({
+    title: uc.title,
+    description: uc.description,
+    rationale: 'Based on discovery responses highlighting financial services challenges.',
+  })),
+  stockTicker: 'APX.JSE',
+  isDemo: true,
+  createdAt: Date.now() - 86400000,
+  completedAt: Date.now(),
+  sessionDate: Date.now(),
+}
+
+export const DEMO_FINANCIAL_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
+  id: 'demo-financial-enterprise-1',
+  clientName: 'Apex Financial Services',
+  attendees: [
+    { name: 'Grace Moyo', role: 'Chief Digital & Innovation Officer' },
+    { name: 'Robert Steenkamp', role: 'Head of Credit Risk' },
+    { name: 'Zanele Dube', role: 'Chief Compliance Officer' },
+    { name: 'Pieter Jordaan', role: 'CTO' },
+  ],
+  sessionDate: Date.now(),
+  discoveryType: 'new-opportunity',
+  currentStageId: 1,
+  stages: {
+    0: { status: 'completed', completedAt: Date.now() - 3600000, data: null },
+    1: {
+      status: 'in-progress',
+      data: {
+        opportunity: 'AI-powered fraud detection and intelligent customer onboarding',
+        businessProblem: 'R150M annual fraud losses, 5-day onboarding losing customers to neo-banks',
+        desiredOutcome: 'Reduce fraud by 70%, same-day onboarding, improve cost-to-income ratio',
+        successMetrics: ['Fraud loss reduction', 'Onboarding time', 'Customer acquisition cost', 'Cost-to-income ratio'],
+        timeline: '24-month transformation with quick wins in first 6 months',
+        budgetRange: 'R150M-R200M',
+        stakeholders: ['CDIO', 'CTO', 'CRO', 'CCO', 'CFO'],
+        yellowLights: [],
+        notes: 'Strong regulatory focus. SARB engagement required for credit AI.',
+      } as OpportunityStageData,
+    },
+    2: { status: 'not-started', data: null },
+    3: { status: 'not-started', data: null },
+    4: { status: 'not-started', data: null },
+    5: { status: 'not-started', data: null },
+    6: { status: 'not-started', data: null },
+    7: { status: 'not-started', data: null },
+    8: { status: 'not-started', data: null },
+  },
+  allYellowLights: [],
+  isLiveMode: false,
+  isDemo: true,
   createdAt: Date.now() - 86400000,
 }
 

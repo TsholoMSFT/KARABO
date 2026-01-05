@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { DiscoveryResponse, DiscoverySession, Industry, DiscoveryQuestion } from '@/lib/types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
+import { NavigationHeader } from '@/components/NavigationHeader'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
 import { getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
@@ -30,6 +31,7 @@ interface LiveDiscoveryModeProps {
   sessionMetadata: SessionMetadata
   onComplete: (session: DiscoverySession) => void
   onCancel: () => void
+  onBackToLanding?: () => void
   onSwitchToStandard?: (sessionName: string, industry: Industry, responses: DiscoveryResponse[]) => void
   sessionName: string
   selectedIndustry: Industry
@@ -40,6 +42,7 @@ export function LiveDiscoveryMode({
   sessionMetadata,
   onComplete,
   onCancel,
+  onBackToLanding,
   onSwitchToStandard,
   sessionName,
   selectedIndustry,
@@ -399,7 +402,16 @@ Keep questions conversational, specific to their answer, and focused on discover
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 max-w-3xl">
+        <NavigationHeader
+          variant="minimal"
+          onBackToLanding={onBackToLanding}
+          onBack={onCancel}
+          backLabel="Cancel"
+        />
+      </div>
+      <div className="flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -725,6 +737,7 @@ Keep questions conversational, specific to their answer, and focused on discover
           </CardFooter>
         </Card>
       </motion.div>
+      </div>
     </div>
   )
 }

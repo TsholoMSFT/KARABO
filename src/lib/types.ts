@@ -122,6 +122,29 @@ export interface CybersecurityInfo {
   securityNotes?: string
 }
 
+// ============================================================================
+// COST OF INACTION (COI) TYPES
+// ============================================================================
+
+export interface UseCaseCOI {
+  directCosts: number           // Current spending on workarounds
+  opportunityCosts: number      // Lost revenue/market share
+  riskCosts: number             // Potential fines/compliance issues
+  totalAnnualCOI: number        // Sum of all costs
+  notes?: string                // Calculation assumptions
+  calculatedAt?: number         // Timestamp
+}
+
+export interface UseCaseExpectedValue {
+  revenueImpact?: number        // Annual revenue improvement
+  costSavings?: number          // Annual cost reduction
+  riskMitigation?: number       // Risk-adjusted value avoided
+  totalAnnualValue: number      // Total expected value
+  implementationCost?: number   // One-time implementation cost
+  paybackMonths?: number        // Payback period in months
+  threeYearROI?: number         // 3-year ROI percentage
+}
+
 export interface UseCase {
   id: string
   discoverySessionId?: string
@@ -143,7 +166,234 @@ export interface UseCase {
   cybersecurity?: CybersecurityInfo
   // Data sources that informed this use case
   dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery')[]
+  // Financial quantification (optional)
+  costOfInaction?: UseCaseCOI
+  expectedValue?: UseCaseExpectedValue
+  // Contextual data from discovery
+  earningsContext?: string[]    // Key earnings insights relevant to this use case
+  industryContext?: string[]    // Industry trends/standards addressed
   createdAt: number
+  
+  // ============================================================================
+  // INNOVATION HUB METHODOLOGY ADDITIONS
+  // ============================================================================
+  
+  // Strategic alignment (Business Envisioning)
+  strategicAlignment?: StrategicAlignmentInfo
+  
+  // Business process mapping (Business Envisioning)
+  businessProcesses?: UseCaseBusinessProcess[]
+  
+  // Microsoft solution recommendations (Solution Envisioning)
+  microsoftSolutions?: UseCaseMicrosoftSolution[]
+  referenceArchitecture?: string  // Reference architecture pattern ID
+  
+  // Agentic AI opportunities (Solution Envisioning)
+  agenticOpportunities?: UseCaseAgenticOpportunity[]
+  
+  // Implementation complexity (Solution Envisioning)
+  implementationComplexity?: ImplementationComplexityInfo
+}
+
+// ============================================================================
+// BUSINESS ENVISIONING TYPES (Innovation Hub Methodology Phase 1)
+// ============================================================================
+
+export type StrategicPrioritySource = 
+  | 'earnings-call'
+  | 'annual-report'
+  | 'press-release'
+  | 'stakeholder-interview'
+  | 'discovery-session'
+  | 'industry-research'
+
+export interface StrategicPriority {
+  id: string
+  priority: string                      // e.g., "Digital Transformation", "Cost Optimization"
+  source: StrategicPrioritySource
+  sourceDetail?: string                 // e.g., "Q3 2024 Earnings Call"
+  relevanceScore?: number               // 1-10
+  linkedOutcomes?: string[]             // IDs of linked business outcomes
+}
+
+export interface BusinessOutcome {
+  id: string
+  category: 'revenue' | 'cost' | 'risk' | 'experience' | 'compliance' | 'efficiency'
+  outcome: string                       // e.g., "Increase customer retention by 15%"
+  metric: string                        // e.g., "Customer retention rate"
+  currentValue?: string                 // e.g., "72%"
+  targetValue?: string                  // e.g., "83%"
+  timeframe?: string                    // e.g., "12 months"
+  owner?: string
+}
+
+export interface ProcessPainPoint {
+  id: string
+  description: string
+  impact: 'high' | 'medium' | 'low'
+  isAIOpportunity: boolean              // Can AI address this pain point?
+  aiInterventionType?: string           // e.g., "Automation", "Prediction", "Generation"
+}
+
+export interface ProcessStep {
+  id: string
+  order: number
+  name: string
+  description?: string
+  owner?: string
+  systems?: string[]                    // Systems involved in this step
+  inputs?: string[]
+  outputs?: string[]
+  duration?: string                     // e.g., "2-3 hours"
+  painPoints?: ProcessPainPoint[]
+  aiOpportunity?: {
+    description: string
+    interventionType: 'automate' | 'augment' | 'analyze' | 'generate'
+    potentialImpact: 'high' | 'medium' | 'low'
+  }
+}
+
+export interface BusinessProcess {
+  id: string
+  name: string                          // e.g., "Invoice Processing"
+  category: 'core' | 'support' | 'management'
+  steps: ProcessStep[]
+  owner?: string
+  frequency?: string                    // e.g., "Daily", "Weekly"
+  volumePerPeriod?: number              // e.g., 500 invoices/month
+  currentCycleTime?: string             // e.g., "3-5 days"
+  targetCycleTime?: string              // e.g., "< 1 day"
+  totalPainPoints?: number
+  totalAIOpportunities?: number
+}
+
+export type TechStackMaturity = 'legacy' | 'modernizing' | 'modern' | 'cloud-native'
+export type DataMaturity = 'siloed' | 'integrated' | 'governed' | 'ai-ready'
+export type CloudReadiness = 'on-premises' | 'hybrid' | 'cloud-first' | 'cloud-native'
+
+export interface CurrentStateAssessment {
+  // Technology landscape
+  techStack: {
+    maturity: TechStackMaturity
+    keyPlatforms: string[]              // e.g., ["SAP", "Salesforce", "Custom ERP"]
+    integrationChallenges?: string[]
+  }
+  
+  // Data readiness
+  data: {
+    maturity: DataMaturity
+    keyDataSources?: string[]
+    dataQualityConcerns?: string[]
+    governanceInPlace: boolean
+  }
+  
+  // Cloud & infrastructure
+  infrastructure: {
+    cloudReadiness: CloudReadiness
+    existingAzureServices?: string[]
+    existingMicrosoftProducts?: string[]
+  }
+  
+  // AI/ML maturity
+  aiMaturity: {
+    currentUsage: 'none' | 'experimental' | 'pilot' | 'production'
+    existingAITools?: string[]
+    aiGovernance: boolean
+    aiSkillsGap?: 'significant' | 'moderate' | 'minimal'
+  }
+}
+
+// Strategic alignment info attached to use cases
+export interface StrategicAlignmentInfo {
+  primaryPriority?: string              // Main strategic priority this addresses
+  linkedPriorities?: string[]           // Additional linked priorities
+  alignmentScore?: number               // 1-10 how well it aligns
+  alignmentRationale?: string           // Why this use case supports strategy
+}
+
+// Business process info attached to use cases
+export interface UseCaseBusinessProcess {
+  processId: string
+  processName: string
+  affectedSteps?: string[]              // Step IDs or names
+  currentPainPoints?: string[]
+  proposedImprovement: string
+  expectedCycleTimeReduction?: string
+}
+
+// ============================================================================
+// SOLUTION ENVISIONING TYPES (Innovation Hub Methodology Phase 2)
+// ============================================================================
+
+export type MicrosoftProductFamily = 
+  | 'azure-ai'
+  | 'azure-data'
+  | 'azure-infrastructure'
+  | 'power-platform'
+  | 'microsoft-365'
+  | 'dynamics-365'
+  | 'microsoft-fabric'
+  | 'microsoft-security'
+
+export type SolutionRole = 'primary' | 'supporting' | 'integration'
+
+export interface UseCaseMicrosoftSolution {
+  productFamily: MicrosoftProductFamily
+  services: string[]                    // e.g., ["azure-openai", "azure-ai-search"]
+  role: SolutionRole
+  justification?: string                // Why this solution is recommended
+}
+
+export type AgentCapability = 
+  | 'reasoning'
+  | 'planning'
+  | 'tool-use'
+  | 'memory'
+  | 'multi-step-execution'
+  | 'human-in-loop'
+  | 'autonomous-decision'
+
+export interface UseCaseAgenticOpportunity {
+  id: string
+  title: string
+  description: string
+  agentType: 'task-agent' | 'orchestrator-agent' | 'specialist-agent' | 'assistant-agent'
+  capabilities: AgentCapability[]
+  humanOversight: 'none' | 'approval' | 'review' | 'supervision'
+  automationLevel: 'assisted' | 'semi-autonomous' | 'autonomous'
+  tools?: string[]                      // Tools the agent would use
+}
+
+export interface ImplementationComplexityInfo {
+  level: 'low' | 'medium' | 'high' | 'very-high'
+  factors: string[]                     // e.g., ["Multiple integrations", "Custom ML models"]
+  estimatedDuration?: string            // e.g., "3-6 months"
+  estimatedTeamSize?: string            // e.g., "5-8 people"
+  keyRisks?: string[]
+}
+
+// ============================================================================
+// EXTENDED DISCOVERY SESSION (with Business Envisioning)
+// ============================================================================
+
+export interface BusinessEnvisioningData {
+  // Strategic context (the "Why")
+  strategicPriorities: StrategicPriority[]
+  businessOutcomes: BusinessOutcome[]
+  
+  // Process mapping (the "How")
+  businessProcesses: BusinessProcess[]
+  
+  // Current state (Foundation)
+  currentState?: CurrentStateAssessment
+  
+  // Completion tracking
+  completedSections?: {
+    strategicPriorities: boolean
+    businessOutcomes: boolean
+    businessProcesses: boolean
+    currentState: boolean
+  }
 }
 
 export type ScoringMethod = 'impact-feasibility' | 'rice'
@@ -197,6 +447,7 @@ export interface DiscoverySession {
   innovationHubSPOC?: string
   name: string
   industry?: Industry
+  isDemo?: boolean  // Flag to identify demo sessions
   innovationHubLocation: string
   solutionEngineer: string
   accountTeamRep: string
@@ -206,6 +457,12 @@ export interface DiscoverySession {
   responses: DiscoveryResponse[]
   suggestedUseCases?: SuggestedUseCaseData[]
   earningsInsights?: EarningsInsight[] // AI-extracted insights from earnings calls
+  
+  // ============================================================================
+  // INNOVATION HUB METHODOLOGY: BUSINESS ENVISIONING DATA
+  // ============================================================================
+  businessEnvisioning?: BusinessEnvisioningData
+  
   createdAt: number
   completedAt?: number
   sessionDate?: number
@@ -1048,6 +1305,7 @@ export interface EnterpriseDiscoverySession {
   isPaused?: boolean
   pausedAt?: number
   lastSavedAt?: number
+  isDemo?: boolean // Flag to identify demo sessions
   
   createdAt: number
   completedAt?: number

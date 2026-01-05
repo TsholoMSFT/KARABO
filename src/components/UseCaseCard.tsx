@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase } from '@phosphor-icons/react'
+import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
 import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getServiceLabel, COMPLEXITY_INDICATORS } from '@/lib/microsoft-solutions'
+import { ProcessFlowInline } from './ProcessFlowDiagram'
 
 interface UseCaseCardProps {
   useCase: UseCase
@@ -34,11 +36,58 @@ export function UseCaseCard({
   onEdit,
 }: UseCaseCardProps) {
   const [showCompliance, setShowCompliance] = useState(false)
+  const [showCOI, setShowCOI] = useState(false)
+  const [showInnovationHub, setShowInnovationHub] = useState(false)
   const riceScore = calculateRICEScore(useCase)
   const impactFeasScore = useCase.impact * useCase.feasibility
   const quadrant = getQuadrant(useCase.impact, useCase.feasibility)
 
   const hasComplianceInfo = useCase.aiRegulations || useCase.cybersecurity
+  const hasCOIInfo = useCase.costOfInaction || useCase.expectedValue
+  
+  // Check for Innovation Hub Methodology data
+  const hasInnovationHubData = useCase.strategicAlignment || 
+    (useCase.businessProcesses && useCase.businessProcesses.length > 0) ||
+    (useCase.microsoftSolutions && useCase.microsoftSolutions.length > 0) ||
+    useCase.referenceArchitecture ||
+    (useCase.agenticOpportunities && useCase.agenticOpportunities.length > 0) ||
+    useCase.implementationComplexity
+
+  // Product family colors
+  const getProductFamilyColor = (family: string) => {
+    const colors: Record<string, { bg: string; text: string; border: string }> = {
+      'azure-ai': { bg: 'bg-purple-500/10', text: 'text-purple-600', border: 'border-purple-500/30' },
+      'azure-data': { bg: 'bg-blue-500/10', text: 'text-blue-600', border: 'border-blue-500/30' },
+      'azure-infrastructure': { bg: 'bg-slate-500/10', text: 'text-slate-600', border: 'border-slate-500/30' },
+      'power-platform': { bg: 'bg-green-500/10', text: 'text-green-600', border: 'border-green-500/30' },
+      'microsoft-365': { bg: 'bg-orange-500/10', text: 'text-orange-600', border: 'border-orange-500/30' },
+      'dynamics-365': { bg: 'bg-red-500/10', text: 'text-red-600', border: 'border-red-500/30' },
+      'microsoft-fabric': { bg: 'bg-cyan-500/10', text: 'text-cyan-600', border: 'border-cyan-500/30' },
+      'microsoft-security': { bg: 'bg-amber-500/10', text: 'text-amber-600', border: 'border-amber-500/30' },
+    }
+    return colors[family] || { bg: 'bg-gray-500/10', text: 'text-gray-600', border: 'border-gray-500/30' }
+  }
+
+  // Complexity level colors
+  const getComplexityColor = (level: string) => {
+    const colors: Record<string, { bg: string; text: string; border: string }> = {
+      'low': { bg: 'bg-green-500/10', text: 'text-green-600', border: 'border-green-500/30' },
+      'medium': { bg: 'bg-yellow-500/10', text: 'text-yellow-600', border: 'border-yellow-500/30' },
+      'high': { bg: 'bg-orange-500/10', text: 'text-orange-600', border: 'border-orange-500/30' },
+      'very-high': { bg: 'bg-red-500/10', text: 'text-red-600', border: 'border-red-500/30' },
+    }
+    return colors[level] || colors['medium']
+  }
+
+  const hasComplianceInfo = useCase.aiRegulations || useCase.cybersecurity
+  const hasCOIInfo = useCase.costOfInaction || useCase.expectedValue
+
+  // Format currency for display
+  const formatCurrency = (value: number) => {
+    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
+    if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
+    return `$${value.toFixed(0)}`
+  }
 
   const impactLabels = [
     { value: 0.25, label: 'Minimal' },
@@ -502,6 +551,273 @@ export function UseCaseCard({
         )}
         </motion.div>
 
+        {/* Innovation Hub Methodology Section */}
+        {hasInnovationHubData && (
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <button
+              onClick={() => setShowInnovationHub(!showInnovationHub)}
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              <Target size={14} weight="bold" />
+              <TreeStructure size={14} />
+              <span className="font-medium">Innovation Hub Methodology</span>
+              {useCase.strategicAlignment && (
+                <Badge variant="outline" className="ml-2 text-[10px] px-1.5 py-0 h-4 bg-purple-500/10 text-purple-600 border-purple-500/30">
+                  {useCase.strategicAlignment.alignmentScore}% aligned
+                </Badge>
+              )}
+              {useCase.implementationComplexity && (
+                <Badge 
+                  variant="outline" 
+                  className={`text-[10px] px-1.5 py-0 h-4 ${getComplexityColor(useCase.implementationComplexity.level).bg} ${getComplexityColor(useCase.implementationComplexity.level).text} ${getComplexityColor(useCase.implementationComplexity.level).border}`}
+                >
+                  {useCase.implementationComplexity.level} complexity
+                </Badge>
+              )}
+              {showInnovationHub ? <CaretUp size={12} className="ml-auto" /> : <CaretDown size={12} className="ml-auto" />}
+            </button>
+            
+            <AnimatePresence>
+              {showInnovationHub && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-3 space-y-4 text-xs">
+                    {/* Strategic Alignment */}
+                    {useCase.strategicAlignment && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Target size={12} weight="bold" />
+                          <span className="font-medium">Strategic Alignment</span>
+                        </div>
+                        <div className="p-2 bg-muted/30 rounded-md border border-border/50">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                              {useCase.strategicAlignment.primaryPriority}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground">
+                              from {useCase.strategicAlignment.source || 'Discovery'}
+                            </span>
+                          </div>
+                          {useCase.strategicAlignment.linkedPriorities && useCase.strategicAlignment.linkedPriorities.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {useCase.strategicAlignment.linkedPriorities.map((priority, idx) => (
+                                <Badge key={idx} variant="outline" className="text-[9px] px-1 py-0 h-3.5 opacity-70">
+                                  {priority}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {useCase.strategicAlignment.alignmentRationale && (
+                            <p className="text-muted-foreground mt-2 italic text-[10px]">
+                              {useCase.strategicAlignment.alignmentRationale}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Business Process Flow */}
+                    {useCase.businessProcesses && useCase.businessProcesses.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <TreeStructure size={12} weight="bold" />
+                          <span className="font-medium">Business Process Impact</span>
+                        </div>
+                        {useCase.businessProcesses.map((bp, idx) => (
+                          <div key={idx} className="p-2 bg-muted/30 rounded-md border border-border/50">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-medium text-foreground">{bp.processName}</span>
+                              {bp.expectedCycleTimeReduction && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-green-500/10 text-green-600 border-green-500/30">
+                                  -{bp.expectedCycleTimeReduction}% cycle time
+                                </Badge>
+                              )}
+                            </div>
+                            {bp.affectedSteps && bp.affectedSteps.length > 0 && (
+                              <div className="flex items-center gap-1 flex-wrap mb-2">
+                                <span className="text-[10px] text-muted-foreground">Steps:</span>
+                                {bp.affectedSteps.map((step, stepIdx) => (
+                                  <span key={stepIdx} className="flex items-center">
+                                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">
+                                      {step}
+                                    </Badge>
+                                    {stepIdx < bp.affectedSteps.length - 1 && (
+                                      <ArrowRight size={8} className="mx-0.5 text-muted-foreground" />
+                                    )}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {bp.currentPainPoints && bp.currentPainPoints.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-1">
+                                {bp.currentPainPoints.map((pain, painIdx) => (
+                                  <Badge key={painIdx} variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-amber-500/10 text-amber-600 border-amber-500/30">
+                                    <Warning size={8} className="mr-0.5" />
+                                    {pain}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            {bp.proposedImprovement && (
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                <Lightning size={10} className="inline mr-1 text-blue-500" />
+                                {bp.proposedImprovement}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Microsoft Solutions */}
+                    {useCase.microsoftSolutions && useCase.microsoftSolutions.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Cube size={12} weight="bold" />
+                          <span className="font-medium">Microsoft Solutions</span>
+                        </div>
+                        <div className="space-y-2">
+                          {useCase.microsoftSolutions.map((solution, idx) => {
+                            const colors = getProductFamilyColor(solution.productFamily)
+                            return (
+                              <div key={idx} className={`p-2 rounded-md border ${colors.bg} ${colors.border}`}>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge className={`text-[10px] px-1.5 py-0 h-4 ${colors.bg} ${colors.text} border ${colors.border}`}>
+                                    {solution.productFamily.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  </Badge>
+                                  <span className={`text-[10px] ${colors.text} font-medium`}>{solution.role}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {solution.services.map((service, svcIdx) => (
+                                    <Badge key={svcIdx} variant="outline" className="text-[9px] px-1 py-0 h-3.5">
+                                      {getServiceLabel(service)}
+                                    </Badge>
+                                  ))}
+                                </div>
+                                {solution.justification && (
+                                  <p className="text-[10px] text-muted-foreground mt-1.5 italic">
+                                    {solution.justification}
+                                  </p>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {useCase.referenceArchitecture && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-[10px] text-muted-foreground">Reference Architecture:</span>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                              {useCase.referenceArchitecture.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Agentic AI Opportunities */}
+                    {useCase.agenticOpportunities && useCase.agenticOpportunities.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Robot size={12} weight="bold" />
+                          <span className="font-medium">Agentic AI Opportunities</span>
+                        </div>
+                        {useCase.agenticOpportunities.map((agent, idx) => (
+                          <div key={idx} className="p-2 bg-purple-500/5 rounded-md border border-purple-500/20">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-foreground text-[11px]">{agent.title}</span>
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 bg-purple-500/10 text-purple-600 border-purple-500/30">
+                                {agent.agentType}
+                              </Badge>
+                              {agent.automationLevel && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">
+                                  {agent.automationLevel}% automated
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mb-1.5">{agent.description}</p>
+                            {agent.capabilities && agent.capabilities.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-1">
+                                {agent.capabilities.map((cap, capIdx) => (
+                                  <Badge key={capIdx} variant="outline" className="text-[9px] px-1 py-0 h-3.5">
+                                    <Sparkle size={8} className="mr-0.5" />
+                                    {cap}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                            {agent.humanOversight && (
+                              <p className="text-[9px] text-amber-600 mt-1">
+                                <Info size={8} className="inline mr-1" />
+                                Human oversight: {agent.humanOversight}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Implementation Complexity */}
+                    {useCase.implementationComplexity && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Gauge size={12} weight="bold" />
+                          <span className="font-medium">Implementation Complexity</span>
+                        </div>
+                        <div className={`p-2 rounded-md border ${getComplexityColor(useCase.implementationComplexity.level).bg} ${getComplexityColor(useCase.implementationComplexity.level).border}`}>
+                          <div className="flex items-center gap-3 mb-2">
+                            <Badge className={`text-[10px] px-1.5 py-0.5 ${getComplexityColor(useCase.implementationComplexity.level).bg} ${getComplexityColor(useCase.implementationComplexity.level).text} border ${getComplexityColor(useCase.implementationComplexity.level).border}`}>
+                              {useCase.implementationComplexity.level.toUpperCase()}
+                            </Badge>
+                            {useCase.implementationComplexity.estimatedDuration && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Clock size={10} />
+                                {useCase.implementationComplexity.estimatedDuration}
+                              </span>
+                            )}
+                            {useCase.implementationComplexity.estimatedTeamSize && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                <Users size={10} />
+                                {useCase.implementationComplexity.estimatedTeamSize}
+                              </span>
+                            )}
+                          </div>
+                          {useCase.implementationComplexity.factors && useCase.implementationComplexity.factors.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {useCase.implementationComplexity.factors.map((factor, factorIdx) => (
+                                <Badge key={factorIdx} variant="outline" className="text-[9px] px-1 py-0 h-3.5">
+                                  {factor}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {useCase.implementationComplexity.keyRisks && useCase.implementationComplexity.keyRisks.length > 0 && (
+                            <div className="mt-2">
+                              <span className="text-[9px] text-muted-foreground font-medium">Key Risks:</span>
+                              <ul className="mt-1 space-y-0.5">
+                                {useCase.implementationComplexity.keyRisks.map((risk, riskIdx) => (
+                                  <li key={riskIdx} className="text-[9px] text-muted-foreground flex items-start gap-1">
+                                    <Warning size={8} className="mt-0.5 text-amber-500 flex-shrink-0" />
+                                    {risk}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
         {/* Compliance & Security Footnote Section */}
         {hasComplianceInfo && (
           <div className="mt-4 pt-4 border-t border-border/50">
@@ -593,6 +909,233 @@ export function UseCaseCard({
             </AnimatePresence>
           </div>
         )}
+
+        {/* COI & Expected Value Section */}
+        <div className={`${hasComplianceInfo ? '' : 'mt-4 pt-4 border-t border-border/50'} ${hasCOIInfo ? '' : 'opacity-60'}`}>
+          <button
+            onClick={() => setShowCOI(!showCOI)}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full mt-3"
+          >
+            <Calculator size={14} />
+            <TrendUp size={14} />
+            <span>Financial Impact {hasCOIInfo ? '' : '(Not calculated)'}</span>
+            {hasCOIInfo && useCase.costOfInaction?.totalAnnualCOI && (
+              <Badge variant="outline" className="ml-auto text-[10px] px-1.5 py-0 h-4 bg-red-500/10 text-red-600 border-red-500/30">
+                COI: {formatCurrency(useCase.costOfInaction.totalAnnualCOI)}/yr
+              </Badge>
+            )}
+            {hasCOIInfo && useCase.expectedValue?.totalAnnualValue && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-green-500/10 text-green-600 border-green-500/30">
+                Value: {formatCurrency(useCase.expectedValue.totalAnnualValue)}/yr
+              </Badge>
+            )}
+            {showCOI ? <CaretUp size={12} className="ml-auto" /> : <CaretDown size={12} className="ml-auto" />}
+          </button>
+          
+          <AnimatePresence>
+            {showCOI && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-3 space-y-4 text-xs">
+                  {/* COI Input Section */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <CurrencyDollar size={12} weight="bold" />
+                      <span className="font-medium">Cost of Inaction (Annual)</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Direct Costs</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          className="h-7 text-xs tabular-nums"
+                          value={useCase.costOfInaction?.directCosts || ''}
+                          onChange={(e) => {
+                            const value = Number(e.target.value) || 0
+                            const coi = useCase.costOfInaction || { directCosts: 0, opportunityCosts: 0, riskCosts: 0, totalAnnualCOI: 0 }
+                            const updated = { 
+                              ...coi, 
+                              directCosts: value,
+                              totalAnnualCOI: value + (coi.opportunityCosts || 0) + (coi.riskCosts || 0),
+                              calculatedAt: Date.now()
+                            }
+                            onUpdate({ ...useCase, costOfInaction: updated })
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Opportunity Costs</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          className="h-7 text-xs tabular-nums"
+                          value={useCase.costOfInaction?.opportunityCosts || ''}
+                          onChange={(e) => {
+                            const value = Number(e.target.value) || 0
+                            const coi = useCase.costOfInaction || { directCosts: 0, opportunityCosts: 0, riskCosts: 0, totalAnnualCOI: 0 }
+                            const updated = { 
+                              ...coi, 
+                              opportunityCosts: value,
+                              totalAnnualCOI: (coi.directCosts || 0) + value + (coi.riskCosts || 0),
+                              calculatedAt: Date.now()
+                            }
+                            onUpdate({ ...useCase, costOfInaction: updated })
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Risk Costs</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          className="h-7 text-xs tabular-nums"
+                          value={useCase.costOfInaction?.riskCosts || ''}
+                          onChange={(e) => {
+                            const value = Number(e.target.value) || 0
+                            const coi = useCase.costOfInaction || { directCosts: 0, opportunityCosts: 0, riskCosts: 0, totalAnnualCOI: 0 }
+                            const updated = { 
+                              ...coi, 
+                              riskCosts: value,
+                              totalAnnualCOI: (coi.directCosts || 0) + (coi.opportunityCosts || 0) + value,
+                              calculatedAt: Date.now()
+                            }
+                            onUpdate({ ...useCase, costOfInaction: updated })
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    {useCase.costOfInaction && useCase.costOfInaction.totalAnnualCOI > 0 && (
+                      <div className="p-2 bg-red-500/10 rounded border border-red-500/20 flex items-center justify-between">
+                        <span className="text-red-600 font-medium">Total Annual COI</span>
+                        <span className="text-red-600 font-bold tabular-nums">
+                          {formatCurrency(useCase.costOfInaction.totalAnnualCOI)}/year
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Expected Value Section */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <TrendUp size={12} weight="bold" />
+                      <span className="font-medium">Expected Value (Annual)</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Revenue Impact</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          className="h-7 text-xs tabular-nums"
+                          value={useCase.expectedValue?.revenueImpact || ''}
+                          onChange={(e) => {
+                            const value = Number(e.target.value) || 0
+                            const ev = useCase.expectedValue || { totalAnnualValue: 0 }
+                            const updated = { 
+                              ...ev, 
+                              revenueImpact: value,
+                              totalAnnualValue: value + (ev.costSavings || 0) + (ev.riskMitigation || 0)
+                            }
+                            onUpdate({ ...useCase, expectedValue: updated })
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Cost Savings</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          className="h-7 text-xs tabular-nums"
+                          value={useCase.expectedValue?.costSavings || ''}
+                          onChange={(e) => {
+                            const value = Number(e.target.value) || 0
+                            const ev = useCase.expectedValue || { totalAnnualValue: 0 }
+                            const updated = { 
+                              ...ev, 
+                              costSavings: value,
+                              totalAnnualValue: (ev.revenueImpact || 0) + value + (ev.riskMitigation || 0)
+                            }
+                            onUpdate({ ...useCase, expectedValue: updated })
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Implementation Cost</Label>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          className="h-7 text-xs tabular-nums"
+                          value={useCase.expectedValue?.implementationCost || ''}
+                          onChange={(e) => {
+                            const value = Number(e.target.value) || 0
+                            const ev = useCase.expectedValue || { totalAnnualValue: 0 }
+                            const totalAnnualValue = (ev.revenueImpact || 0) + (ev.costSavings || 0) + (ev.riskMitigation || 0)
+                            const paybackMonths = totalAnnualValue > 0 ? Math.ceil((value / totalAnnualValue) * 12) : undefined
+                            const threeYearROI = value > 0 ? Math.round(((totalAnnualValue * 3 - value) / value) * 100) : undefined
+                            const updated = { 
+                              ...ev, 
+                              implementationCost: value,
+                              paybackMonths,
+                              threeYearROI
+                            }
+                            onUpdate({ ...useCase, expectedValue: updated })
+                          }}
+                        />
+                      </div>
+                      <div className="flex flex-col justify-end">
+                        {useCase.expectedValue?.paybackMonths && (
+                          <div className="text-[10px] text-muted-foreground">
+                            Payback: <span className="font-medium text-foreground">{useCase.expectedValue.paybackMonths} months</span>
+                          </div>
+                        )}
+                        {useCase.expectedValue?.threeYearROI && (
+                          <div className="text-[10px] text-muted-foreground">
+                            3-Year ROI: <span className="font-medium text-green-600">{useCase.expectedValue.threeYearROI}%</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {useCase.expectedValue && useCase.expectedValue.totalAnnualValue > 0 && (
+                      <div className="p-2 bg-green-500/10 rounded border border-green-500/20 flex items-center justify-between">
+                        <span className="text-green-600 font-medium">Total Annual Value</span>
+                        <span className="text-green-600 font-bold tabular-nums">
+                          {formatCurrency(useCase.expectedValue.totalAnnualValue)}/year
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Notes */}
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground">Calculation Notes</Label>
+                    <Input
+                      placeholder="Assumptions, data sources..."
+                      className="h-7 text-xs"
+                      value={useCase.costOfInaction?.notes || ''}
+                      onChange={(e) => {
+                        const coi = useCase.costOfInaction || { directCosts: 0, opportunityCosts: 0, riskCosts: 0, totalAnnualCOI: 0 }
+                        onUpdate({ ...useCase, costOfInaction: { ...coi, notes: e.target.value } })
+                      }}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
         </Card>
         </motion.div>
       </motion.div>

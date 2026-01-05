@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { NavigationHeader } from '@/components/NavigationHeader'
 import { Microphone, Warning, SpinnerGap } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
@@ -17,9 +18,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 interface LiveDiscoverySetupProps {
   onStart: (sessionName: string, industry: Industry) => void
   onCancel: () => void
+  onBackToLanding?: () => void
 }
 
-export function LiveDiscoverySetup({ onStart, onCancel }: LiveDiscoverySetupProps) {
+export function LiveDiscoverySetup({ onStart, onCancel, onBackToLanding }: LiveDiscoverySetupProps) {
   const [sessionName, setSessionName] = useState('')
   const [industry, setIndustry] = useState<Industry>('general')
   const [capabilities, setCapabilities] = useState<BrowserCapabilities | null>(null)
@@ -92,7 +94,16 @@ export function LiveDiscoverySetup({ onStart, onCancel }: LiveDiscoverySetupProp
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 max-w-md">
+        <NavigationHeader
+          variant="minimal"
+          onBackToLanding={onBackToLanding}
+          onBack={onCancel}
+          backLabel="Cancel"
+        />
+      </div>
+      <div className="flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -219,6 +230,7 @@ export function LiveDiscoverySetup({ onStart, onCancel }: LiveDiscoverySetupProp
           </CardFooter>
         </Card>
       </motion.div>
+      </div>
     </div>
   )
 }

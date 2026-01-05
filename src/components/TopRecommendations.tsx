@@ -1,9 +1,10 @@
 import { UseCase } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Sparkle, TrendUp, Lightning } from '@phosphor-icons/react'
+import { Sparkle, TrendUp, Lightning, Calculator, CurrencyDollar } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { motion } from 'framer-motion'
+import { useMemo } from 'react'
 
 interface TopRecommendationsProps {
   topUseCases: UseCase[]
@@ -16,6 +17,21 @@ export function TopRecommendations({
   scoringMethod,
   onSelectUseCase,
 }: TopRecommendationsProps) {
+  // Calculate aggregate financial impact
+  const financialSummary = useMemo(() => {
+    const withCOI = topUseCases.filter(uc => uc.costOfInaction?.totalAnnualCOI)
+    const withEV = topUseCases.filter(uc => uc.expectedValue?.totalAnnualValue)
+    const totalCOI = withCOI.reduce((sum, uc) => sum + (uc.costOfInaction?.totalAnnualCOI || 0), 0)
+    const totalEV = withEV.reduce((sum, uc) => sum + (uc.expectedValue?.totalAnnualValue || 0), 0)
+    return { totalCOI, totalEV, hasCOI: totalCOI > 0, hasEV: totalEV > 0 }
+  }, [topUseCases])
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
+    if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
+    return `$${value.toFixed(0)}`
+  }
+
   if (topUseCases.length === 0) return null
 
   return (
@@ -26,9 +42,31 @@ export function TopRecommendations({
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       <Card className="p-6 bg-gradient-to-br from-accent/10 via-background to-background border-accent/30">
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkle size={24} weight="fill" className="text-accent" />
-          <h2 className="text-xl font-bold text-foreground">Top Recommendations</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Sparkle size={24} weight="fill" className="text-accent" />
+            <h2 className="text-xl font-bold text-foreground">Top Recommendations</h2>
+          </div>
+          
+          {/* Financial Impact Summary */}
+          {(financialSummary.hasCOI || financialSummary.hasEV) && (
+            <div className="flex items-center gap-3">
+              {financialSummary.hasCOI && (
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-red-500/10 border border-red-500/20">
+                  <Calculator size={14} className="text-red-500" />
+                  <span className="text-xs text-muted-foreground">COI:</span>
+                  <span className="text-sm font-bold text-red-600">{formatCurrency(financialSummary.totalCOI)}/yr</span>
+                </div>
+              )}
+              {financialSummary.hasEV && (
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-green-500/10 border border-green-500/20">
+                  <TrendUp size={14} className="text-green-500" />
+                  <span className="text-xs text-muted-foreground">Value:</span>
+                  <span className="text-sm font-bold text-green-600">{formatCurrency(financialSummary.totalEV)}/yr</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="space-y-3">
           {topUseCases.map((useCase, index) => {
@@ -122,6 +160,28 @@ export function TopRecommendations({
                           {quadrant}
                         </Badge>
                       </motion.div>
+                    )}
+                    {/* Per use case financial indicators */}
+                    {useCase.costOfInaction?.totalAnnualCOI && (
+                      <div className="flex items-center gap-1">
+                        <Calculator size={12} className="text-red-500" />
+                        <span className="text-red-600 font-medium tabular-nums">
+                          {formatCurrency(useCase.costOfInaction.totalAnnualCOI)}
+                        </span>
+                      </div>
+                    )}
+                    {useCase.expectedValue?.totalAnnualValue && (
+                      <div className="flex items-center gap-1">
+                        <CurrencyDollar size={12} className="text-green-500" />
+                        <span className="text-green-600 font-medium tabular-nums">
+                          {formatCurrency(useCase.expectedValue.totalAnnualValue)}
+                        </span>
+                        {useCase.expectedValue.paybackMonths && (
+                          <span className="text-muted-foreground">
+                            ({useCase.expectedValue.paybackMonths}mo)
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
