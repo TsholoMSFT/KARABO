@@ -11,6 +11,11 @@ export interface DiscoverySettings {
   // Enterprise Discovery AI features
   enableSCQGeneration: boolean
   enableUseCaseGeneration: boolean
+  
+  // NEW: MVP 5-Stage AI features
+  enableStakeholderSuggestions: boolean // AI-assisted stakeholder mapping
+  enableAutoRICEScoring: boolean // Automatic RICE from COI data
+  enableExecutiveSummary: boolean // AI-generated executive summary
 }
 
 const defaultSettings: DiscoverySettings = {
@@ -19,6 +24,9 @@ const defaultSettings: DiscoverySettings = {
   enableAIInsights: true,
   enableSCQGeneration: true,
   enableUseCaseGeneration: true,
+  enableStakeholderSuggestions: true,
+  enableAutoRICEScoring: true,
+  enableExecutiveSummary: true,
 }
 
 export function useDiscoverySettings() {

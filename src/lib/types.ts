@@ -781,7 +781,242 @@ export interface CommunicateStageData {
   }
 }
 
-// Main Enterprise Discovery Session
+// ============================================================================
+// MVP 5-STAGE ENTERPRISE DISCOVERY TYPES
+// ============================================================================
+
+export type TabCompletionStatus = 'complete' | 'pending' | 'skipped' | 'not-started'
+
+// Merged Opportunity + Resources Stage Data (MVP Stage 1)
+export interface OpportunityResourcesStageData {
+  // From Stage 1: Opportunity
+  opportunity: OpportunityStageData
+  // From Stage 2: Resources
+  resources: ResourcesStageData
+  // Tab completion tracking
+  tabCompletion: Record<string, TabCompletionStatus>
+}
+
+// Merged Commit + Communicate Stage Data (MVP Stage 4)
+export interface CommitCommunicateStageData {
+  // From Stage 7: Commit
+  commit: CommitStageData
+  // From Stage 8: Communicate
+  communicate: CommunicateStageData
+  // AI-generated executive summary
+  executiveSummary: string
+  // Tab completion tracking
+  tabCompletion: Record<string, TabCompletionStatus>
+}
+
+// Progressive disclosure config per discovery type
+export interface ProgressiveDisclosureConfig {
+  showProblemStatement: boolean
+  showFullCOI: boolean
+  showBudgetDetails: boolean
+  showCompetitiveAnalysis: boolean
+  prefillFromExisting: boolean
+  focusOnRelationship: boolean
+  showMACCFields: boolean
+}
+
+export const PROGRESSIVE_DISCLOSURE: Record<DiscoveryType, ProgressiveDisclosureConfig> = {
+  'new-opportunity': {
+    showProblemStatement: true,
+    showFullCOI: true,
+    showBudgetDetails: true,
+    showCompetitiveAnalysis: true,
+    prefillFromExisting: false,
+    focusOnRelationship: false,
+    showMACCFields: false,
+  },
+  'expansion': {
+    showProblemStatement: false,
+    showFullCOI: true,
+    showBudgetDetails: true,
+    showCompetitiveAnalysis: false,
+    prefillFromExisting: true,
+    focusOnRelationship: false,
+    showMACCFields: false,
+  },
+  'renewal': {
+    showProblemStatement: false,
+    showFullCOI: false,
+    showBudgetDetails: false,
+    showCompetitiveAnalysis: true,
+    prefillFromExisting: true,
+    focusOnRelationship: true,
+    showMACCFields: false,
+  },
+  'macc': {
+    showProblemStatement: true,
+    showFullCOI: true,
+    showBudgetDetails: true,
+    showCompetitiveAnalysis: false,
+    prefillFromExisting: false,
+    focusOnRelationship: false,
+    showMACCFields: true,
+  },
+}
+
+// MVP 5-Stage Session (new format)
+export interface EnterpriseDiscoverySessionMVP {
+  id: string
+  version: 'mvp-5-stage' // Identifies new format
+  
+  // Stage 0: START
+  clientName: string
+  industry?: string // For AI suggestions
+  attendees: Array<{ name: string; role: string }>
+  sessionDate: number
+  discoveryType: DiscoveryType
+  
+  // Stage data (5 stages: 0-4)
+  currentStageId: number // 0-4
+  stages: {
+    0: { status: StageStatus; completedAt?: number; data: null }
+    1: { status: StageStatus; completedAt?: number; data: OpportunityResourcesStageData | null }
+    2: { status: StageStatus; completedAt?: number; data: DecisionProcessStageData | null }
+    3: { status: StageStatus; completedAt?: number; data: SolutionScopeStageData | null }
+    4: { status: StageStatus; completedAt?: number; data: CommitCommunicateStageData | null }
+  }
+  
+  // Global yellow lights (accessible from any stage)
+  allYellowLights: YellowLight[]
+  
+  // Session state
+  isLiveMode?: boolean
+  isPaused?: boolean
+  pausedAt?: number
+  lastSavedAt?: number
+  
+  createdAt: number
+  completedAt?: number
+}
+
+// Migration utility: Convert legacy 9-stage session to MVP 5-stage
+export function migrateToMVPSession(legacy: EnterpriseDiscoverySession): EnterpriseDiscoverySessionMVP {
+  // Map legacy stage IDs to MVP stage IDs
+  const legacyToMVPStageMap: Record<number, number> = {
+    0: 0, // START -> START
+    1: 1, // OPPORTUNITY -> OPPORTUNITY+RESOURCES
+    2: 1, // RESOURCES -> OPPORTUNITY+RESOURCES
+    3: 2, // DECISION PROCESS -> DECISION PROCESS
+    4: 2, // PRIORITISE -> (merged into DECISION PROCESS)
+    5: 3, // SOLUTION SCOPE -> SOLUTION SCOPE
+    6: 3, // VALIDATE -> (merged into SOLUTION SCOPE)
+    7: 4, // COMMIT -> COMMIT+COMMUNICATE
+    8: 4, // COMMUNICATE -> COMMIT+COMMUNICATE
+  }
+  
+  const mvpCurrentStage = legacyToMVPStageMap[legacy.currentStageId] ?? 0
+  
+  // Merge opportunity + resources
+  const opportunityResourcesData: OpportunityResourcesStageData | null = 
+    (legacy.stages[1].data || legacy.stages[2].data) ? {
+      opportunity: legacy.stages[1].data || {
+        problemStatement: '',
+        problemCategory: 'efficiency',
+        affectedArea: 'process',
+        desiredOutcome: '',
+        successMetrics: [],
+        timelineExpectation: '3-6-months',
+        coi: { directCosts: { oneTime: 0, recurring: 0 }, opportunityCosts: { oneTime: 0, recurring: 0 }, riskCosts: { oneTime: 0, oneTimeProbability: 50, recurring: 0, recurringProbability: 50 }, totalAnnual: 0 },
+        scq: { situation: '', complication: '', question: '', status: 'pending' },
+      },
+      resources: legacy.stages[2].data || {
+        budgetStatus: 'unknown',
+        budgetRange: 'unknown',
+        roiExpectation: '',
+        budgetOwner: '',
+        executiveSponsor: '',
+        projectLead: '',
+        teamCapacity: 'unknown',
+        changeReadiness: 'unknown',
+        existingPlatforms: [],
+        dataAvailability: 'unknown',
+        integrationRequirements: [],
+        technicalDebtConcerns: '',
+        targetStart: null,
+        targetCompletion: null,
+        competingPriorities: [],
+        hardDependencies: [],
+        scq: { situation: '', complication: '', question: '', status: 'pending' },
+      },
+      tabCompletion: {},
+    } : null
+  
+  // Merge commit + communicate
+  const commitCommunicateData: CommitCommunicateStageData | null =
+    (legacy.stages[7].data || legacy.stages[8].data) ? {
+      commit: legacy.stages[7].data || {
+        trustIndicators: { sharingRealNumbers: 'no', sharingRealConcerns: 'no', believeWeCanDeliver: 'no' },
+        engagementIndicators: { accessToDecisionMakers: 'none', responsiveness: 'low', clientInvestingResources: 'no' },
+        fitIndicators: { strategicFit: 'low', canDeliver: 'no', commercialViability: 'poor' },
+        yellowLights: [],
+        decision: 'pause',
+      },
+      communicate: legacy.stages[8].data || {
+        plImpact: { year1: { revenueImpact: 0, cogsImpact: 0, grossMarginImpact: 0, opexImpact: 0, ebitImpact: 0 }, year2: { revenueImpact: 0, cogsImpact: 0, grossMarginImpact: 0, opexImpact: 0, ebitImpact: 0 }, year3: { revenueImpact: 0, cogsImpact: 0, grossMarginImpact: 0, opexImpact: 0, ebitImpact: 0 }, total: { revenueImpact: 0, cogsImpact: 0, grossMarginImpact: 0, opexImpact: 0, ebitImpact: 0 } },
+        investmentAnalysis: { totalInvestmentYear1: 0, totalAnnualBenefit: 0, simplePaybackMonths: 0, roi3Year: 0, npv10Percent: 0, irr: 0 },
+        sensitivityAnalysis: { conservative: { annualBenefit: 0, paybackMonths: 0, roi3Year: 0, npv: 0 }, base: { annualBenefit: 0, paybackMonths: 0, roi3Year: 0, npv: 0 }, optimistic: { annualBenefit: 0, paybackMonths: 0, roi3Year: 0, npv: 0 } },
+        threeStatementModel: { incomeStatement: { revenue: { year1: 0, year2: 0, year3: 0 }, cogs: { year1: 0, year2: 0, year3: 0 }, grossProfit: { year1: 0, year2: 0, year3: 0 }, opex: { salesMarketing: { year1: 0, year2: 0, year3: 0 }, rAndD: { year1: 0, year2: 0, year3: 0 }, gAndA: { year1: 0, year2: 0, year3: 0 }, total: { year1: 0, year2: 0, year3: 0 } }, ebit: { year1: 0, year2: 0, year3: 0 } }, balanceSheet: { workingCapitalChange: 0, inventoryReduction: 0, receivablesReduction: 0, capexAvoided: 0 }, cashFlow: { operatingCashFlow: { year1: 0, year2: 0, year3: 0 }, investingCashFlow: { year1: 0, year2: 0, year3: 0 }, netCashFlow: { year1: 0, year2: 0, year3: 0 } } },
+        metricHierarchy: { strategicOutcome: '', financialMetrics: [], operationalMetrics: [], activityMetrics: [] },
+        valueDriversByPLLine: { revenue: [], cogs: [], opex: [], balanceSheet: [] },
+      },
+      executiveSummary: '',
+      tabCompletion: {},
+    } : null
+  
+  return {
+    id: legacy.id,
+    version: 'mvp-5-stage',
+    clientName: legacy.clientName,
+    industry: undefined,
+    attendees: legacy.attendees,
+    sessionDate: legacy.sessionDate,
+    discoveryType: legacy.discoveryType,
+    currentStageId: mvpCurrentStage,
+    stages: {
+      0: { status: legacy.stages[0].status, completedAt: legacy.stages[0].completedAt, data: null },
+      1: { 
+        status: legacy.stages[1].status === 'completed' && legacy.stages[2].status === 'completed' ? 'completed' : 
+               legacy.stages[1].status === 'in-progress' || legacy.stages[2].status === 'in-progress' ? 'in-progress' : 'not-started',
+        completedAt: legacy.stages[2].completedAt,
+        data: opportunityResourcesData,
+      },
+      2: { status: legacy.stages[3].status, completedAt: legacy.stages[3].completedAt, data: legacy.stages[3].data },
+      3: { status: legacy.stages[5].status, completedAt: legacy.stages[5].completedAt, data: legacy.stages[5].data },
+      4: { 
+        status: legacy.stages[7].status === 'completed' && legacy.stages[8].status === 'completed' ? 'completed' :
+               legacy.stages[7].status === 'in-progress' || legacy.stages[8].status === 'in-progress' ? 'in-progress' : 'not-started',
+        completedAt: legacy.stages[8].completedAt,
+        data: commitCommunicateData,
+      },
+    },
+    allYellowLights: legacy.allYellowLights,
+    isLiveMode: legacy.isLiveMode,
+    isPaused: legacy.isPaused,
+    pausedAt: legacy.pausedAt,
+    lastSavedAt: legacy.lastSavedAt,
+    createdAt: legacy.createdAt,
+    completedAt: legacy.completedAt,
+  }
+}
+
+// Type guard to check if session is MVP format
+export function isMVPSession(session: EnterpriseDiscoverySession | EnterpriseDiscoverySessionMVP): session is EnterpriseDiscoverySessionMVP {
+  return 'version' in session && session.version === 'mvp-5-stage'
+}
+
+// ============================================================================
+// LEGACY 9-STAGE ENTERPRISE DISCOVERY SESSION (DEPRECATED)
+// ============================================================================
+
+/**
+ * @deprecated Use EnterpriseDiscoverySessionMVP instead. 
+ * This interface is kept for backward compatibility and migration.
+ */
 export interface EnterpriseDiscoverySession {
   id: string
   
