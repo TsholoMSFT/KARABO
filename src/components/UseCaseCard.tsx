@@ -79,9 +79,6 @@ export function UseCaseCard({
     return colors[level] || colors['medium']
   }
 
-  const hasComplianceInfo = useCase.aiRegulations || useCase.cybersecurity
-  const hasCOIInfo = useCase.costOfInaction || useCase.expectedValue
-
   // Format currency for display
   const formatCurrency = (value: number) => {
     if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
