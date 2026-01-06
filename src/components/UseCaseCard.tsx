@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { UseCaseSourceBadges } from '@/components/ui/use-case-source-badge'
+import { ArchitectureBadge } from '@/components/ArchitectureDiagram'
 import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
@@ -635,9 +636,7 @@ export function UseCaseCard({
                         {useCase.referenceArchitecture && (
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-[10px] text-muted-foreground">Reference Architecture:</span>
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                              {useCase.referenceArchitecture.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </Badge>
+                            <ArchitectureBadge pattern={useCase.referenceArchitecture as any} />
                           </div>
                         )}
                       </div>

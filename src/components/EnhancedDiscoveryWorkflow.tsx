@@ -14,9 +14,12 @@ import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
-import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X } from '@phosphor-icons/react'
+import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, FlowArrow, Diagram } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
+import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
+import { ProcessFlowDiagram } from '@/components/ProcessFlowDiagram'
+import { type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 
 interface WorkflowUseCase {
   id: string
@@ -56,16 +59,52 @@ interface WorkflowUseCase {
     confidence: number
     effort: number
   }
+  // Diagram-related fields
+  referenceArchitecture?: ReferenceArchitecturePattern
+  businessProcesses?: Array<{
+    processId: string
+    processName: string
+    affectedSteps?: string[]
+    currentPainPoints?: string[]
+    proposedImprovement: string
+    expectedCycleTimeReduction?: string
+  }>
+  microsoftSolutions?: Array<{
+    productFamily: string
+    services: string[]
+    role: 'primary' | 'supporting' | 'integration'
+    justification?: string
+  }>
 }
 
 interface EnhancedDiscoveryWorkflowProps {
   session: DiscoverySession
-  initialUseCases: Array<{ title: string; description: string; rationale: string; dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[] }>
+  initialUseCases: Array<{ 
+    title: string
+    description: string
+    rationale: string
+    dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[]
+    referenceArchitecture?: string
+    businessProcesses?: Array<{
+      processId: string
+      processName: string
+      affectedSteps?: string[]
+      currentPainPoints?: string[]
+      proposedImprovement: string
+      expectedCycleTimeReduction?: string
+    }>
+    microsoftSolutions?: Array<{
+      productFamily: string
+      services: string[]
+      role: 'primary' | 'supporting' | 'integration'
+      justification?: string
+    }>
+  }>
   onComplete: (useCases: Partial<UseCase>[], executiveSummary: string) => void
   onCancel: () => void
 }
 
-type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'summary' | 'save-confirm'
+type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'diagrams' | 'summary' | 'save-confirm'
 
 export function EnhancedDiscoveryWorkflow({
   session,
@@ -82,7 +121,10 @@ export function EnhancedDiscoveryWorkflow({
       description: uc.description,
       rationale: uc.rationale,
       selected: true,
-      dataSources: uc.dataSources || ['discovery'], // Preserve data sources
+      dataSources: uc.dataSources || ['discovery'],
+      referenceArchitecture: uc.referenceArchitecture as ReferenceArchitecturePattern | undefined,
+      businessProcesses: uc.businessProcesses,
+      microsoftSolutions: uc.microsoftSolutions,
     }))
   )
   const [currentUseCaseIndex, setCurrentUseCaseIndex] = useState(0)
@@ -93,7 +135,7 @@ export function EnhancedDiscoveryWorkflow({
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   const selectedUseCases = useCases.filter(uc => uc.selected)
-  const currentUseCase = step === 'impact-feasibility' || step === 'rice' 
+  const currentUseCase = step === 'impact-feasibility' || step === 'rice' || step === 'diagrams'
     ? selectedUseCases[currentUseCaseIndex] 
     : null
 
@@ -203,8 +245,34 @@ export function EnhancedDiscoveryWorkflow({
     if (currentUseCaseIndex < selectedUseCases.length - 1) {
       setCurrentUseCaseIndex(currentUseCaseIndex + 1)
     } else {
+      // Move to diagrams step after all RICE scoring is complete
+      setCurrentUseCaseIndex(0)
+      handleStepWithSave('diagrams')
+    }
+  }
+
+  const handleDiagramsNext = () => {
+    if (currentUseCaseIndex < selectedUseCases.length - 1) {
+      setCurrentUseCaseIndex(currentUseCaseIndex + 1)
+    } else {
+      // All diagrams reviewed, generate summary
       handleCompleteDiscovery()
     }
+  }
+
+  const handleDiagramsBack = () => {
+    if (currentUseCaseIndex > 0) {
+      setCurrentUseCaseIndex(currentUseCaseIndex - 1)
+    } else {
+      // Go back to last RICE scoring
+      setCurrentUseCaseIndex(selectedUseCases.length - 1)
+      setStep('rice')
+    }
+  }
+
+  const handleRequestDifferentArchitecture = (useCaseId: string, feedback: string) => {
+    console.log(`Architecture feedback for ${useCaseId}:`, feedback)
+    toast.info('Architecture feedback recorded. Will be reviewed during solution design.')
   }
 
   const handleCompleteDiscovery = async () => {
@@ -494,6 +562,17 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                 industry: session.industry ? industryLabels[session.industry] : undefined,
                 companyName: session.customerName
               }}
+            />
+          )}
+
+          {step === 'diagrams' && currentUseCase && (
+            <DiagramsStep
+              useCase={currentUseCase}
+              currentIndex={currentUseCaseIndex}
+              totalCount={selectedUseCases.length}
+              onNext={handleDiagramsNext}
+              onBack={handleDiagramsBack}
+              onRequestDifferentArchitecture={handleRequestDifferentArchitecture}
             />
           )}
 
@@ -1190,8 +1269,147 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
             Back
           </Button>
           <Button onClick={handleSave} className="gap-2" disabled={isEstimating}>
-            {currentIndex < totalCount - 1 ? 'Next Use Case' : 'Complete Discovery'}
+            {currentIndex < totalCount - 1 ? 'Next Use Case' : 'Review Diagrams'}
             <ArrowRight size={18} weight="bold" />
+          </Button>
+        </CardFooter>
+      </Card>
+    </motion.div>
+  )
+}
+
+// ============================================================================
+// DIAGRAMS STEP - Review Architecture & Process Flow Diagrams
+// ============================================================================
+
+interface DiagramsStepProps {
+  useCase: WorkflowUseCase
+  currentIndex: number
+  totalCount: number
+  onNext: () => void
+  onBack: () => void
+  onRequestDifferentArchitecture?: (useCaseId: string, feedback: string) => void
+}
+
+function DiagramsStep({ 
+  useCase, 
+  currentIndex, 
+  totalCount, 
+  onNext, 
+  onBack,
+  onRequestDifferentArchitecture 
+}: DiagramsStepProps) {
+  const hasArchitecture = useCase.referenceArchitecture
+  const hasProcessFlow = useCase.businessProcesses && useCase.businessProcesses.length > 0
+
+  return (
+    <motion.div
+      key={`diagrams-${useCase.id}`}
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+    >
+      <Card className="border-2">
+        <CardHeader>
+          <div className="flex items-center justify-between mb-2">
+            <Badge variant="secondary">
+              Use Case {currentIndex + 1} of {totalCount}
+            </Badge>
+            <Diagram size={24} weight="duotone" className="text-primary" />
+          </div>
+          <CardTitle>Solution Architecture & Process Flow</CardTitle>
+          <CardDescription>
+            Review the recommended Microsoft architecture and business process improvements
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {/* Use Case Context */}
+          <div className="p-4 bg-accent/10 rounded-lg">
+            <h3 className="font-semibold text-foreground mb-2">{useCase.title}</h3>
+            <p className="text-sm text-muted-foreground">{useCase.description}</p>
+          </div>
+
+          {/* Reference Architecture Diagram */}
+          {hasArchitecture ? (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <Diagram size={16} weight="duotone" />
+                Recommended Reference Architecture
+              </h4>
+              <ArchitectureDiagram
+                pattern={useCase.referenceArchitecture!}
+                showLearnLink={true}
+                onRequestDifferent={(feedback) => {
+                  onRequestDifferentArchitecture?.(useCase.id, feedback)
+                }}
+              />
+            </div>
+          ) : (
+            <div className="p-4 border rounded-lg bg-muted/50 text-center">
+              <Diagram size={32} className="mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                No reference architecture has been assigned to this use case.
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Architecture will be suggested during solution design phase.
+              </p>
+            </div>
+          )}
+
+          {/* Process Flow Diagram */}
+          {hasProcessFlow ? (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <FlowArrow size={16} weight="duotone" />
+                Business Process Flow
+              </h4>
+              {useCase.businessProcesses!.map((process, idx) => (
+                <ProcessFlowDiagram 
+                  key={process.processId || idx}
+                  process={process as any}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 border rounded-lg bg-muted/50 text-center">
+              <FlowArrow size={32} className="mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                No business process flow has been mapped for this use case.
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Process flows are generated during discovery analysis.
+              </p>
+            </div>
+          )}
+
+          {/* Microsoft Solutions Summary */}
+          {useCase.microsoftSolutions && useCase.microsoftSolutions.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold">Microsoft Solutions</h4>
+              <div className="flex flex-wrap gap-2">
+                {useCase.microsoftSolutions.map((solution, idx) => (
+                  <Badge 
+                    key={idx}
+                    variant="outline"
+                    className="text-xs"
+                  >
+                    {solution.productFamily}: {solution.services.join(', ')}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft size={16} className="mr-2" />
+            Back
+          </Button>
+          <Button onClick={onNext}>
+            {currentIndex < totalCount - 1 ? 'Next Use Case' : 'Generate Summary'}
+            <ArrowRight size={16} className="ml-2" />
           </Button>
         </CardFooter>
       </Card>
