@@ -28,6 +28,7 @@ interface SessionControlBarProps {
   onPauseSession: () => void
   onEndSession: () => void
   onExportPDF: () => void
+  onExportExcel?: () => void
   lastSaved?: number
 }
 
@@ -40,6 +41,7 @@ export function SessionControlBar({
   onPauseSession,
   onEndSession,
   onExportPDF,
+  onExportExcel,
   lastSaved,
 }: SessionControlBarProps) {
   const [showEndDialog, setShowEndDialog] = useState(false)
@@ -122,6 +124,12 @@ export function SessionControlBar({
                 <Download size={16} />
                 Export PDF
               </DropdownMenuItem>
+              {onExportExcel && (
+                <DropdownMenuItem onClick={onExportExcel} className="gap-2">
+                  <Download size={16} />
+                  Export Excel
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="gap-2 text-muted-foreground">
                 <Clock size={16} />

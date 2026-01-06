@@ -19,10 +19,12 @@ import {
   Stage7Commit,
 } from './stages/StagesPlaceholder'
 import { exportEnterpriseDiscoveryToPDF } from '@/lib/enterprise-pdf-export'
+import { exportEnterpriseDiscoveryToExcel } from '@/lib/enterprise-excel-export'
 import type { EnterpriseDiscoverySession, YellowLight, StageStatus, BusinessEnvisioningData } from '@/lib/types'
 import { toast } from 'sonner'
 
 const PAUSED_SESSIONS_KEY = 'karabo-paused-enterprise-sessions'
+const ENTERPRISE_SESSIONS_KEY = 'enterprise-sessions'
 
 interface EnterpriseDiscoveryOrchestratorProps {
   initialSession?: EnterpriseDiscoverySession
@@ -154,6 +156,19 @@ export function EnterpriseDiscoveryOrchestrator({
     }
   }, [session])
 
+  // Handle Excel export
+  const handleExportExcel = useCallback(() => {
+    try {
+      const fileName = exportEnterpriseDiscoveryToExcel(session)
+      toast.success('Excel exported successfully', {
+        description: fileName,
+      })
+    } catch (error) {
+      console.error('Failed to export Excel:', error)
+      toast.error('Failed to export Excel')
+    }
+  }, [session])
+
   // Toggle live mode
   const handleToggleLiveMode = useCallback(() => {
     setIsLiveMode(prev => !prev)
@@ -173,6 +188,20 @@ export function EnterpriseDiscoveryOrchestrator({
     (l) => !l.resolved && (l.severity === 'serious' || l.severity === 'deal-breaker')
   )
 
+  // Check if Stage 1 has valid COI data
+  const hasValidStage1Data = useCallback(() => {
+    const stage1Data = session.stages[1].data
+    if (!stage1Data?.coi) return false
+    const coi = stage1Data.coi
+    const totalCOI = coi.totalAnnual || (
+      (coi.directCosts.oneTime || 0) + (coi.directCosts.recurring || 0) * 12 +
+      (coi.opportunityCosts.oneTime || 0) + (coi.opportunityCosts.recurring || 0) * 12 +
+      ((coi.riskCosts.oneTime || 0) * (coi.riskCosts.oneTimeProbability || 0) / 100) +
+      ((coi.riskCosts.recurring || 0) * (coi.riskCosts.recurringProbability || 0) / 100 * 12)
+    )
+    return totalCOI > 0
+  }, [session.stages])
+
   const handleStageComplete = (stageId: number, data: any) => {
     const updated = { ...session }
     updated.stages[stageId as keyof typeof updated.stages] = {
@@ -181,13 +210,33 @@ export function EnterpriseDiscoveryOrchestrator({
       data,
     }
 
+    // Warn if Stage 1 COI is incomplete when advancing beyond Stage 1
+    if (stageId >= 1 && !hasValidStage1Data()) {
+      toast.warning('Stage 1 Cost of Inaction incomplete', {
+        description: 'Financial outputs in Stage 8 will show $0 until COI is populated.',
+        duration: 5000,
+      })
+    }
+
     // Move to next stage if not at the end
     if (stageId < 8) {
       updated.currentStageId = stageId + 1
       updated.stages[(stageId + 1) as keyof typeof updated.stages].status = 'in-progress'
     } else {
-      // Completed all stages
+      // Completed all stages - save to enterprise sessions storage
       updated.completedAt = Date.now()
+      try {
+        const stored = JSON.parse(localStorage.getItem(ENTERPRISE_SESSIONS_KEY) || '[]')
+        const existingIdx = stored.findIndex((s: EnterpriseDiscoverySession) => s.id === updated.id)
+        if (existingIdx >= 0) {
+          stored[existingIdx] = updated
+        } else {
+          stored.push(updated)
+        }
+        localStorage.setItem(ENTERPRISE_SESSIONS_KEY, JSON.stringify(stored))
+      } catch (e) {
+        console.error('Failed to persist completed session:', e)
+      }
       toast.success('Enterprise Discovery Completed!')
       onComplete(updated)
       return
@@ -313,6 +362,7 @@ export function EnterpriseDiscoveryOrchestrator({
             initialData={session.stages[8].data}
             solutionScopeData={session.stages[5].data}
             resourcesData={session.stages[2].data}
+            coiData={session.stages[1].data?.coi}
             onComplete={(data) => handleStageComplete(8, data)}
             onBack={() => handleStageBack(7)}
             isLiveMode={isLiveMode}
@@ -356,6 +406,7 @@ export function EnterpriseDiscoveryOrchestrator({
             onPauseSession={handlePauseSession}
             onEndSession={handleEndSession}
             onExportPDF={handleExportPDF}
+            onExportExcel={handleExportExcel}
             lastSaved={lastSaved}
           />
         </div>

@@ -609,7 +609,7 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
                       {generationPhase === 'generating' && 'Creating AI-powered recommendations...'}
                     </p>
                     {session.stockTicker && generationPhase === 'analyzing' && (
-                      <p className="text-xs text-muted-foreground/70">
+                      <p className="text-xs text-muted-foreground">
                         Will also analyze earnings calls for {session.stockTicker}
                       </p>
                     )}
@@ -762,7 +762,7 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
                               </li>
                             ))}
                             {earningsInsights.length > 3 && (
-                              <li className="text-muted-foreground/70 italic">+{earningsInsights.length - 3} more insights analyzed</li>
+                              <li className="text-muted-foreground italic">+{earningsInsights.length - 3} more insights analyzed</li>
                             )}
                           </ul>
                         </div>

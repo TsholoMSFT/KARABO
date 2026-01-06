@@ -1,18 +1,22 @@
-import { useState } from 'react'
-import { DiscoverySession } from '@/lib/types'
+import { useState, useMemo } from 'react'
+import { DiscoverySession, EnterpriseDiscoverySession } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
+import { useLocalStorage } from '@/hooks/use-local-storage'
 import { industryLabels } from '@/lib/discovery-questions'
+import { exportEnterpriseDiscoveryToPDF } from '@/lib/enterprise-pdf-export'
+import { exportEnterpriseDiscoveryToExcel } from '@/lib/enterprise-excel-export'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Clock, Trash, Eye, ArrowsLeftRight, FolderOpen, X, PencilSimple, CalendarBlank } from '@phosphor-icons/react'
+import { Clock, Trash, Eye, ArrowsLeftRight, FolderOpen, X, PencilSimple, CalendarBlank, Play, FileArrowDown, Briefcase } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -23,10 +27,13 @@ interface SessionManagerProps {
   onOpenChange: (open: boolean) => void
   onViewSession: (session: DiscoverySession) => void
   onCompareSessions: (sessions: DiscoverySession[]) => void
+  onResumeEnterpriseSession?: (session: EnterpriseDiscoverySession) => void
 }
 
-export function SessionManager({ open, onOpenChange, onViewSession, onCompareSessions }: SessionManagerProps) {
+export function SessionManager({ open, onOpenChange, onViewSession, onCompareSessions, onResumeEnterpriseSession }: SessionManagerProps) {
   const { sessions, deleteSession, updateSession } = useDiscovery()
+  const [enterpriseSessions, setEnterpriseSessions] = useLocalStorage<EnterpriseDiscoverySession[]>('enterprise-sessions', [])
+  const [activeTab, setActiveTab] = useState<'quick' | 'enterprise'>('quick')
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [selectedForComparison, setSelectedForComparison] = useState<Set<string>>(new Set())
   const [comparisonMode, setComparisonMode] = useState(false)
@@ -105,6 +112,33 @@ export function SessionManager({ open, onOpenChange, onViewSession, onCompareSes
   if (!open) return null
 
   const sortedSessions = [...sessions].sort((a, b) => b.createdAt - a.createdAt)
+  const sortedEnterpriseSessions = useMemo(() => 
+    [...(enterpriseSessions || [])].sort((a, b) => b.createdAt - a.createdAt),
+    [enterpriseSessions]
+  )
+
+  const handleDeleteEnterpriseSession = (sessionId: string) => {
+    setEnterpriseSessions(prev => (prev || []).filter(s => s.id !== sessionId))
+    toast.success('Enterprise session deleted')
+  }
+
+  const handleExportEnterprisePDF = (session: EnterpriseDiscoverySession) => {
+    try {
+      const fileName = exportEnterpriseDiscoveryToPDF(session)
+      toast.success('PDF exported', { description: fileName })
+    } catch (e) {
+      toast.error('Failed to export PDF')
+    }
+  }
+
+  const handleExportEnterpriseExcel = (session: EnterpriseDiscoverySession) => {
+    try {
+      const fileName = exportEnterpriseDiscoveryToExcel(session)
+      toast.success('Excel exported', { description: fileName })
+    } catch (e) {
+      toast.error('Failed to export Excel')
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -155,6 +189,21 @@ export function SessionManager({ open, onOpenChange, onViewSession, onCompareSes
               </CardHeader>
 
               <CardContent className="p-0">
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'quick' | 'enterprise')}>
+                  <div className="px-6 pt-4">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="quick" className="gap-2">
+                        <FolderOpen size={16} />
+                        Quick Discovery ({sortedSessions.length})
+                      </TabsTrigger>
+                      <TabsTrigger value="enterprise" className="gap-2">
+                        <Briefcase size={16} />
+                        Enterprise ({sortedEnterpriseSessions.length})
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <TabsContent value="quick" className="mt-0">
                 {sortedSessions.length === 0 ? (
                   <div className="py-16 text-center">
                     <FolderOpen size={64} className="mx-auto text-muted-foreground mb-4" weight="duotone" />
@@ -264,6 +313,109 @@ export function SessionManager({ open, onOpenChange, onViewSession, onCompareSes
                     </div>
                   </ScrollArea>
                 )}
+                  </TabsContent>
+
+                  <TabsContent value="enterprise" className="mt-0">
+                    {sortedEnterpriseSessions.length === 0 ? (
+                      <div className="py-16 text-center">
+                        <Briefcase size={64} className="mx-auto text-muted-foreground mb-4" weight="duotone" />
+                        <h3 className="text-lg font-semibold text-foreground mb-2">No Enterprise Sessions</h3>
+                        <p className="text-muted-foreground">
+                          Start an Enterprise Discovery to see sessions here
+                        </p>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-[500px]">
+                        <div className="p-6 space-y-3">
+                          {sortedEnterpriseSessions.map((session) => {
+                            const completedStages = Object.values(session.stages).filter(s => s.status === 'completed').length
+                            const isComplete = session.completedAt !== undefined
+
+                            return (
+                              <motion.div
+                                key={session.id}
+                                layout
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                              >
+                                <Card className={`transition-all hover:shadow-md ${isComplete ? 'border-green-500/50' : 'border-amber-500/50'}`}>
+                                  <CardHeader>
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="space-y-1 flex-1">
+                                        <CardTitle className="text-lg flex items-center gap-2">
+                                          {session.clientName || 'Unnamed Client'}
+                                          {isComplete ? (
+                                            <Badge className="bg-green-500 text-xs">Completed</Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-amber-600 border-amber-500 text-xs">In Progress</Badge>
+                                          )}
+                                        </CardTitle>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <Badge variant="outline" className="text-xs">
+                                            {session.discoveryType.replace('-', ' ')}
+                                          </Badge>
+                                          <Badge variant="secondary" className="text-xs">
+                                            {completedStages}/9 stages
+                                          </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                          <Clock size={14} />
+                                          {format(session.createdAt, 'MMM d, yyyy h:mm a')}
+                                        </div>
+                                      </div>
+                                      <div className="flex gap-1">
+                                        {!isComplete && onResumeEnterpriseSession && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                              onResumeEnterpriseSession(session)
+                                              onOpenChange(false)
+                                            }}
+                                            className="gap-1.5 text-[#0078D4]"
+                                          >
+                                            <Play size={16} />
+                                            Resume
+                                          </Button>
+                                        )}
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleExportEnterprisePDF(session)}
+                                          className="gap-1.5"
+                                        >
+                                          <FileArrowDown size={16} />
+                                          PDF
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleExportEnterpriseExcel(session)}
+                                          className="gap-1.5"
+                                        >
+                                          <FileArrowDown size={16} />
+                                          Excel
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleDeleteEnterpriseSession(session.id)}
+                                          className="gap-1.5 text-destructive hover:text-destructive"
+                                        >
+                                          <Trash size={16} />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </CardHeader>
+                                </Card>
+                              </motion.div>
+                            )
+                          })}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </TabsContent>
+                </Tabs>
               </CardContent>
 
               {sortedSessions.length > 0 && comparisonMode && (

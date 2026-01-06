@@ -39,6 +39,7 @@ import type {
   SolutionScopeStageData,
   ResourcesStageData,
   MetricHierarchy,
+  CostOfInaction,
 } from '@/lib/types'
 import {
   calculatePLImpact,
@@ -54,6 +55,7 @@ interface Stage8CommunicateProps {
   initialData: CommunicateStageData | null
   solutionScopeData: SolutionScopeStageData | null // From Stage 5
   resourcesData: ResourcesStageData | null // From Stage 2 for budget info
+  coiData?: CostOfInaction | null // From Stage 1 for fallback
   onComplete: (data: CommunicateStageData) => void
   onBack: () => void
   isLiveMode?: boolean
@@ -126,6 +128,7 @@ export function Stage8Communicate({
   initialData,
   solutionScopeData,
   resourcesData,
+  coiData,
   onComplete,
   onBack,
   isLiveMode = false,
@@ -138,14 +141,32 @@ export function Stage8Communicate({
     return 100000
   })
   
-  // Calculate annual benefit from Stage 5 data
+  // Calculate annual benefit from Stage 5 data, with fallback to Stage 1 COI
   const annualBenefit = useMemo(() => {
-    if (!solutionScopeData) return 0
-    return (
-      (solutionScopeData.revenueImpact?.totalAnnualRevenue || 0) +
-      (solutionScopeData.costImpact?.totalAnnualSavings || 0)
-    )
-  }, [solutionScopeData])
+    // First try to get from Stage 5 solution scope data
+    if (solutionScopeData) {
+      const fromSolutionScope = (
+        (solutionScopeData.revenueImpact?.totalAnnualRevenue || 0) +
+        (solutionScopeData.costImpact?.totalAnnualSavings || 0)
+      )
+      if (fromSolutionScope > 0) return fromSolutionScope
+    }
+    
+    // Fallback to Stage 1 COI data
+    if (coiData) {
+      const directAnnual = (coiData.directCosts?.oneTime || 0) + (coiData.directCosts?.recurring || 0) * 12
+      const opportunityAnnual = (coiData.opportunityCosts?.oneTime || 0) + (coiData.opportunityCosts?.recurring || 0) * 12
+      const riskAnnual = (
+        ((coiData.riskCosts?.oneTime || 0) * (coiData.riskCosts?.oneTimeProbability || 0) / 100) +
+        ((coiData.riskCosts?.recurring || 0) * (coiData.riskCosts?.recurringProbability || 0) / 100 * 12)
+      )
+      const coiTotal = directAnnual + opportunityAnnual + riskAnnual
+      if (coiTotal > 0) return coiTotal
+      if (coiData.totalAnnual && coiData.totalAnnual > 0) return coiData.totalAnnual
+    }
+    
+    return 0
+  }, [solutionScopeData, coiData])
   
   // Generate all financial outputs
   const financialOutputs = useMemo(() => {

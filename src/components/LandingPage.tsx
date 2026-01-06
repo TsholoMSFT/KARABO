@@ -28,6 +28,7 @@ interface LandingPageProps {
   onViewExisting: () => void
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
+  onSkipToUseCases?: () => void
 }
 
 export function LandingPage({ 
@@ -36,7 +37,8 @@ export function LandingPage({
   onStartEnterpriseDiscovery, 
   onViewExisting,
   onStartDemo,
-  onStartEnterpriseDemo
+  onStartEnterpriseDemo,
+  onSkipToUseCases
 }: LandingPageProps) {
   const hasExistingCustomers = customers.length > 0
 
@@ -402,6 +404,24 @@ export function LandingPage({
         >
           Powered by Microsoft Azure OpenAI
         </motion.p>
+        
+        {onSkipToUseCases && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.95 }}
+            className="text-center mt-4"
+          >
+            <Button
+              variant="link"
+              onClick={onSkipToUseCases}
+              className="text-xs text-muted-foreground hover:text-foreground gap-1"
+            >
+              <Lightbulb size={14} />
+              Skip directly to use case entry →
+            </Button>
+          </motion.div>
+        )}
       </motion.div>
     </div>
   )

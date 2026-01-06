@@ -587,14 +587,14 @@ export function Stage5bCostImpact({
       </Accordion>
       
       {/* FTE Explanation */}
-      <Card className="bg-amber-50/50 border-amber-200">
+      <Card className="bg-amber-50/50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2 text-amber-800">
+          <CardTitle className="text-base flex items-center gap-2 text-amber-800 dark:text-amber-200">
             <Info className="h-4 w-4" />
             About FTE Equivalents
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-amber-900/80">
+        <CardContent className="text-sm text-amber-900 dark:text-amber-100">
           <p>
             FTE equivalents represent <strong>capacity freed</strong> through efficiency gains, 
             not headcount reductions. This capacity can be redeployed to higher-value activities. 

@@ -357,6 +357,36 @@ function App() {
     setPendingSessionMetadata(null)
   }
 
+  const handleSkipToUseCases = () => {
+    // Create a minimal session for direct use case entry
+    const minimalSession: DiscoverySession = {
+      id: `direct-${Date.now()}`,
+      customerId: '',
+      customerName: 'Quick Session',
+      innovationHubSPOC: '',
+      primaryStakeholder: '',
+      accountTeamRep: '',
+      innovationHubLocation: '',
+      solutionEngineer: '',
+      industry: 'general',
+      responses: [],
+      suggestedUseCases: [],
+      createdAt: Date.now(),
+      completedAt: Date.now(),
+    }
+    
+    const customer = findOrCreateCustomer('Quick Session', '', undefined)
+    minimalSession.customerId = customer.id
+    addSession(minimalSession)
+    setSelectedCustomerId(customer.id)
+    setSelectedSessionId(minimalSession.id)
+    setCurrentView('dashboard')
+    
+    toast.success('Ready to add use cases!', {
+      description: 'You can edit customer details anytime.',
+    })
+  }
+
   const handleCreateUseCasesFromDiscovery = (newUseCases: Partial<UseCase>[], executiveSummary: string) => {
     if (!currentDiscoverySession) return
     
@@ -417,6 +447,7 @@ function App() {
           }}
           onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
           onViewExisting={() => setCurrentView('dashboard')}
+          onSkipToUseCases={handleSkipToUseCases}
         />
       )}
 
@@ -890,6 +921,7 @@ function App() {
             onOpenChange={setSessionManagerOpen}
             onViewSession={handleViewSession}
             onCompareSessions={handleCompareSessions}
+            onResumeEnterpriseSession={handleResumeEnterpriseDiscovery}
           />
         </motion.div>
       )}
