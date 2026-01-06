@@ -165,7 +165,13 @@ export interface UseCase {
   aiRegulations?: AIRegulationsInfo
   cybersecurity?: CybersecurityInfo
   // Data sources that informed this use case
-  dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery')[]
+  dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[]
+  // AI-powered effort estimation (cached)
+  aiEffortEstimate?: {
+    effortWeeks: number
+    reasoning: string
+    estimatedAt: number
+  }
   // Financial quantification (optional)
   costOfInaction?: UseCaseCOI
   expectedValue?: UseCaseExpectedValue

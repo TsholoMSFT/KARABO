@@ -251,7 +251,10 @@ export function EnterpriseDiscoveryOrchestrator({
     const updated = { ...session }
     updated.currentStageId = targetStageId
     updated.stages[targetStageId as keyof typeof updated.stages].status = 'in-progress'
+    updated.lastSavedAt = Date.now()
     setSession(updated)
+    onSave(updated)
+    setLastSaved(Date.now())
   }
 
   const handleResolveYellowLight = (id: string) => {

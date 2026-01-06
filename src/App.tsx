@@ -45,11 +45,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Plus, ChartScatter, ListNumbers, FileArrowDown, CaretDown, CaretUp, FolderOpen } from '@phosphor-icons/react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Footer } from '@/components/ui/footer'
+import { ImportUseCasesDialog } from '@/components/ImportUseCasesDialog'
 
 type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'enterprise-discovery'
+
+type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
 interface SessionState {
   sessionName: string
@@ -81,6 +86,8 @@ function App() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [showImpactFeasibilityDesc, setShowImpactFeasibilityDesc] = useState(false)
   const [showRiceDesc, setShowRiceDesc] = useState(false)
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
 
   const filteredSessions = selectedCustomerId 
     ? discoverySessions?.filter((s) => s.customerId === selectedCustomerId) || []
@@ -164,6 +171,37 @@ function App() {
       handleAddUseCase(data)
     }
     setEditingUseCase(null)
+  }
+
+  const handleImportUseCases = (importedUseCases: Partial<UseCase>[]) => {
+    if (!selectedSessionId) {
+      toast.error('Please select a discovery session first')
+      return
+    }
+    const newUseCases: UseCase[] = importedUseCases.map(data => ({
+      id: `uc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      discoverySessionId: selectedSessionId,
+      title: data.title || '',
+      description: data.description || '',
+      impact: 5,
+      feasibility: 5,
+      rice: {
+        reach: 100,
+        users: 100,
+        period: 'quarter',
+        impact: 1,
+        confidence: 50,
+        effort: 1,
+      },
+      kpis: data.kpis || [],
+      dataSources: data.dataSources || ['manual'],
+      costOfInaction: data.costOfInaction,
+      earningsContext: data.earningsContext,
+      industryContext: data.industryContext,
+      createdAt: Date.now(),
+    }))
+    setUseCases((current) => [...(current || []), ...newUseCases])
+    toast.success(`Imported ${newUseCases.length} use case${newUseCases.length !== 1 ? 's' : ''} successfully!`)
   }
 
   const handleDeleteUseCase = (id: string) => {
@@ -612,7 +650,7 @@ function App() {
                   onStartDemo={handleStartDemo}
                   onStartEnterpriseDemo={handleStartEnterpriseDemo}
                 />
-                <EmptyState onAddFirst={handleOpenAddDialog} />
+                <EmptyState onAddFirst={handleOpenAddDialog} onImport={() => setImportDialogOpen(true)} />
               </>
             ) : (
               <>
@@ -696,7 +734,7 @@ function App() {
                 </Card>
 
                 {useCasesList.length === 0 ? (
-                  <EmptyState onAddFirst={handleOpenAddDialog} />
+                  <EmptyState onAddFirst={handleOpenAddDialog} onImport={() => setImportDialogOpen(true)} />
                 ) : (
                   <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -732,6 +770,14 @@ function App() {
                     >
                       <FileArrowDown size={20} weight="bold" />
                       Export
+                    </Button>
+                    <Button 
+                      onClick={() => setImportDialogOpen(true)} 
+                      variant="outline" 
+                      className="gap-2 flex-1 sm:flex-initial"
+                    >
+                      <FileArrowUp size={20} weight="bold" />
+                      Import
                     </Button>
                     <Button onClick={handleOpenAddDialog} className="gap-2 flex-1 sm:flex-initial">
                       <Plus size={20} weight="bold" />
@@ -867,18 +913,43 @@ function App() {
                 </AnimatePresence>
 
                 <div>
-                  <motion.h2 
-                    className="text-xl font-semibold mb-4 text-foreground"
-                    key={`header-${scoringMethod}`}
-                    initial={{ opacity: 0.7 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    All Use Cases ({useCasesList.length})
-                  </motion.h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <motion.h2 
+                      className="text-xl font-semibold text-foreground"
+                      key={`header-${scoringMethod}`}
+                      initial={{ opacity: 0.7 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      All Use Cases ({
+                        sourceFilter === 'all' 
+                          ? useCasesList.length 
+                          : useCasesList.filter(uc => uc.dataSources?.includes(sourceFilter as any)).length
+                      })
+                    </motion.h2>
+                    <div className="flex items-center gap-2">
+                      <Funnel size={16} className="text-muted-foreground" />
+                      <Select value={sourceFilter} onValueChange={(v) => setSourceFilter(v as SourceFilter)}>
+                        <SelectTrigger className="w-[160px] h-8 text-xs">
+                          <SelectValue placeholder="Filter by source" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Sources</SelectItem>
+                          <SelectItem value="ai-generated">AI Generated</SelectItem>
+                          <SelectItem value="manual">Manual</SelectItem>
+                          <SelectItem value="fallback">Industry Template</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="space-y-4">
                     <AnimatePresence mode="popLayout" initial={false}>
-                      {getRankedUseCases(useCasesList, scoringMethod).map((useCase) => (
+                      {getRankedUseCases(
+                        sourceFilter === 'all' 
+                          ? useCasesList 
+                          : useCasesList.filter(uc => uc.dataSources?.includes(sourceFilter as any)),
+                        scoringMethod
+                      ).map((useCase) => (
                         <UseCaseCard
                           key={useCase.id}
                           useCase={useCase}
@@ -923,8 +994,16 @@ function App() {
             onCompareSessions={handleCompareSessions}
             onResumeEnterpriseSession={handleResumeEnterpriseDiscovery}
           />
+
+          <ImportUseCasesDialog
+            open={importDialogOpen}
+            onOpenChange={setImportDialogOpen}
+            onImport={handleImportUseCases}
+            discoverySessionId={selectedSessionId || undefined}
+          />
         </motion.div>
       )}
+      <Footer />
     </>
   )
 }

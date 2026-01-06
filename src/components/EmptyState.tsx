@@ -1,12 +1,13 @@
-import { Plus } from '@phosphor-icons/react'
+import { Plus, FileArrowUp } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 
 interface EmptyStateProps {
   onAddFirst: () => void
+  onImport?: () => void
 }
 
-export function EmptyState({ onAddFirst }: EmptyStateProps) {
+export function EmptyState({ onAddFirst, onImport }: EmptyStateProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -18,13 +19,21 @@ export function EmptyState({ onAddFirst }: EmptyStateProps) {
       </div>
       <h2 className="text-2xl font-bold text-foreground mb-2">No Use Cases Yet</h2>
       <p className="text-muted-foreground mb-6 max-w-md">
-        Start prioritizing by adding your first use case. Evaluate it using Impact vs. Feasibility or
-        RICE scoring to identify your top opportunities.
+        Start prioritizing by adding your first use case, or import from an existing document.
+        Evaluate using Impact vs. Feasibility or RICE scoring to identify top opportunities.
       </p>
-      <Button onClick={onAddFirst} size="lg" className="gap-2">
-        <Plus size={20} weight="bold" />
-        Add Your First Use Case
-      </Button>
+      <div className="flex gap-3">
+        {onImport && (
+          <Button onClick={onImport} variant="outline" size="lg" className="gap-2">
+            <FileArrowUp size={20} weight="bold" />
+            Import from Document
+          </Button>
+        )}
+        <Button onClick={onAddFirst} size="lg" className="gap-2">
+          <Plus size={20} weight="bold" />
+          Add Your First Use Case
+        </Button>
+      </div>
     </motion.div>
   )
 }

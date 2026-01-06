@@ -22,7 +22,7 @@ import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Sparkle, ArrowClockwise, Warning, ChartLineUp, Database, CheckCircle, CurrencyDollar, Newspaper, Books } from '@phosphor-icons/react'
+import { Sparkle, ArrowClockwise, Warning, ChartLineUp, Database, CheckCircle, CurrencyDollar, Newspaper, Books, CaretDown, CaretUp, Quotes } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
@@ -61,6 +61,7 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
   const [showWorkflow, setShowWorkflow] = useState(false)
   const [usedFallback, setUsedFallback] = useState(false)
   const [usedEarningsData, setUsedEarningsData] = useState(false)
+  const [showAllInsights, setShowAllInsights] = useState(false)
   const generationAttemptedRef = useRef(false)
 
   useEffect(() => {
@@ -94,7 +95,7 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
       rationale: uc.rationale,
       aiRegulations: uc.aiRegulations,
       cybersecurity: uc.cybersecurity,
-      dataSources: ['discovery'], // Fallback uses only discovery data
+      dataSources: ['fallback'] as ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[],
     }))
     
     updateSession(session.id, {
@@ -499,7 +500,7 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
         rationale: uc.rationale,
         aiRegulations: uc.aiRegulations,
         cybersecurity: uc.cybersecurity,
-        dataSources: dataSources,
+        dataSources: [...dataSources, 'ai-generated'] as ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[],
         // Innovation Hub Methodology additions
         strategicAlignment: uc.strategicAlignment,
         businessProcesses: uc.businessProcesses,
@@ -709,7 +710,7 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
                           )}
                           
                           <div className="flex items-start gap-2 text-xs">
-                            <Badge variant="outline" className="gap-1 bg-gray-500/10 text-gray-600 border-gray-500/30">
+                            <Badge variant="outline" className="gap-1 bg-gray-500/10 text-gray-300 border-gray-500/30">
                               <CheckCircle size={12} weight="fill" />
                               Discovery Session
                             </Badge>
@@ -750,21 +751,63 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
                         )}
                       </div>
 
-                      {/* Key Insights Section */}
+                      {/* Key Insights Section - Expandable */}
                       {earningsInsights.length > 0 && (
                         <div className="p-3 bg-accent/30 rounded-lg text-left">
-                          <p className="text-xs font-medium text-foreground mb-2">Key Insights from Earnings:</p>
-                          <ul className="text-xs text-muted-foreground space-y-1.5">
-                            {earningsInsights.slice(0, 3).map((insight) => (
-                              <li key={insight.id} className="flex items-start gap-2">
-                                <span className="text-primary font-bold">•</span>
-                                <span><strong>{insight.title}:</strong> {insight.description}</span>
-                              </li>
+                          <button 
+                            onClick={() => setShowAllInsights(!showAllInsights)}
+                            className="w-full flex items-center justify-between text-xs font-medium text-foreground mb-2 hover:text-primary transition-colors"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Quotes size={14} weight="fill" className="text-primary" />
+                              Key Insights from Earnings ({earningsInsights.length})
+                            </span>
+                            {showAllInsights ? <CaretUp size={14} /> : <CaretDown size={14} />}
+                          </button>
+                          
+                          <div className="space-y-3">
+                            {(showAllInsights ? earningsInsights : earningsInsights.slice(0, 3)).map((insight) => (
+                              <div key={insight.id} className="bg-background/50 rounded-md p-2.5 border border-border/50">
+                                <div className="flex items-start gap-2">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-[10px] shrink-0 ${
+                                      insight.category === 'strategic-priority' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                      insight.category === 'pain-point' ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                                      insight.category === 'opportunity' ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                                      insight.category === 'investment' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' :
+                                      insight.category === 'risk' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
+                                      'bg-gray-500/10 text-gray-400 border-gray-500/30'
+                                    }`}
+                                  >
+                                    {insight.category.replace('-', ' ')}
+                                  </Badge>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-foreground">{insight.title}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{insight.description}</p>
+                                    {insight.quote && (
+                                      <blockquote className="mt-2 pl-2 border-l-2 border-primary/50 text-xs text-muted-foreground italic">
+                                        "{insight.quote}"
+                                      </blockquote>
+                                    )}
+                                    <p className="text-[10px] text-muted-foreground/70 mt-1">
+                                      Source: {insight.source} • Relevance: {insight.relevanceScore}/10
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                             ))}
-                            {earningsInsights.length > 3 && (
-                              <li className="text-muted-foreground italic">+{earningsInsights.length - 3} more insights analyzed</li>
-                            )}
-                          </ul>
+                          </div>
+                          
+                          {!showAllInsights && earningsInsights.length > 3 && (
+                            <button 
+                              onClick={() => setShowAllInsights(true)}
+                              className="mt-2 text-xs text-primary hover:underline flex items-center gap-1"
+                            >
+                              Show {earningsInsights.length - 3} more insights
+                              <CaretDown size={12} />
+                            </button>
+                          )}
                         </div>
                       )}
 

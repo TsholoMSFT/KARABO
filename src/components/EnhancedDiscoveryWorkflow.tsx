@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { UseCase, DiscoverySession } from '@/lib/types'
+import { useDiscovery } from '@/hooks/use-discovery'
 import { industryLabels } from '@/lib/discovery-questions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +26,28 @@ interface WorkflowUseCase {
   selected: boolean
   impact?: number
   feasibility?: number
-  dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery')[]
+  dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[]
+  aiEffortEstimate?: {
+    effortWeeks: number
+    reasoning: string
+    estimatedAt: number
+  }
+  coiEstimate?: {
+    directCosts: number
+    opportunityCosts: number
+    riskCosts: number
+    totalAnnualCOI: number
+    assumptions: string[]
+    reasoning: string
+    confidence: 'high' | 'medium' | 'low'
+    suggestedRICE: {
+      impactMultiplier: 0.25 | 0.5 | 1 | 2 | 3
+      impactReason: string
+      confidenceBoost: number
+      confidenceReason: string
+    }
+    estimatedAt: number
+  }
   rice?: {
     reach: number
     users: number
@@ -38,7 +60,7 @@ interface WorkflowUseCase {
 
 interface EnhancedDiscoveryWorkflowProps {
   session: DiscoverySession
-  initialUseCases: Array<{ title: string; description: string; rationale: string; dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery')[] }>
+  initialUseCases: Array<{ title: string; description: string; rationale: string; dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[] }>
   onComplete: (useCases: Partial<UseCase>[], executiveSummary: string) => void
   onCancel: () => void
 }
@@ -51,6 +73,7 @@ export function EnhancedDiscoveryWorkflow({
   onComplete,
   onCancel
 }: EnhancedDiscoveryWorkflowProps) {
+  const { updateSession } = useDiscovery()
   const [step, setStep] = useState<WorkflowStep>('review-add')
   const [useCases, setUseCases] = useState<WorkflowUseCase[]>(
     initialUseCases.map((uc, idx) => ({
@@ -67,11 +90,43 @@ export function EnhancedDiscoveryWorkflow({
   const [newUseCaseDescription, setNewUseCaseDescription] = useState('')
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
   const [executiveSummary, setExecutiveSummary] = useState('')
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   const selectedUseCases = useCases.filter(uc => uc.selected)
   const currentUseCase = step === 'impact-feasibility' || step === 'rice' 
     ? selectedUseCases[currentUseCaseIndex] 
     : null
+
+  // Auto-save progress to session storage
+  const saveProgress = useCallback(() => {
+    const progressData = useCases.map(uc => ({
+      title: uc.title,
+      description: uc.description,
+      rationale: uc.rationale,
+      dataSources: uc.dataSources,
+      aiEffortEstimate: uc.aiEffortEstimate,
+    }))
+    
+    updateSession(session.id, {
+      suggestedUseCases: progressData,
+    })
+    
+    setLastSaved(new Date())
+  }, [useCases, session.id, updateSession])
+
+  // Auto-save on step transitions
+  useEffect(() => {
+    // Save whenever step changes (except initial load)
+    if (step !== 'review-add') {
+      saveProgress()
+    }
+  }, [step])
+
+  // Auto-save when use cases change (debounced via step transitions)
+  const handleStepWithSave = (newStep: WorkflowStep) => {
+    saveProgress()
+    setStep(newStep)
+  }
 
   const handleAddUseCase = () => {
     if (!newUseCaseTitle.trim() || !newUseCaseDescription.trim()) {
@@ -84,6 +139,7 @@ export function EnhancedDiscoveryWorkflow({
       title: newUseCaseTitle.trim(),
       description: newUseCaseDescription.trim(),
       selected: true,
+      dataSources: ['manual'],
     }
 
     setUseCases([...useCases, newUseCase])
@@ -108,7 +164,7 @@ export function EnhancedDiscoveryWorkflow({
       toast.error('Please add at least one use case')
       return
     }
-    setStep('select')
+    handleStepWithSave('select')
   }
 
   const handleNextFromSelect = () => {
@@ -117,7 +173,7 @@ export function EnhancedDiscoveryWorkflow({
       return
     }
     setCurrentUseCaseIndex(0)
-    setStep('impact-feasibility')
+    handleStepWithSave('impact-feasibility')
   }
 
   const handleSaveImpactFeasibility = (impact: number, feasibility: number) => {
@@ -130,13 +186,17 @@ export function EnhancedDiscoveryWorkflow({
       setCurrentUseCaseIndex(currentUseCaseIndex + 1)
     } else {
       setCurrentUseCaseIndex(0)
-      setStep('rice')
+      handleStepWithSave('rice')
     }
   }
 
-  const handleSaveRice = (rice: WorkflowUseCase['rice']) => {
+  const handleSaveRice = (
+    rice: WorkflowUseCase['rice'], 
+    aiEffortEstimate?: WorkflowUseCase['aiEffortEstimate'],
+    coiEstimate?: WorkflowUseCase['coiEstimate']
+  ) => {
     const updatedUseCases = useCases.map(uc =>
-      uc.id === currentUseCase?.id ? { ...uc, rice } : uc
+      uc.id === currentUseCase?.id ? { ...uc, rice, aiEffortEstimate, coiEstimate } : uc
     )
     setUseCases(updatedUseCases)
 
@@ -149,7 +209,7 @@ export function EnhancedDiscoveryWorkflow({
 
   const handleCompleteDiscovery = async () => {
     setIsGeneratingSummary(true)
-    setStep('summary')
+    handleStepWithSave('summary')
 
     try {
       const useCasesList = selectedUseCases.map((uc, idx) => {
@@ -242,6 +302,13 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 md:px-6 py-8 max-w-4xl">
+        {/* Auto-save indicator */}
+        {lastSaved && (
+          <div className="flex items-center justify-end mb-4 text-xs text-muted-foreground">
+            <CheckCircle size={12} className="mr-1 text-green-500" />
+            Progress saved at {lastSaved.toLocaleTimeString()}
+          </div>
+        )}
         <AnimatePresence mode="wait">
           {step === 'review-add' && (
             <motion.div
@@ -422,6 +489,10 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                   setCurrentUseCaseIndex(selectedUseCases.length - 1)
                   setStep('impact-feasibility')
                 }
+              }}
+              context={{
+                industry: session.industry ? industryLabels[session.industry] : undefined,
+                companyName: session.customerName
               }}
             />
           )}
@@ -657,29 +728,150 @@ interface RiceStepProps {
   useCase: WorkflowUseCase
   currentIndex: number
   totalCount: number
-  onSave: (rice: WorkflowUseCase['rice']) => void
+  onSave: (rice: WorkflowUseCase['rice'], aiEffortEstimate?: WorkflowUseCase['aiEffortEstimate'], coiEstimate?: WorkflowUseCase['coiEstimate']) => void
   onBack: () => void
+  context?: { industry?: string; companyName?: string }
 }
 
-function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack }: RiceStepProps) {
+interface COIEstimateResult {
+  directCosts: number
+  opportunityCosts: number
+  riskCosts: number
+  totalAnnualCOI: number
+  assumptions: string[]
+  reasoning: string
+  confidence: 'high' | 'medium' | 'low'
+  suggestedRICE: {
+    impactMultiplier: 0.25 | 0.5 | 1 | 2 | 3
+    impactReason: string
+    confidenceBoost: number
+    confidenceReason: string
+  }
+}
+
+function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }: RiceStepProps) {
   const [users, setUsers] = useState(useCase.rice?.users || 100)
   const [period, setPeriod] = useState(useCase.rice?.period || 'quarter')
   const [impactMultiplier, setImpactMultiplier] = useState(useCase.rice?.impact || 1)
   const [confidence, setConfidence] = useState(useCase.rice?.confidence || 50)
-  const [effort, setEffort] = useState(useCase.rice?.effort || 1)
+  const [effort, setEffort] = useState(useCase.rice?.effort || useCase.aiEffortEstimate?.effortWeeks || 1)
+  
+  // AI effort estimation state
+  const [isEstimating, setIsEstimating] = useState(false)
+  const [aiEstimate, setAiEstimate] = useState<{ effortWeeks: number; reasoning: string } | null>(
+    useCase.aiEffortEstimate || null
+  )
+  const [hasOverridden, setHasOverridden] = useState(false)
+
+  // COI estimation state
+  const [isEstimatingCOI, setIsEstimatingCOI] = useState(false)
+  const [coiEstimate, setCoiEstimate] = useState<COIEstimateResult | null>(useCase.coiEstimate || null)
+  const [hasOverriddenImpact, setHasOverriddenImpact] = useState(false)
+  const [hasOverriddenConfidence, setHasOverriddenConfidence] = useState(false)
+  const [showCOIDetails, setShowCOIDetails] = useState(false)
+
+  // Auto-run AI estimation when entering the step (if not already cached)
+  useEffect(() => {
+    const runEstimation = async () => {
+      // Effort estimation
+      if (useCase.aiEffortEstimate) {
+        setAiEstimate(useCase.aiEffortEstimate)
+        if (!hasOverridden) {
+          setEffort(useCase.aiEffortEstimate.effortWeeks)
+        }
+      } else {
+        setIsEstimating(true)
+        try {
+          if (typeof window.estimateEffort === 'function') {
+            const result = await window.estimateEffort(
+              { title: useCase.title, description: useCase.description },
+              { complexity: useCase.impact ? (useCase.impact >= 7 ? 'high' : useCase.impact >= 4 ? 'medium' : 'low') : undefined }
+            )
+            setAiEstimate(result)
+            if (!hasOverridden) {
+              setEffort(result.effortWeeks)
+            }
+          }
+        } catch (error) {
+          console.error('AI effort estimation failed:', error)
+        } finally {
+          setIsEstimating(false)
+        }
+      }
+
+      // COI estimation
+      if (useCase.coiEstimate) {
+        setCoiEstimate(useCase.coiEstimate)
+        if (!hasOverriddenImpact) {
+          setImpactMultiplier(useCase.coiEstimate.suggestedRICE.impactMultiplier)
+        }
+        if (!hasOverriddenConfidence && useCase.coiEstimate.suggestedRICE.confidenceBoost > 0) {
+          setConfidence(prev => Math.min(100, prev + useCase.coiEstimate!.suggestedRICE.confidenceBoost))
+        }
+      } else {
+        setIsEstimatingCOI(true)
+        try {
+          if (typeof window.estimateCOI === 'function') {
+            const result = await window.estimateCOI(
+              { title: useCase.title, description: useCase.description },
+              { industry: context?.industry, companyName: context?.companyName }
+            )
+            setCoiEstimate(result)
+            if (!hasOverriddenImpact) {
+              setImpactMultiplier(result.suggestedRICE.impactMultiplier)
+            }
+            if (!hasOverriddenConfidence && result.suggestedRICE.confidenceBoost > 0) {
+              setConfidence(prev => Math.min(100, prev + result.suggestedRICE.confidenceBoost))
+            }
+          }
+        } catch (error) {
+          console.error('AI COI estimation failed:', error)
+        } finally {
+          setIsEstimatingCOI(false)
+        }
+      }
+    }
+    
+    runEstimation()
+  }, [useCase.id])
 
   const reach = users / (period === 'month' ? 1 : period === 'quarter' ? 3 : 12)
   const riceScore = (reach * impactMultiplier * (confidence / 100)) / effort
 
+  const handleEffortChange = (value: number) => {
+    setEffort(value)
+    setHasOverridden(true)
+  }
+
+  const handleImpactChange = (value: string) => {
+    setImpactMultiplier(Number(value) as 0.25 | 0.5 | 1 | 2 | 3)
+    setHasOverriddenImpact(true)
+  }
+
+  const handleConfidenceChange = (value: number) => {
+    setConfidence(value)
+    setHasOverriddenConfidence(true)
+  }
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
+    if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`
+    return `$${value.toFixed(0)}`
+  }
+
   const handleSave = () => {
-    onSave({
-      reach,
-      users,
-      period,
-      impact: impactMultiplier,
-      confidence,
-      effort,
-    })
+    onSave(
+      {
+        reach,
+        users,
+        period,
+        impact: impactMultiplier,
+        confidence,
+        effort,
+      },
+      aiEstimate ? { ...aiEstimate, estimatedAt: Date.now() } : undefined,
+      coiEstimate ? { ...coiEstimate, estimatedAt: Date.now() } : undefined
+    )
   }
 
   return (
@@ -748,8 +940,27 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack }: RiceSte
             </div>
 
             <div className="space-y-3">
-              <Label>Impact Multiplier</Label>
-              <Select value={String(impactMultiplier)} onValueChange={(val) => setImpactMultiplier(Number(val))}>
+              <div className="flex items-center gap-2">
+                <Label>Impact Multiplier</Label>
+                {isEstimatingCOI && (
+                  <Badge variant="outline" className="text-xs animate-pulse bg-green-500/10 text-green-600 border-green-500/30">
+                    <Sparkle size={12} className="mr-1" weight="fill" />
+                    Calculating COI...
+                  </Badge>
+                )}
+                {coiEstimate && !isEstimatingCOI && !hasOverriddenImpact && (
+                  <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/30">
+                    <Sparkle size={12} className="mr-1" weight="fill" />
+                    COI-Informed
+                  </Badge>
+                )}
+                {hasOverriddenImpact && (
+                  <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/30">
+                    Manual Override
+                  </Badge>
+                )}
+              </div>
+              <Select value={String(impactMultiplier)} onValueChange={handleImpactChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -766,14 +977,140 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack }: RiceSte
               </p>
             </div>
 
+            {/* COI Estimation Panel */}
+            {(coiEstimate || isEstimatingCOI) && (
+              <div className="p-4 bg-green-500/5 rounded-lg border border-green-500/20 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkle size={16} className="text-green-600" weight="fill" />
+                    <span className="text-sm font-semibold text-green-700 dark:text-green-400">
+                      Cost of Inaction (COI) Estimate
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowCOIDetails(!showCOIDetails)}
+                    className="text-xs"
+                  >
+                    {showCOIDetails ? 'Hide Details' : 'Show Details'}
+                  </Button>
+                </div>
+
+                {isEstimatingCOI ? (
+                  <p className="text-sm text-muted-foreground animate-pulse">
+                    Calculating cost of inaction based on industry and use case context...
+                  </p>
+                ) : coiEstimate && (
+                  <>
+                    {/* COI Summary */}
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div className="p-2 bg-background rounded-lg">
+                        <p className="text-xs text-muted-foreground">Direct Costs</p>
+                        <p className="text-sm font-semibold text-red-600">{formatCurrency(coiEstimate.directCosts)}</p>
+                      </div>
+                      <div className="p-2 bg-background rounded-lg">
+                        <p className="text-xs text-muted-foreground">Opportunity</p>
+                        <p className="text-sm font-semibold text-orange-600">{formatCurrency(coiEstimate.opportunityCosts)}</p>
+                      </div>
+                      <div className="p-2 bg-background rounded-lg">
+                        <p className="text-xs text-muted-foreground">Risk Costs</p>
+                        <p className="text-sm font-semibold text-yellow-600">{formatCurrency(coiEstimate.riskCosts)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center p-3 bg-red-500/10 rounded-lg">
+                      <p className="text-xs text-muted-foreground">Total Annual Cost of Inaction</p>
+                      <p className="text-2xl font-bold text-red-600">{formatCurrency(coiEstimate.totalAnnualCOI)}/year</p>
+                      <Badge variant="outline" className={`mt-1 ${
+                        coiEstimate.confidence === 'high' ? 'bg-green-500/10 text-green-600' :
+                        coiEstimate.confidence === 'medium' ? 'bg-yellow-500/10 text-yellow-600' :
+                        'bg-red-500/10 text-red-600'
+                      }`}>
+                        {coiEstimate.confidence} confidence
+                      </Badge>
+                    </div>
+
+                    {/* COI Details (collapsible) */}
+                    {showCOIDetails && (
+                      <div className="space-y-3 pt-2 border-t border-green-500/20">
+                        <div>
+                          <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">Reasoning</p>
+                          <p className="text-xs text-muted-foreground">{coiEstimate.reasoning}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">Assumptions</p>
+                          <ul className="text-xs text-muted-foreground space-y-1">
+                            {coiEstimate.assumptions.map((assumption, idx) => (
+                              <li key={idx} className="flex items-start gap-1">
+                                <span className="text-green-500">•</span>
+                                {assumption}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="p-3 bg-green-500/10 rounded-lg">
+                          <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-2">RICE Suggestions</p>
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between">
+                              <span>Suggested Impact:</span>
+                              <span className="font-semibold">{coiEstimate.suggestedRICE.impactMultiplier}x</span>
+                            </div>
+                            <p className="text-muted-foreground text-[11px]">{coiEstimate.suggestedRICE.impactReason}</p>
+                            {coiEstimate.suggestedRICE.confidenceBoost > 0 && (
+                              <>
+                                <div className="flex justify-between">
+                                  <span>Confidence Boost:</span>
+                                  <span className="font-semibold text-green-600">+{coiEstimate.suggestedRICE.confidenceBoost}%</span>
+                                </div>
+                                <p className="text-muted-foreground text-[11px]">{coiEstimate.suggestedRICE.confidenceReason}</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {(hasOverriddenImpact || hasOverriddenConfidence) && (
+                          <button
+                            onClick={() => {
+                              if (coiEstimate) {
+                                setImpactMultiplier(coiEstimate.suggestedRICE.impactMultiplier)
+                                setHasOverriddenImpact(false)
+                                if (coiEstimate.suggestedRICE.confidenceBoost > 0) {
+                                  setConfidence(prev => Math.min(100, prev + coiEstimate.suggestedRICE.confidenceBoost))
+                                  setHasOverriddenConfidence(false)
+                                }
+                              }
+                            }}
+                            className="text-xs text-green-600 hover:text-green-700 underline"
+                          >
+                            Apply COI suggestions to RICE
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>Confidence (%)</Label>
+                <div className="flex items-center gap-2">
+                  <Label>Confidence (%)</Label>
+                  {coiEstimate && !hasOverriddenConfidence && coiEstimate.suggestedRICE.confidenceBoost > 0 && (
+                    <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/30">
+                      <Sparkle size={12} className="mr-1" weight="fill" />
+                      +{coiEstimate.suggestedRICE.confidenceBoost}% COI boost
+                    </Badge>
+                  )}
+                </div>
                 <span className="text-lg font-semibold text-foreground">{confidence}%</span>
               </div>
               <Slider
                 value={[confidence]}
-                onValueChange={(val) => setConfidence(val[0])}
+                onValueChange={(val) => handleConfidenceChange(val[0])}
                 min={0}
                 max={100}
                 step={10}
@@ -785,17 +1122,65 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack }: RiceSte
             </div>
 
             <div className="space-y-3">
-              <Label>Effort (Person-Weeks)</Label>
+              <div className="flex items-center gap-2">
+                <Label>Effort (Person-Weeks)</Label>
+                {isEstimating && (
+                  <Badge variant="outline" className="text-xs animate-pulse bg-purple-500/10 text-purple-600 border-purple-500/30">
+                    <Sparkle size={12} className="mr-1" weight="fill" />
+                    AI Estimating...
+                  </Badge>
+                )}
+                {aiEstimate && !isEstimating && !hasOverridden && (
+                  <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/30">
+                    <Sparkle size={12} className="mr-1" weight="fill" />
+                    AI Suggested
+                  </Badge>
+                )}
+                {hasOverridden && (
+                  <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/30">
+                    Manual Override
+                  </Badge>
+                )}
+              </div>
               <Input
                 type="number"
                 value={effort}
-                onChange={(e) => setEffort(Number(e.target.value))}
+                onChange={(e) => handleEffortChange(Number(e.target.value))}
                 min={0.5}
                 step={0.5}
+                disabled={isEstimating}
               />
               <p className="text-xs text-muted-foreground">
                 Total development time to implement this solution
               </p>
+              
+              {/* AI Reasoning Display */}
+              {aiEstimate && (
+                <div className="mt-3 p-3 bg-purple-500/5 rounded-lg border border-purple-500/20">
+                  <div className="flex items-start gap-2">
+                    <Sparkle size={14} className="text-purple-500 mt-0.5 flex-shrink-0" weight="fill" />
+                    <div>
+                      <p className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">
+                        AI Estimate: {aiEstimate.effortWeeks} person-weeks
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {aiEstimate.reasoning}
+                      </p>
+                      {hasOverridden && effort !== aiEstimate.effortWeeks && (
+                        <button
+                          onClick={() => {
+                            setEffort(aiEstimate.effortWeeks)
+                            setHasOverridden(false)
+                          }}
+                          className="text-xs text-purple-600 hover:text-purple-700 underline mt-2"
+                        >
+                          Use AI suggestion
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -804,7 +1189,7 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack }: RiceSte
             <ArrowLeft size={18} weight="bold" className="mr-2" />
             Back
           </Button>
-          <Button onClick={handleSave} className="gap-2">
+          <Button onClick={handleSave} className="gap-2" disabled={isEstimating}>
             {currentIndex < totalCount - 1 ? 'Next Use Case' : 'Complete Discovery'}
             <ArrowRight size={18} weight="bold" />
           </Button>
