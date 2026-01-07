@@ -485,10 +485,27 @@ export interface EarningsInsight {
   relevanceScore: number
 }
 
+export interface SourceTextHighlight {
+  text: string
+  startIndex: number
+  endIndex: number
+  confidence: number
+}
+
 export interface SuggestedUseCaseData {
   title: string
   description: string
   rationale: string
+  sourceTexts?: SourceTextHighlight[]
+  dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[]
+  strategicAlignment?: StrategicAlignmentInfo
+  businessProcesses?: UseCaseBusinessProcess[]
+  microsoftSolutions?: UseCaseMicrosoftSolution[]
+  referenceArchitecture?: string
+  agenticOpportunities?: UseCaseAgenticOpportunity[]
+  implementationComplexity?: ImplementationComplexityInfo
+  aiRegulations?: AIRegulationsInfo
+  cybersecurity?: CybersecurityInfo
 }
 
 // ============================================================================

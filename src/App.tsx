@@ -18,6 +18,7 @@ import { ExecutiveSummary } from '@/components/ExecutiveSummary'
 import { DiscoveryLauncher } from '@/components/DiscoveryLauncher'
 import { DiscoveryWizard } from '@/components/DiscoveryWizard'
 import { DiscoveryResults } from '@/components/DiscoveryResults'
+import { DiscoveryNotesInput } from '@/components/DiscoveryNotesInput'
 import { LiveDiscoveryMode } from '@/components/LiveDiscoveryMode'
 import { LiveDiscoverySetup } from '@/components/LiveDiscoverySetup'
 import { SessionManager } from '@/components/SessionManager'
@@ -51,8 +52,9 @@ import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Footer } from '@/components/ui/footer'
 import { ImportUseCasesDialog } from '@/components/ImportUseCasesDialog'
+import type { ExtractedUseCase } from '@/lib/use-case-extraction'
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'enterprise-discovery'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -77,6 +79,7 @@ function App() {
   const [sessionState, setSessionState] = useState<SessionState | null>(null)
   const [pendingSessionMetadata, setPendingSessionMetadata] = useState<SessionMetadata | null>(null)
   const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live'>('standard')
+  const [notesSession, setNotesSession] = useState<{ metadata: SessionMetadata; notes: string; extractedUseCases: ExtractedUseCase[] } | null>(null)
   const [scoringMethod, setScoringMethod] = useState<ScoringMethod>('impact-feasibility')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [tableExportOpen, setTableExportOpen] = useState(false)
@@ -239,6 +242,13 @@ function App() {
     setCurrentView('session-metadata')
   }
 
+  const handleStartNotesAnalysis = () => {
+    setSessionState(null)
+    setPendingSessionMetadata(null)
+    setNotesSession(null)
+    setCurrentView('notes-input')
+  }
+
   const handleStartEnterpriseDiscovery = () => {
     setCurrentEnterpriseSession(null)
     setCurrentView('enterprise-discovery')
@@ -395,6 +405,48 @@ function App() {
     setPendingSessionMetadata(null)
   }
 
+  const handleNotesAnalyze = (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[]) => {
+    // Create discovery session from notes
+    const session: DiscoverySession = {
+      id: `notes-${Date.now()}`,
+      customerId: '', // Will be filled after customer creation
+      customerName: metadata.customerName,
+      innovationHubSPOC: metadata.innovationHubSPOC,
+      primaryStakeholder: metadata.primaryStakeholder,
+      accountTeamRep: metadata.accountTeamRep,
+      innovationHubLocation: metadata.innovationHubLocation,
+      solutionEngineer: metadata.solutionEngineer,
+      stockTicker: metadata.stockTicker,
+      name: metadata.sessionName,
+      industry: metadata.industry,
+      responses: [
+        {
+          questionId: 'notes-input',
+          answer: notes,
+        }
+      ],
+      createdAt: Date.now(),
+      completedAt: Date.now(),
+    }
+
+    // Create customer and link to session
+    const customer = findOrCreateCustomer(session.customerName, session.innovationHubSPOC || '', session.stockTicker)
+    session.customerId = customer.id
+    
+    // Add session
+    addSession(session)
+    
+    // Store notes session data for workflow
+    setNotesSession({ metadata, notes, extractedUseCases })
+    setCurrentDiscoverySession(session)
+    setCurrentView('notes-workflow')
+  }
+
+  const handleNotesCancel = () => {
+    setCurrentView('landing')
+    setNotesSession(null)
+  }
+
   const handleSkipToUseCases = () => {
     // Create a minimal session for direct use case entry
     const minimalSession: DiscoverySession = {
@@ -484,6 +536,7 @@ function App() {
             setCurrentView('session-metadata')
           }}
           onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
+          onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
           onSkipToUseCases={handleSkipToUseCases}
         />
@@ -527,6 +580,104 @@ function App() {
           onCancel={handleDiscoveryCancel}
           onBackToLanding={() => setCurrentView('landing')}
           initialMetadata={selectedCustomerId ? { customerName: customers.find(c => c.id === selectedCustomerId)?.name || '' } : undefined}
+        />
+      )}
+
+      {currentView === 'notes-input' && (
+        <DiscoveryNotesInput
+          onAnalyze={handleNotesAnalyze}
+          onCancel={handleNotesCancel}
+          onBackToLanding={() => setCurrentView('landing')}
+        />
+      )}
+
+      {currentView === 'notes-workflow' && currentDiscoverySession && notesSession && (
+        <EnhancedDiscoveryWorkflow
+          session={currentDiscoverySession}
+          initialUseCases={notesSession.extractedUseCases.map(uc => ({
+            title: uc.title,
+            description: uc.description,
+            rationale: uc.rationale,
+            sourceTexts: uc.sourceTexts,
+            dataSources: ['ai-generated', 'discovery'],
+            strategicAlignment: uc.strategicAlignment,
+            businessProcesses: uc.businessProcess ? [{
+              process: uc.businessProcess.processName,
+              category: uc.businessProcess.category,
+              currentState: uc.businessProcess.currentPainPoints.join('; '),
+              painPoints: uc.businessProcess.currentPainPoints,
+              desiredState: uc.businessProcess.expectedImprovement,
+              aiIntervention: '',
+            }] : undefined,
+            microsoftSolutions: uc.microsoftSolutions,
+            referenceArchitecture: uc.referenceArchitecture,
+            agenticOpportunities: uc.agenticOpportunity?.hasOpportunity ? [{
+              title: uc.agenticOpportunity.title || '',
+              agentType: uc.agenticOpportunity.agentType || 'task-agent',
+              capabilities: uc.agenticOpportunity.capabilities || [],
+              humanOversight: uc.agenticOpportunity.humanOversight || 'review',
+              automationLevel: uc.agenticOpportunity.automationLevel || 'assisted',
+              tools: [],
+            }] : undefined,
+            implementationComplexity: uc.implementationComplexity,
+            aiRegulations: uc.aiRegulations,
+            cybersecurity: uc.cybersecurity,
+          }))}
+          onComplete={(useCases, executiveSummary) => {
+            // Save use cases
+            const newUseCases: UseCase[] = useCases.map(uc => ({
+              id: `uc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              discoverySessionId: currentDiscoverySession.id,
+              title: uc.title || '',
+              description: uc.description || '',
+              impact: uc.impact || 5,
+              feasibility: uc.feasibility || 5,
+              rice: uc.rice || {
+                reach: 100,
+                users: 100,
+                period: 'quarter',
+                impact: 1,
+                confidence: 50,
+                effort: 1,
+              },
+              kpis: uc.kpis || [],
+              dataSources: ['ai-generated', 'discovery'],
+              strategicAlignment: uc.strategicAlignment,
+              businessProcesses: uc.businessProcesses,
+              microsoftSolutions: uc.microsoftSolutions,
+              referenceArchitecture: uc.referenceArchitecture,
+              agenticOpportunities: uc.agenticOpportunities,
+              implementationComplexity: uc.implementationComplexity,
+              aiRegulations: uc.aiRegulations,
+              cybersecurity: uc.cybersecurity,
+              costOfInaction: uc.costOfInaction,
+              aiEffortEstimate: uc.aiEffortEstimate,
+              createdAt: Date.now(),
+            })))
+            setUseCases(current => [...(current || []), ...newUseCases])
+            
+            // Update session with summary
+            updateSession(currentDiscoverySession.id, {
+              executiveSummary,
+            })
+            
+            // Select this session and customer
+            setSelectedSessionId(currentDiscoverySession.id)
+            setSelectedCustomerId(currentDiscoverySession.customerId)
+            
+            toast.success('Discovery complete!', {
+              description: `${newUseCases.length} use cases created and prioritized`
+            })
+            
+            setCurrentView('dashboard')
+            setCurrentDiscoverySession(null)
+            setNotesSession(null)
+          }}
+          onCancel={() => {
+            setCurrentView('dashboard')
+            setCurrentDiscoverySession(null)
+            setNotesSession(null)
+          }}
         />
       )}
 

@@ -17,7 +17,8 @@ import {
   Play,
   HardHat,
   ShoppingCart,
-  Bank
+  Bank,
+  FileText
 } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 
@@ -25,6 +26,7 @@ interface LandingPageProps {
   customers: Customer[]
   onStartNew: () => void
   onStartEnterpriseDiscovery: () => void
+  onStartNotesAnalysis?: () => void
   onViewExisting: () => void
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
@@ -34,7 +36,8 @@ interface LandingPageProps {
 export function LandingPage({ 
   customers, 
   onStartNew, 
-  onStartEnterpriseDiscovery, 
+  onStartEnterpriseDiscovery,
+  onStartNotesAnalysis, 
   onViewExisting,
   onStartDemo,
   onStartEnterpriseDemo,
@@ -99,7 +102,7 @@ export function LandingPage({
           </motion.div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Quick Discovery Card */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -146,6 +149,56 @@ export function LandingPage({
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* Quick Notes Analysis Card */}
+          {onStartNotesAnalysis && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.62 }}
+            >
+              <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-green-500/50">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/10">
+                      <FileText size={28} weight="duotone" className="text-green-600" />
+                    </div>
+                    <Badge variant="outline" className="text-xs">Instant</Badge>
+                  </div>
+                  <CardTitle className="text-xl">Notes Analysis</CardTitle>
+                  <CardDescription className="text-sm">
+                    Paste notes and extract use cases instantly
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <FileText size={16} weight="duotone" className="mt-0.5 text-green-600 flex-shrink-0" />
+                      <span>Paste discovery notes</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-green-600 flex-shrink-0" />
+                      <span>AI extracts use cases</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-green-600 flex-shrink-0" />
+                      <span>Source highlighting</span>
+                    </li>
+                  </ul>
+                  <Separator />
+                  <Button 
+                    onClick={onStartNotesAnalysis} 
+                    variant="outline"
+                    className="w-full gap-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                    size="lg"
+                  >
+                    <FileText size={20} weight="duotone" />
+                    Analyze Notes
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Enterprise Discovery Card */}
           <motion.div
