@@ -1,18 +1,21 @@
 /**
  * Stage 5: Solution Scope
  * 
- * Orchestrates 3 sub-steps for comprehensive financial impact mapping:
+ * Orchestrates 4 sub-steps for comprehensive financial impact and solution mapping:
  * - 5a: Revenue Impact (5 drivers with metric chain inputs)
  * - 5b: Cost Impact (5 drivers with FTE equivalents)
  * - 5c: Balance Sheet & Cash Flow (4 drivers + Metric Hierarchy)
+ * - 5d: Solution Architecture (Microsoft reference architecture mapping)
  * 
  * Auto-populates baseline values from Stage 1 COI.
+ * Retrieves use cases from Stage 4 Prioritisation for architecture mapping.
  */
 
 import { useState, useMemo } from 'react'
 import { Stage5aRevenueImpact } from './Stage5aRevenueImpact'
 import { Stage5bCostImpact } from './Stage5bCostImpact'
 import { Stage5cBalanceSheet } from './Stage5cBalanceSheet'
+import { Stage5dSolutionArchitecture, type SolutionArchitectureData } from './Stage5dSolutionArchitecture'
 import type {
   SolutionScopeStageData,
   CostOfInaction,
@@ -20,18 +23,23 @@ import type {
   CostImpactDriver,
   BalanceSheetCashFlowDriver,
   MetricHierarchy,
+  PrioritisationStageData,
+  Industry,
 } from '@/lib/types'
 import { coiToValueDrivers, createEmptyMetricHierarchy } from '@/lib/financial-mapping'
 
 interface Stage5SolutionScopeProps {
   initialData: SolutionScopeStageData | null
   coiData?: CostOfInaction | null // From Stage 1 for auto-population
+  prioritisationData?: PrioritisationStageData | null // From Stage 4 for use cases
+  industry?: Industry // From session for architecture recommendations
+  clientName?: string // From session for context
   onComplete: (data: SolutionScopeStageData) => void
   onBack: () => void
   isLiveMode?: boolean
 }
 
-type SubStep = 'revenue' | 'cost' | 'balance-sheet'
+type SubStep = 'revenue' | 'cost' | 'balance-sheet' | 'architecture'
 
 // Create default stage data
 function createDefaultStageData(): SolutionScopeStageData {
@@ -82,6 +90,9 @@ function createDefaultStageData(): SolutionScopeStageData {
 export function Stage5SolutionScope({
   initialData,
   coiData,
+  prioritisationData,
+  industry,
+  clientName,
   onComplete,
   onBack,
   isLiveMode = false,
@@ -126,6 +137,22 @@ export function Stage5SolutionScope({
     metricHierarchy: initialData?.metricHierarchy || createEmptyMetricHierarchy(),
   })
   
+  // Architecture data from Stage 5d
+  const [architectureData, setArchitectureData] = useState<SolutionArchitectureData | undefined>(
+    initialData?.solutionArchitecture as SolutionArchitectureData | undefined
+  )
+  
+  // Extract use cases from Stage 4 Prioritisation data
+  const useCasesFromPrioritisation = useMemo(() => {
+    if (!prioritisationData?.opportunities) return []
+    return prioritisationData.opportunities.map(opp => ({
+      id: opp.id,
+      title: opp.title,
+      description: `Priority score: ${opp.rice?.score?.toFixed(0) || 'N/A'}`,
+      priority: opp.rice?.score || 0,
+    }))
+  }, [prioritisationData])
+  
   // Calculate totals
   const totalAnnualValue = useMemo(() => {
     return revenueData.totalAnnualRevenue + costData.totalAnnualSavings
@@ -157,8 +184,14 @@ export function Stage5SolutionScope({
     metricHierarchy: MetricHierarchy
   }) => {
     setBalanceSheetData(data)
+    // Move to architecture sub-step instead of completing
+    setCurrentSubStep('architecture')
+  }
+  
+  const handleArchitectureComplete = (data: SolutionArchitectureData) => {
+    setArchitectureData(data)
     
-    // Compile final stage data
+    // Compile final stage data with all sub-step data
     const finalData: SolutionScopeStageData = {
       currentSubStep: 'summary',
       
@@ -173,11 +206,14 @@ export function Stage5SolutionScope({
       revenueImpact: revenueData,
       costImpact: costData,
       balanceSheetCashFlow: {
-        drivers: data.drivers,
-        totalWorkingCapitalImpact: data.totalWorkingCapitalImpact,
-        totalCashFlowImpact: data.totalCashFlowImpact,
+        drivers: balanceSheetData.drivers,
+        totalWorkingCapitalImpact: balanceSheetData.totalWorkingCapitalImpact,
+        totalCashFlowImpact: balanceSheetData.totalCashFlowImpact,
       },
-      metricHierarchy: data.metricHierarchy,
+      metricHierarchy: balanceSheetData.metricHierarchy,
+      
+      // Solution Architecture (Stage 5d)
+      solutionArchitecture: data,
       
       // Calculated totals
       totalAnnualValue: revenueData.totalAnnualRevenue + costData.totalAnnualSavings,
@@ -190,6 +226,10 @@ export function Stage5SolutionScope({
     }
     
     onComplete(finalData)
+  }
+  
+  const handleArchitectureBack = () => {
+    setCurrentSubStep('balance-sheet')
   }
   
   // Handle back navigation within sub-steps
@@ -235,6 +275,18 @@ export function Stage5SolutionScope({
           costTotal={costData.totalAnnualSavings}
           onComplete={handleBalanceSheetComplete}
           onBack={handleBalanceSheetBack}
+        />
+      )
+    
+    case 'architecture':
+      return (
+        <Stage5dSolutionArchitecture
+          initialData={architectureData}
+          useCases={useCasesFromPrioritisation}
+          industry={industry}
+          clientName={clientName}
+          onComplete={handleArchitectureComplete}
+          onBack={handleArchitectureBack}
         />
       )
     

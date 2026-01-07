@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 
 interface DiscoveryNotesInputProps {
   sessionMetadata?: Partial<SessionMetadata>
-  onAnalyze: (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[]) => void
+  onAnalyze: (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry) => void
   onCancel: () => void
   onBackToLanding?: () => void
 }
@@ -40,9 +40,9 @@ export function DiscoveryNotesInput({
   onBackToLanding
 }: DiscoveryNotesInputProps) {
   const [notes, setNotes] = useState('')
-  const [sessionName, setSessionName] = useState(sessionMetadata?.sessionName || '')
+  const [sessionName, setSessionName] = useState('')
   const [customerName, setCustomerName] = useState(sessionMetadata?.customerName || '')
-  const [industry, setIndustry] = useState<Industry>(sessionMetadata?.industry || 'general')
+  const [industry, setIndustry] = useState<Industry>('general')
   const [location, setLocation] = useState(sessionMetadata?.innovationHubLocation || '')
   const [stockTicker, setStockTicker] = useState(sessionMetadata?.stockTicker || '')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -62,11 +62,13 @@ export function DiscoveryNotesInput({
 
     try {
       const metadata: SessionMetadata = {
-        sessionName: sessionName.trim(),
         customerName: customerName.trim(),
-        industry,
-        innovationHubLocation: location.trim() || undefined,
-        stockTicker: stockTicker.trim() || undefined,
+        innovationHubSPOC: '',
+        primaryStakeholder: '',
+        accountTeamRep: '',
+        innovationHubLocation: location.trim() || '',
+        solutionEngineer: '',
+        stockTicker: stockTicker.trim() || '',
       }
 
       const extractedUseCases = await extractUseCasesFromNotes(notes, {
@@ -88,7 +90,7 @@ export function DiscoveryNotesInput({
         description: 'Proceeding to review and scoring workflow'
       })
 
-      onAnalyze(notes, metadata, extractedUseCases)
+      onAnalyze(notes, metadata, extractedUseCases, sessionName.trim(), industry)
     } catch (error) {
       console.error('Analysis failed:', error)
       toast.error('Failed to analyze notes', {

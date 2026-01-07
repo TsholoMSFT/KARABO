@@ -405,7 +405,7 @@ function App() {
     setPendingSessionMetadata(null)
   }
 
-  const handleNotesAnalyze = (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[]) => {
+  const handleNotesAnalyze = (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry) => {
     // Create discovery session from notes
     const session: DiscoverySession = {
       id: `notes-${Date.now()}`,
@@ -417,8 +417,8 @@ function App() {
       innovationHubLocation: metadata.innovationHubLocation,
       solutionEngineer: metadata.solutionEngineer,
       stockTicker: metadata.stockTicker,
-      name: metadata.sessionName,
-      industry: metadata.industry,
+      name: sessionName,
+      industry: industry,
       responses: [
         {
           questionId: 'notes-input',
@@ -653,7 +653,7 @@ function App() {
               costOfInaction: uc.costOfInaction,
               aiEffortEstimate: uc.aiEffortEstimate,
               createdAt: Date.now(),
-            })))
+            }))
             setUseCases(current => [...(current || []), ...newUseCases])
             
             // Update session with summary

@@ -240,6 +240,7 @@ export function SessionManager({ open, onOpenChange, onViewSession, onCompareSes
                                       checked={isSelected}
                                       onChange={() => handleToggleComparison(session.id)}
                                       className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                                      aria-label={`Select ${session.name} for comparison`}
                                     />
                                   )}
                                   <div className="flex-1 space-y-3">

@@ -336,6 +336,8 @@ export function EnterpriseDiscoveryOrchestrator({
           <Stage5SolutionScope
             initialData={session.stages[5].data}
             coiData={session.stages[1].data?.coi}
+            prioritisationData={session.stages[4].data}
+            clientName={session.clientName}
             onComplete={(data) => handleStageComplete(5, data)}
             onBack={() => handleStageBack(4)}
             isLiveMode={isLiveMode}

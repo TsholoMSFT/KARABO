@@ -140,6 +140,8 @@ export function Stage4Prioritise({ initialData, onComplete, onBack, isLiveMode }
                     value={opp.title}
                     onChange={(e) => setOpportunities(prev => prev.map(o => o.id === opp.id ? { ...o, title: e.target.value } : o))}
                     className="text-lg font-semibold bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-[#0078D4] rounded px-2 py-1"
+                    aria-label="Opportunity title"
+                    placeholder="Enter opportunity title"
                   />
                   {opp.id === recommendedId && (
                     <Badge className="bg-[#0078D4]">Recommended</Badge>
@@ -166,6 +168,8 @@ export function Stage4Prioritise({ initialData, onComplete, onBack, isLiveMode }
                     onChange={(e) => updateOpportunity(opp.id, 'reach', parseInt(e.target.value) || 0)}
                     className="w-full px-3 py-2 border rounded-md text-sm"
                     min="0"
+                    aria-label="Reach - users per quarter"
+                    placeholder="0"
                   />
                 </div>
                 {/* Impact */}
@@ -175,6 +179,7 @@ export function Stage4Prioritise({ initialData, onComplete, onBack, isLiveMode }
                     value={opp.rice.impact}
                     onChange={(e) => updateOpportunity(opp.id, 'impact', parseFloat(e.target.value))}
                     className="w-full px-3 py-2 border rounded-md text-sm"
+                    aria-label="Impact level"
                   >
                     <option value="3">3x - Massive</option>
                     <option value="2">2x - High</option>
@@ -193,6 +198,8 @@ export function Stage4Prioritise({ initialData, onComplete, onBack, isLiveMode }
                     className="w-full px-3 py-2 border rounded-md text-sm"
                     min="0"
                     max="100"
+                    aria-label="Confidence percentage"
+                    placeholder="0"
                   />
                 </div>
                 {/* Effort */}
@@ -205,6 +212,8 @@ export function Stage4Prioritise({ initialData, onComplete, onBack, isLiveMode }
                     className="w-full px-3 py-2 border rounded-md text-sm"
                     min="0.1"
                     step="0.5"
+                    aria-label="Effort in person-weeks"
+                    placeholder="0.1"
                   />
                 </div>
               </div>

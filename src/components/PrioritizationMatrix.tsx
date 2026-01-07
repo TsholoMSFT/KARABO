@@ -43,8 +43,7 @@ export function PrioritizationMatrix({
             x={size / 4 + padding / 2}
             y={size / 4 + padding / 2}
             textAnchor="middle"
-            className="fill-muted-foreground text-xs font-medium"
-            style={{ fontFamily: 'Space Grotesk' }}
+            className="fill-muted-foreground text-xs font-medium font-[Space_Grotesk]"
           >
             Strategic Bets
           </text>
@@ -52,8 +51,7 @@ export function PrioritizationMatrix({
             x={(size * 3) / 4 - padding / 2}
             y={size / 4 + padding / 2}
             textAnchor="middle"
-            className="fill-accent-foreground text-xs font-semibold"
-            style={{ fontFamily: 'Space Grotesk' }}
+            className="fill-accent-foreground text-xs font-semibold font-[Space_Grotesk]"
           >
             Quick Wins
           </text>
@@ -61,8 +59,7 @@ export function PrioritizationMatrix({
             x={size / 4 + padding / 2}
             y={(size * 3) / 4 - padding / 2}
             textAnchor="middle"
-            className="fill-muted-foreground text-xs font-medium"
-            style={{ fontFamily: 'Space Grotesk' }}
+            className="fill-muted-foreground text-xs font-medium font-[Space_Grotesk]"
           >
             Time Sinks
           </text>
@@ -70,8 +67,7 @@ export function PrioritizationMatrix({
             x={(size * 3) / 4 - padding / 2}
             y={(size * 3) / 4 - padding / 2}
             textAnchor="middle"
-            className="fill-muted-foreground text-xs font-medium"
-            style={{ fontFamily: 'Space Grotesk' }}
+            className="fill-muted-foreground text-xs font-medium font-[Space_Grotesk]"
           >
             Fill-ins
           </text>
@@ -102,8 +98,7 @@ export function PrioritizationMatrix({
             x={size / 2}
             y={size - 10}
             textAnchor="middle"
-            className="fill-foreground text-xs font-semibold"
-            style={{ fontFamily: 'Space Grotesk' }}
+            className="fill-foreground text-xs font-semibold font-[Space_Grotesk]"
           >
             Feasibility
           </text>
@@ -111,8 +106,7 @@ export function PrioritizationMatrix({
             x={20}
             y={size / 2}
             textAnchor="middle"
-            className="fill-foreground text-xs font-semibold"
-            style={{ fontFamily: 'Space Grotesk' }}
+            className="fill-foreground text-xs font-semibold font-[Space_Grotesk]"
             transform={`rotate(-90, 20, ${size / 2})`}
           >
             Impact
@@ -192,7 +186,7 @@ export function PrioritizationMatrix({
               <div className="px-4 pb-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div className="flex gap-3">
-                    <div className="w-4 h-4 rounded-sm mt-0.5 flex-shrink-0" style={{ backgroundColor: 'oklch(0.58 0.18 195 / 0.35)' }} />
+                    <div className="w-4 h-4 rounded-sm mt-0.5 flex-shrink-0 bg-[oklch(0.58_0.18_195_/_0.35)]" />
                     <div>
                       <p className="font-semibold text-foreground mb-1">Quick Wins (Top Right)</p>
                       <p className="text-muted-foreground leading-relaxed">
@@ -203,7 +197,7 @@ export function PrioritizationMatrix({
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <div className="w-4 h-4 rounded-sm mt-0.5 flex-shrink-0" style={{ backgroundColor: 'oklch(0.65 0.20 310 / 0.25)' }} />
+                    <div className="w-4 h-4 rounded-sm mt-0.5 flex-shrink-0 bg-[oklch(0.65_0.20_310_/_0.25)]" />
                     <div>
                       <p className="font-semibold text-foreground mb-1">Strategic Bets (Top Left)</p>
                       <p className="text-muted-foreground leading-relaxed">
@@ -214,7 +208,7 @@ export function PrioritizationMatrix({
                     </div>
                   </div>
                   <div className="flex gap-3">
-                    <div className="w-4 h-4 rounded-sm mt-0.5 flex-shrink-0" style={{ backgroundColor: 'oklch(0.70 0.15 270 / 0.2)' }} />
+                    <div className="w-4 h-4 rounded-sm mt-0.5 flex-shrink-0 bg-[oklch(0.70_0.15_270_/_0.2)]" />
                     <div>
                       <p className="font-semibold text-foreground mb-1">Fill-ins (Bottom Right)</p>
                       <p className="text-muted-foreground leading-relaxed">

@@ -843,8 +843,8 @@ export interface MetricHierarchy {
 
 // Extended Solution Scope Stage Data with sub-steps
 export interface SolutionScopeStageData {
-  // Current sub-step (5a, 5b, 5c)
-  currentSubStep: 'overview' | 'revenue' | 'cost' | 'balance-sheet' | 'summary'
+  // Current sub-step (5a, 5b, 5c, 5d)
+  currentSubStep: 'overview' | 'revenue' | 'cost' | 'balance-sheet' | 'architecture' | 'summary'
   
   // 5A: Scope Definition (kept from original)
   inScope: string[]
@@ -890,6 +890,26 @@ export interface SolutionScopeStageData {
   
   // 5D: Risk Assessment
   risks: Risk[]
+  
+  // 5E: Solution Architecture (Stage 5d sub-step)
+  solutionArchitecture?: {
+    useCaseMappings: Array<{
+      useCaseId: string
+      useCaseTitle: string
+      useCaseDescription: string
+      referenceArchitecture?: string // ReferenceArchitecturePattern
+      microsoftSolutions: Array<{
+        productFamily: string
+        services: string[]
+        role: 'primary' | 'supporting' | 'integration'
+        justification?: string
+      }>
+      businessProcesses: BusinessProcess[]
+      isManuallySelected: boolean
+      aiGenerationFailed?: boolean
+    }>
+    completedAt?: number
+  }
 }
 
 // Stage 6: Validation Types

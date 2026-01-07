@@ -275,6 +275,54 @@ export function EnhancedDiscoveryWorkflow({
     toast.info('Architecture feedback recorded. Will be reviewed during solution design.')
   }
 
+  const handleRegenerateArchitecture = async (useCaseId: string) => {
+    // Find the use case and try to regenerate its architecture with AI
+    const useCase = selectedUseCases.find(uc => uc.id === useCaseId)
+    if (!useCase) return
+
+    try {
+      const prompt = `Analyze this use case and suggest the BEST Microsoft Azure reference architecture pattern.
+
+Use Case: ${useCase.title}
+Description: ${useCase.description}
+Industry: ${session.industry ? industryLabels[session.industry] : 'General'}
+
+Available patterns: conversational-ai, document-processing, predictive-analytics, knowledge-mining, process-automation, recommendation-engine, computer-vision, iot-analytics, hybrid-integration, low-code-automation, data-platform, security-compliance, copilot-extension
+
+Return ONLY the pattern name, nothing else.`
+
+      const { callOpenAI, API_CONFIG } = await import('@/lib/openai-service')
+      const response = await callOpenAI(
+        [{ role: 'user', content: prompt }],
+        { ...API_CONFIG.discovery, temperature: 0.3 }
+      )
+
+      const patternMatch = response.match(/[\w-]+/)?.[0] as ReferenceArchitecturePattern | undefined
+      if (patternMatch) {
+        const updatedUseCases = selectedUseCases.map(uc => 
+          uc.id === useCaseId 
+            ? { ...uc, referenceArchitecture: patternMatch }
+            : uc
+        )
+        setSelectedUseCases(updatedUseCases)
+        return
+      }
+      throw new Error('Could not parse architecture response')
+    } catch (error) {
+      console.error('Architecture regeneration failed:', error)
+      throw error // Let the component show manual selector
+    }
+  }
+
+  const handleManualSelectArchitecture = (useCaseId: string, pattern: ReferenceArchitecturePattern) => {
+    const updatedUseCases = selectedUseCases.map(uc => 
+      uc.id === useCaseId 
+        ? { ...uc, referenceArchitecture: pattern }
+        : uc
+    )
+    setSelectedUseCases(updatedUseCases)
+  }
+
   const handleCompleteDiscovery = async () => {
     setIsGeneratingSummary(true)
     handleStepWithSave('summary')
@@ -570,9 +618,12 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
               useCase={currentUseCase}
               currentIndex={currentUseCaseIndex}
               totalCount={selectedUseCases.length}
+              industry={session.industry}
               onNext={handleDiagramsNext}
               onBack={handleDiagramsBack}
               onRequestDifferentArchitecture={handleRequestDifferentArchitecture}
+              onRegenerateArchitecture={handleRegenerateArchitecture}
+              onManualSelectArchitecture={handleManualSelectArchitecture}
             />
           )}
 
@@ -1286,21 +1337,45 @@ interface DiagramsStepProps {
   useCase: WorkflowUseCase
   currentIndex: number
   totalCount: number
+  industry?: string
   onNext: () => void
   onBack: () => void
   onRequestDifferentArchitecture?: (useCaseId: string, feedback: string) => void
+  onRegenerateArchitecture?: (useCaseId: string) => Promise<void>
+  onManualSelectArchitecture?: (useCaseId: string, pattern: ReferenceArchitecturePattern) => void
 }
 
 function DiagramsStep({ 
   useCase, 
   currentIndex, 
-  totalCount, 
+  totalCount,
+  industry,
   onNext, 
   onBack,
-  onRequestDifferentArchitecture 
+  onRequestDifferentArchitecture,
+  onRegenerateArchitecture,
+  onManualSelectArchitecture,
 }: DiagramsStepProps) {
+  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [showManualSelector, setShowManualSelector] = useState(false)
   const hasArchitecture = useCase.referenceArchitecture
   const hasProcessFlow = useCase.businessProcesses && useCase.businessProcesses.length > 0
+
+  const handleRegenerate = async () => {
+    if (onRegenerateArchitecture) {
+      setIsRegenerating(true)
+      try {
+        await onRegenerateArchitecture(useCase.id)
+        toast.success('Architecture regenerated!')
+      } catch (error) {
+        console.error('Regeneration failed:', error)
+        toast.error('AI regeneration failed', { description: 'You can select an architecture manually' })
+        setShowManualSelector(true)
+      } finally {
+        setIsRegenerating(false)
+      }
+    }
+  }
 
   return (
     <motion.div
@@ -1332,7 +1407,7 @@ function DiagramsStep({
 
           {/* Reference Architecture Diagram */}
           {hasArchitecture ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h4 className="text-sm font-semibold flex items-center gap-2">
                 <Diagram size={16} weight="duotone" />
                 Recommended Reference Architecture
@@ -1344,16 +1419,125 @@ function DiagramsStep({
                   onRequestDifferentArchitecture?.(useCase.id, feedback)
                 }}
               />
+              {/* Regenerate/Change Actions */}
+              <div className="flex gap-2 pt-2">
+                {onRegenerateArchitecture && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRegenerate}
+                    disabled={isRegenerating}
+                    className="gap-2"
+                  >
+                    {isRegenerating ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        >
+                          <Sparkle size={14} />
+                        </motion.div>
+                        Regenerating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkle size={14} />
+                        Regenerate with AI
+                      </>
+                    )}
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowManualSelector(!showManualSelector)}
+                >
+                  {showManualSelector ? 'Hide Options' : 'Change Architecture'}
+                </Button>
+              </div>
+              
+              {/* Inline Manual Selection */}
+              <AnimatePresence>
+                {showManualSelector && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="pt-2"
+                  >
+                    <ManualArchitectureSelectorInline
+                      currentPattern={useCase.referenceArchitecture}
+                      industry={industry}
+                      onSelect={(pattern) => {
+                        onManualSelectArchitecture?.(useCase.id, pattern)
+                        setShowManualSelector(false)
+                        toast.success('Architecture updated!')
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ) : (
-            <div className="p-4 border rounded-lg bg-muted/50 text-center">
-              <Diagram size={32} className="mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">
-                No reference architecture has been assigned to this use case.
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Architecture will be suggested during solution design phase.
-              </p>
+            <div className="p-6 border-2 border-dashed rounded-lg text-center space-y-4">
+              <Diagram size={40} className="mx-auto text-amber-500" />
+              <div>
+                <p className="font-medium text-foreground">No Architecture Assigned</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  AI generation may have failed. Select an architecture manually or try regenerating.
+                </p>
+              </div>
+              <div className="flex gap-3 justify-center">
+                {onRegenerateArchitecture && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleRegenerate}
+                    disabled={isRegenerating}
+                    className="gap-2"
+                  >
+                    {isRegenerating ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        >
+                          <Sparkle size={16} />
+                        </motion.div>
+                        Trying AI...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkle size={16} />
+                        Try AI Suggestion
+                      </>
+                    )}
+                  </Button>
+                )}
+                <Button onClick={() => setShowManualSelector(true)}>
+                  Select Manually
+                </Button>
+              </div>
+              
+              {/* Manual Selection for missing architecture */}
+              <AnimatePresence>
+                {showManualSelector && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="pt-4"
+                  >
+                    <ManualArchitectureSelectorInline
+                      industry={industry}
+                      onSelect={(pattern) => {
+                        onManualSelectArchitecture?.(useCase.id, pattern)
+                        setShowManualSelector(false)
+                        toast.success('Architecture assigned!')
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
@@ -1414,5 +1598,64 @@ function DiagramsStep({
         </CardFooter>
       </Card>
     </motion.div>
+  )
+}
+
+// Inline architecture selector component for DiagramsStep
+function ManualArchitectureSelectorInline({ 
+  currentPattern, 
+  industry,
+  onSelect 
+}: { 
+  currentPattern?: ReferenceArchitecturePattern
+  industry?: string
+  onSelect: (pattern: ReferenceArchitecturePattern) => void 
+}) {
+  const { REFERENCE_ARCHITECTURES, PRODUCT_FAMILY_LABELS, COMPLEXITY_INDICATORS } = require('@/lib/microsoft-solutions')
+  
+  const allPatterns = Object.keys(REFERENCE_ARCHITECTURES) as ReferenceArchitecturePattern[]
+  const recommendedPatterns = industry 
+    ? allPatterns.filter(p => REFERENCE_ARCHITECTURES[p].industries.includes(industry))
+    : allPatterns
+
+  return (
+    <div className="border rounded-lg p-4 bg-card">
+      <h5 className="font-medium text-sm mb-3">Select Reference Architecture</h5>
+      <ScrollArea className="h-[300px]">
+        <div className="space-y-2 pr-4">
+          {recommendedPatterns.map(pattern => {
+            const arch = REFERENCE_ARCHITECTURES[pattern]
+            const complexity = COMPLEXITY_INDICATORS[arch.complexity]
+            const isSelected = currentPattern === pattern
+            
+            return (
+              <div
+                key={pattern}
+                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                  isSelected ? 'border-primary bg-accent' : 'hover:bg-accent/50'
+                }`}
+                onClick={() => onSelect(pattern)}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm">{arch.label}</span>
+                  {isSelected && <CheckCircle size={16} className="text-primary" weight="fill" />}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{arch.description}</p>
+                <div className="flex gap-1 mt-2">
+                  {arch.primaryProducts.slice(0, 2).map((p: string) => (
+                    <Badge key={p} variant="secondary" className="text-xs">
+                      {PRODUCT_FAMILY_LABELS[p]}
+                    </Badge>
+                  ))}
+                  <Badge variant="outline" className={`text-xs ${complexity.color}`}>
+                    {complexity.label}
+                  </Badge>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </ScrollArea>
+    </div>
   )
 }
