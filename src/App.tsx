@@ -850,19 +850,10 @@ function App() {
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
                   onStartDemo={handleStartDemo}
                   onStartEnterpriseDemo={handleStartEnterpriseDemo}
+                  customerName={customerMetadata?.customerName}
+                  onOpenSessionComparison={() => setSessionManagerOpen(true)}
+                  onOpenExport={() => handleOpenTableExport()}
                 />
-
-                {/* Quick Financial Quantification Tool */}
-                <div className="mb-8">
-                  <QuickCOICalculator 
-                    variant="inline"
-                    customerName={customerMetadata?.customerName}
-                    opportunityTitle={selectedSession?.name}
-                    onSave={(coiData) => {
-                      toast.success(`COI of ${coiData.totalCOI.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} saved for ${customerMetadata?.customerName || 'customer'}`)
-                    }}
-                  />
-                </div>
 
                 <Card className="border-2 bg-card mb-8">
                   <CardHeader className="pb-4">

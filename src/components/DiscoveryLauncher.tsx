@@ -5,11 +5,13 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { PausedSessionsList } from '@/components/enterprise-discovery/PausedSessionsList'
-import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket, Play } from '@phosphor-icons/react'
+import { QuickCOICalculator } from '@/components/QuickCOICalculator'
+import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket, Play, Toolbox, Calculator, Export, GitCompare, FileText } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
 
-type DiscoveryMode = 'quick' | 'enterprise'
+type DiscoveryMode = 'quick' | 'enterprise' | 'tools'
 
 interface DiscoveryLauncherProps {
   onStartDiscovery: () => void
@@ -18,9 +20,12 @@ interface DiscoveryLauncherProps {
   onResumeEnterpriseDiscovery?: (session: EnterpriseDiscoverySession) => void
   onStartDemo?: () => void
   onStartEnterpriseDemo?: () => void
+  customerName?: string
+  onOpenSessionComparison?: () => void
+  onOpenExport?: () => void
 }
 
-export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo }: DiscoveryLauncherProps) {
+export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport }: DiscoveryLauncherProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mode, setMode] = useState<DiscoveryMode>('quick')
 
@@ -30,7 +35,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
         {/* Mode Toggle with Settings */}
         <div className="flex justify-center items-center gap-3">
           <Tabs value={mode} onValueChange={(v) => setMode(v as DiscoveryMode)} className="w-auto">
-            <TabsList className="grid w-[400px] grid-cols-2">
+            <TabsList className="grid w-[500px] grid-cols-3">
               <TabsTrigger value="quick" className="gap-2">
                 <Rocket size={16} />
                 Quick Discovery
@@ -38,6 +43,10 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
               <TabsTrigger value="enterprise" className="gap-2">
                 <Briefcase size={16} />
                 Enterprise Discovery
+              </TabsTrigger>
+              <TabsTrigger value="tools" className="gap-2">
+                <Toolbox size={16} />
+                Tools
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -233,6 +242,87 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
             </CardContent>
           </Card>
           </>
+        )}
+
+        {/* Tools Tab */}
+        {mode === 'tools' && (
+          <div className="space-y-6">
+            {/* Quick COI Calculator */}
+            <QuickCOICalculator 
+              variant="inline"
+              customerName={customerName}
+              onSave={(coiData) => {
+                toast.success(`COI of ${coiData.totalCOI.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} calculated`)
+              }}
+            />
+
+            {/* Other Tools Grid */}
+            <Card className="border-2 bg-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Toolbox size={24} weight="duotone" className="text-primary" />
+                  Discovery Tools
+                </CardTitle>
+                <CardDescription>
+                  Additional tools to support your discovery and analysis workflow
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Session Comparison */}
+                  <Card className="border hover:border-primary/50 transition-colors cursor-pointer group" onClick={onOpenSessionComparison}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-blue-500/10 p-2 rounded-lg shrink-0 group-hover:bg-blue-500/20 transition-colors">
+                          <GitCompare size={24} weight="duotone" className="text-blue-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">Session Comparison</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Compare multiple discovery sessions side-by-side to identify patterns and trends
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Export Tools */}
+                  <Card className="border hover:border-primary/50 transition-colors cursor-pointer group" onClick={onOpenExport}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-green-500/10 p-2 rounded-lg shrink-0 group-hover:bg-green-500/20 transition-colors">
+                          <Export size={24} weight="duotone" className="text-green-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">Export & Reports</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Export use cases, generate PDF reports, and create executive summaries
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Quick Notes Analysis */}
+                  <Card className="border hover:border-primary/50 transition-colors cursor-pointer group" onClick={onStartDiscovery}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-purple-500/10 p-2 rounded-lg shrink-0 group-hover:bg-purple-500/20 transition-colors">
+                          <FileText size={24} weight="duotone" className="text-purple-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-1">Quick Notes Analysis</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Paste unstructured meeting notes and extract use cases with AI
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </motion.div>
       

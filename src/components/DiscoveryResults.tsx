@@ -60,6 +60,7 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
   const [industryInsights, setIndustryInsights] = useState<IndustryResearchResult | null>(null)
   const [showWorkflow, setShowWorkflow] = useState(false)
   const [usedFallback, setUsedFallback] = useState(false)
+  const [fallbackReason, setFallbackReason] = useState<'no-responses' | 'api-error' | 'empty-result' | null>(null)
   const [usedEarningsData, setUsedEarningsData] = useState(false)
   const [showAllInsights, setShowAllInsights] = useState(false)
   const generationAttemptedRef = useRef(false)
@@ -110,6 +111,7 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
   const generateUseCases = async () => {
     setIsGenerating(true)
     setGenerationPhase('analyzing')
+    setFallbackReason(null)
     
     try {
       const allQuestions = session.industry 
@@ -122,6 +124,21 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
           return `Q: ${question?.question}\nA: ${r.answer}`
         })
         .join('\n\n')
+
+      // Check if we have any meaningful responses
+      const hasResponses = session.responses.length > 0 && 
+        session.responses.some(r => r.answer && r.answer.trim().length > 0)
+      const hasCompanyInsights = session.companyInsights && session.companyInsights.length > 0
+      const hasStockTicker = !!session.stockTicker
+
+      // If no responses, no company insights, and no stock ticker, use fallback immediately
+      if (!hasResponses && !hasCompanyInsights && !hasStockTicker) {
+        console.log('No discovery data available, loading fallback')
+        setFallbackReason('no-responses')
+        loadFallbackUseCases()
+        setIsGenerating(false)
+        return
+      }
 
       const industryContext = session.industry && session.industry !== 'general'
         ? `\n\nINDUSTRY CONTEXT: The organization operates in the ${industryLabels[session.industry]} sector. Tailor your suggestions to be relevant to this industry's specific challenges and opportunities.`
@@ -549,6 +566,7 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
       // Check if AI returned empty results
       if (useCases.length === 0) {
         console.warn('AI returned empty use cases, loading fallback')
+        setFallbackReason('empty-result')
         loadFallbackUseCases()
       }
     } catch (error) {
@@ -557,7 +575,9 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
       // Show error message and load fallback use cases
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       
-      if (errorMessage.includes('Azure Functions') || errorMessage.includes('API') || errorMessage.includes('fetch')) {
+      setFallbackReason('api-error')
+      
+      if (errorMessage.includes('Azure Functions') || errorMessage.includes('API') || errorMessage.includes('fetch') || errorMessage.includes('No AI models')) {
         toast.error('AI service unavailable', {
           description: 'Loading sample use cases instead. You can retry once the service is available.',
         })
@@ -576,6 +596,7 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
 
   const handleRetryGeneration = async () => {
     setUsedFallback(false)
+    setFallbackReason(null)
     setUsedEarningsData(false)
     setSuggestedUseCases([])
     setEarningsInsights([])
@@ -669,9 +690,28 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
                     )}
                   </p>
                   {usedFallback && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                      AI generation was unavailable. These are curated samples that can be edited.
-                    </p>
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        {fallbackReason === 'no-responses' 
+                          ? 'No discovery responses provided. Complete the discovery questions or add company research to generate personalized AI use cases.'
+                          : fallbackReason === 'api-error'
+                          ? 'AI service was unavailable. These are curated samples that can be edited.'
+                          : fallbackReason === 'empty-result'
+                          ? 'AI could not generate use cases from the provided data. These are curated samples.'
+                          : 'AI generation was unavailable. These are curated samples that can be edited.'
+                        }
+                      </p>
+                      <Button 
+                        onClick={handleRetryGeneration} 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2"
+                        disabled={isGenerating}
+                      >
+                        <ArrowClockwise size={14} className={isGenerating ? 'animate-spin' : ''} />
+                        {isGenerating ? 'Generating...' : 'Retry AI Generation'}
+                      </Button>
+                    </div>
                   )}
                   {usedEarningsData && (earningsInsights.length > 0 || financialMetrics || newsArticles || industryInsights) && (
                     <div className="mt-4 space-y-3 max-w-lg mx-auto">
