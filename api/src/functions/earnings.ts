@@ -467,6 +467,47 @@ interface TickerLookupResult {
   region?: string;
   source: "yahoo" | "alpha-vantage";
   confidence: "high" | "medium" | "low";
+  score?: number;
+}
+
+function normalizeCompanyName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\b(inc|inc\.|ltd|ltd\.|limited|plc|holdings?|group|corp|corp\.|corporation|co|co\.|company|sa|ag|pty|pty\.|bv|nv)\b/g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeNormalized(name: string): string[] {
+  const normalized = normalizeCompanyName(name);
+  return normalized ? normalized.split(" ").filter(t => t.length >= 2) : [];
+}
+
+function jaccardSimilarity(a: string[], b: string[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  const aSet = new Set(a);
+  const bSet = new Set(b);
+  let intersection = 0;
+  for (const t of aSet) {
+    if (bSet.has(t)) intersection++;
+  }
+  const union = aSet.size + bSet.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function computeFuzzyScore(queryCompanyName: string, candidateName: string, candidateTicker: string): number {
+  const q = normalizeCompanyName(queryCompanyName);
+  const c = normalizeCompanyName(candidateName);
+
+  if (!q || !c) return 0;
+
+  const tokenScore = jaccardSimilarity(tokenizeNormalized(q), tokenizeNormalized(c));
+  const includesBonus = (c.includes(q) || q.includes(c)) ? 0.25 : 0;
+  const startsWithBonus = c.startsWith(q) ? 0.15 : 0;
+  const tickerBonus = candidateTicker && q.replace(/\s/g, "").includes(candidateTicker.toLowerCase()) ? 0.15 : 0;
+
+  return Math.max(0, Math.min(1, tokenScore + includesBonus + startsWithBonus + tickerBonus));
 }
 
 async function lookupTickerYahoo(companyName: string): Promise<TickerLookupResult[]> {
@@ -516,6 +557,7 @@ async function lookupTickerYahoo(companyName: string): Promise<TickerLookupResul
             region,
             source: "yahoo",
             confidence,
+            score: undefined,
           });
         }
       }
@@ -562,6 +604,7 @@ async function lookupTickerAlphaVantage(companyName: string): Promise<TickerLook
           region: regionCode,
           source: "alpha-vantage",
           confidence,
+          score: isFinite(matchScore) ? Math.max(0, Math.min(1, matchScore)) : undefined,
         });
       }
     }
@@ -616,11 +659,29 @@ async function tickerLookupHandler(req: HttpRequest, context: InvocationContext)
 
     const unique = Array.from(uniqueMap.values());
 
-    // Sort by confidence and then by source (Yahoo first, then Alpha Vantage)
+    // Compute fuzzy score for ranking (prefer Alpha matchScore where available)
+    for (const r of unique) {
+      if (typeof r.score !== "number") {
+        r.score = computeFuzzyScore(companyName, r.name, r.ticker);
+      }
+      // Derive confidence from score if not already strong
+      if (r.confidence === "low") {
+        if ((r.score ?? 0) >= 0.85) r.confidence = "high";
+        else if ((r.score ?? 0) >= 0.65) r.confidence = "medium";
+      }
+    }
+
+    // Sort by score, then confidence, then source (Yahoo first, then Alpha Vantage)
     unique.sort((a, b) => {
-      const confidenceOrder = { high: 3, medium: 2, low: 1 };
+      const aScore = typeof a.score === "number" ? a.score : 0;
+      const bScore = typeof b.score === "number" ? b.score : 0;
+      if (bScore !== aScore) return bScore - aScore;
+
+      const confidenceOrder = { high: 3, medium: 2, low: 1 } as const;
       const confDiff = confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
       if (confDiff !== 0) return confDiff;
+
+      if (a.source === b.source) return 0;
       return a.source === "yahoo" ? -1 : 1;
     });
 

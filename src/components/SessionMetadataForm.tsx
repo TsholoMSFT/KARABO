@@ -361,6 +361,11 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                                 <span className="font-mono font-semibold text-sm">
                                   {suggestion.ticker}
                                 </span>
+                                {typeof suggestion.score === 'number' && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {(suggestion.score * 100).toFixed(0)}%
+                                  </Badge>
+                                )}
                                 <Badge 
                                   variant={
                                     suggestion.confidence === 'high' 

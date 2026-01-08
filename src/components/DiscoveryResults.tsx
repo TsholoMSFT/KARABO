@@ -891,12 +891,6 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
                   <Button variant="outline" onClick={onBack}>
                     Cancel
                   </Button>
-                  {usedFallback && (
-                    <Button variant="outline" onClick={handleRetryGeneration} className="gap-2">
-                      <ArrowClockwise size={18} />
-                      Retry AI Generation
-                    </Button>
-                  )}
                   <Button onClick={handleStartWorkflow} size="lg" className="gap-2">
                     Start Scoring Workflow
                     <Sparkle size={20} weight="bold" />

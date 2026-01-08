@@ -186,10 +186,21 @@ async function callViaProxy(
     body: JSON.stringify({ prompt, model, expectJson, systemPrompt }),
   })
 
-  const data: ProxyResponse = await response.json()
+  const rawText = await response.text()
+  let data: ProxyResponse | null = null
+  try {
+    data = rawText ? (JSON.parse(rawText) as ProxyResponse) : null
+  } catch {
+    data = null
+  }
 
-  if (!response.ok || data.error) {
-    throw new Error(data.error || `API error: ${response.status}`)
+  if (!response.ok || data?.error) {
+    const details = data?.details || (rawText && rawText.length < 500 ? rawText : '')
+    throw new Error(data?.error || `API error: ${response.status}${details ? ` (${details})` : ''}`)
+  }
+
+  if (!data?.content) {
+    throw new Error('Empty response from AI proxy')
   }
 
   return data.content

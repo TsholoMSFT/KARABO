@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
 import { ProcessFlowDiagram } from '@/components/ProcessFlowDiagram'
-import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
+import { REFERENCE_ARCHITECTURES, PRODUCT_FAMILY_LABELS, COMPLEXITY_INDICATORS, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 
 interface WorkflowUseCase {
   id: string
@@ -298,11 +298,7 @@ ${availablePatterns}
 
 Return ONLY the pattern id (the key before the colon), nothing else.`
 
-      const { callOpenAI, API_CONFIG } = await import('@/lib/openai-service')
-      const response = await callOpenAI(
-        [{ role: 'user', content: prompt }],
-        { ...API_CONFIG.discovery, temperature: 0.3 }
-      )
+  const response = await window.llm(prompt, 'gpt-4o-mini', false)
 
       const patternMatch = response.trim().match(/[\w-]+/)?.[0] as ReferenceArchitecturePattern | undefined
       if (patternMatch && REFERENCE_ARCHITECTURES[patternMatch]) {
@@ -1618,8 +1614,6 @@ function ManualArchitectureSelectorInline({
   industry?: string
   onSelect: (pattern: ReferenceArchitecturePattern) => void 
 }) {
-  const { REFERENCE_ARCHITECTURES, PRODUCT_FAMILY_LABELS, COMPLEXITY_INDICATORS } = require('@/lib/microsoft-solutions')
-  
   const allPatterns = Object.keys(REFERENCE_ARCHITECTURES) as ReferenceArchitecturePattern[]
   const recommendedPatterns = industry 
     ? allPatterns.filter(p => REFERENCE_ARCHITECTURES[p].industries.includes(industry))

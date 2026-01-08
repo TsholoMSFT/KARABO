@@ -169,6 +169,7 @@ export interface TickerLookupResult {
   region?: string
   source: 'yahoo' | 'alpha-vantage'
   confidence: 'high' | 'medium' | 'low'
+  score?: number
 }
 
 /**
