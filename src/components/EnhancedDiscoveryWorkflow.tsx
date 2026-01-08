@@ -122,7 +122,9 @@ export function EnhancedDiscoveryWorkflow({
       rationale: uc.rationale,
       selected: true,
       dataSources: uc.dataSources || ['discovery'],
-      referenceArchitecture: uc.referenceArchitecture as ReferenceArchitecturePattern | undefined,
+      referenceArchitecture: uc.referenceArchitecture && REFERENCE_ARCHITECTURES[uc.referenceArchitecture as ReferenceArchitecturePattern]
+        ? (uc.referenceArchitecture as ReferenceArchitecturePattern)
+        : undefined,
       businessProcesses: uc.businessProcesses,
       microsoftSolutions: uc.microsoftSolutions,
     }))
