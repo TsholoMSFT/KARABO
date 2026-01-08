@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileSearch, SkipForward } from '@phosphor-icons/react'
+import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileMagnifyingGlass, SkipForward } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { CompanyResearch } from '@/components/CompanyResearch'
@@ -496,7 +496,7 @@ Keep questions conversational, specific to their answer, and focused on discover
           <Card className="border-2">
             <CardHeader className="space-y-4">
               <div className="flex items-center gap-2">
-                <FileSearch size={28} weight="bold" className="text-primary" />
+                <FileMagnifyingGlass size={28} weight="bold" className="text-primary" />
                 <div className="flex flex-col">
                   <CardTitle className="text-2xl">Company Research</CardTitle>
                   <CardDescription className="text-base mt-1">

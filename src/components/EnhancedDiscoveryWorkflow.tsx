@@ -14,12 +14,12 @@ import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
-import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, FlowArrow, Diagram } from '@phosphor-icons/react'
+import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, FlowArrow, TreeStructure } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
 import { ProcessFlowDiagram } from '@/components/ProcessFlowDiagram'
-import { type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
+import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 
 interface WorkflowUseCase {
   id: string
@@ -281,15 +281,20 @@ export function EnhancedDiscoveryWorkflow({
     if (!useCase) return
 
     try {
-      const prompt = `Analyze this use case and suggest the BEST Microsoft Azure reference architecture pattern.
+      const availablePatterns = Object.entries(REFERENCE_ARCHITECTURES)
+        .map(([key, arch]) => `- ${key}: ${arch.label} - ${arch.description}`)
+        .join('\n')
+
+      const prompt = `Analyze this use case and suggest the BEST Microsoft reference architecture pattern from the list.
 
 Use Case: ${useCase.title}
 Description: ${useCase.description}
 Industry: ${session.industry ? industryLabels[session.industry] : 'General'}
 
-Available patterns: conversational-ai, document-processing, predictive-analytics, knowledge-mining, process-automation, recommendation-engine, computer-vision, iot-analytics, hybrid-integration, low-code-automation, data-platform, security-compliance, copilot-extension
+Available reference architecture patterns:
+${availablePatterns}
 
-Return ONLY the pattern name, nothing else.`
+Return ONLY the pattern id (the key before the colon), nothing else.`
 
       const { callOpenAI, API_CONFIG } = await import('@/lib/openai-service')
       const response = await callOpenAI(
@@ -297,8 +302,8 @@ Return ONLY the pattern name, nothing else.`
         { ...API_CONFIG.discovery, temperature: 0.3 }
       )
 
-      const patternMatch = response.match(/[\w-]+/)?.[0] as ReferenceArchitecturePattern | undefined
-      if (patternMatch) {
+      const patternMatch = response.trim().match(/[\w-]+/)?.[0] as ReferenceArchitecturePattern | undefined
+      if (patternMatch && REFERENCE_ARCHITECTURES[patternMatch]) {
         const updatedUseCases = selectedUseCases.map(uc => 
           uc.id === useCaseId 
             ? { ...uc, referenceArchitecture: patternMatch }
@@ -1390,7 +1395,7 @@ function DiagramsStep({
             <Badge variant="secondary">
               Use Case {currentIndex + 1} of {totalCount}
             </Badge>
-            <Diagram size={24} weight="duotone" className="text-primary" />
+            <TreeStructure size={24} weight="duotone" className="text-primary" />
           </div>
           <CardTitle>Solution Architecture & Process Flow</CardTitle>
           <CardDescription>
@@ -1409,7 +1414,7 @@ function DiagramsStep({
           {hasArchitecture ? (
             <div className="space-y-3">
               <h4 className="text-sm font-semibold flex items-center gap-2">
-                <Diagram size={16} weight="duotone" />
+                <TreeStructure size={16} weight="duotone" />
                 Recommended Reference Architecture
               </h4>
               <ArchitectureDiagram
@@ -1480,7 +1485,7 @@ function DiagramsStep({
             </div>
           ) : (
             <div className="p-6 border-2 border-dashed rounded-lg text-center space-y-4">
-              <Diagram size={40} className="mx-auto text-amber-500" />
+              <TreeStructure size={40} className="mx-auto text-amber-500" />
               <div>
                 <p className="font-medium text-foreground">No Architecture Assigned</p>
                 <p className="text-sm text-muted-foreground mt-1">

@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { PausedSessionsList } from '@/components/enterprise-discovery/PausedSessionsList'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
-import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket, Play, Toolbox, Calculator, FileArrowDown, GitCompare, FileText } from '@phosphor-icons/react'
+import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket, Play, Toolbox, Calculator, FileArrowDown, ArrowsLeftRight, FileText } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
@@ -274,7 +274,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className="bg-blue-500/10 p-2 rounded-lg shrink-0 group-hover:bg-blue-500/20 transition-colors">
-                          <GitCompare size={24} weight="duotone" className="text-blue-500" />
+                          <ArrowsLeftRight size={24} weight="duotone" className="text-blue-500" />
                         </div>
                         <div>
                           <h4 className="font-semibold text-sm mb-1">Session Comparison</h4>
