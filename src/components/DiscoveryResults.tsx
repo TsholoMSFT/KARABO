@@ -144,8 +144,33 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
       let financialsContext = ''
       let newsContext = ''
       let industryResearchContext = ''
+      let companyResearchContext = ''
       let fetchedInsights: EarningsInsight[] = []
       let hasTickerWarning = false
+
+      // Add company research insights from discovery session if available
+      if (session.companyInsights && session.companyInsights.length > 0) {
+        dataSources.push('discovery')
+        const insightsByCategory: Record<string, typeof session.companyInsights> = {}
+        session.companyInsights.forEach(i => {
+          if (!insightsByCategory[i.category]) {
+            insightsByCategory[i.category] = []
+          }
+          insightsByCategory[i.category].push(i)
+        })
+        
+        companyResearchContext = `\n\nCOMPANY RESEARCH INSIGHTS (from pasted documents, news, or RSS feeds):
+${Object.entries(insightsByCategory).map(([cat, items]) => 
+  `${cat.toUpperCase()}:
+${items.map(i => `- ${i.title}: ${i.summary}
+  AI Relevance: ${i.relevanceToAI}
+  Potential Use Cases: ${i.potentialUseCases.join(', ')}`).join('\n')}`
+).join('\n\n')}
+
+IMPORTANT: Use these company research insights to inform your use case suggestions. Address the company's stated initiatives, solve their pain points, and leverage identified opportunities.`
+
+        toast.success(`Using ${session.companyInsights.length} company research insights`)
+      }
       
       if (session.stockTicker) {
         setGenerationPhase('fetching-earnings')
@@ -287,7 +312,7 @@ Primary Jurisdiction: ${jurisdiction}
 ${session.stockTicker ? `Stock Ticker: ${session.stockTicker} (Public Company)` : ''}
 
 DISCOVERY RESPONSES:
-${responsesText}${industryContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}
+${responsesText}${industryContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}${companyResearchContext}
 
 TASK: Using the Microsoft Innovation Hub Methodology, analyze ALL available data sources to suggest 5-8 high-value use cases. For each use case, apply both Business Envisioning (the WHY and HOW) and Solution Envisioning (the WHAT and WITH WHAT).
 

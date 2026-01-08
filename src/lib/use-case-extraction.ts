@@ -3,9 +3,10 @@
  * Extracts structured use cases from unstructured discovery notes using AI
  */
 
-import { callOpenAI } from './openai-service'
+import { callAIForTask } from './openai-service'
 import { Industry } from './types'
 import { industryLabels } from './discovery-questions'
+import { CompanyInsight } from './company-research-service'
 
 export interface SourceTextHighlight {
   text: string
@@ -80,6 +81,7 @@ interface ExtractionContext {
   industry?: Industry
   location?: string
   stockTicker?: string
+  companyInsights?: CompanyInsight[]
 }
 
 /**
@@ -101,10 +103,22 @@ export async function extractUseCasesFromNotes(
     ? `\nLOCATION: ${context.location}`
     : ''
 
+  // Build company insights context if available
+  const insightsContext = context.companyInsights && context.companyInsights.length > 0
+    ? `\n\nCOMPANY RESEARCH INSIGHTS:
+${context.companyInsights.map(insight => `
+- [${insight.category.toUpperCase()}] ${insight.title}
+  Summary: ${insight.summary}
+  AI Relevance: ${insight.relevanceToAI}
+  Potential Use Cases: ${insight.potentialUseCases.join(', ')}
+  Confidence: ${insight.confidence}
+`).join('')}`
+    : ''
+
   const prompt = `You are an expert innovation consultant at Microsoft using the Innovation Hub Methodology. Your task is to analyze unstructured discovery notes from a customer conversation and extract high-value use cases for Microsoft AI and cloud solutions.
 
 CUSTOMER CONTEXT:
-Customer: ${context.customerName}${industryContext}${locationContext}
+Customer: ${context.customerName}${industryContext}${locationContext}${insightsContext}
 
 DISCOVERY NOTES (UNSTRUCTURED):
 """
@@ -236,7 +250,8 @@ CRITICAL:
 Generate 4-8 use cases. Return valid JSON only.`
 
   try {
-    const result = await callOpenAI(prompt, 'gpt-4o-mini', true)
+    // Use Phi-4-mini-instruct for extraction (71% cheaper than GPT-4o-mini)
+    const result = await callAIForTask('extraction', prompt, { expectJson: true })
     const parsed = JSON.parse(result)
     
     if (!parsed.useCases || !Array.isArray(parsed.useCases)) {

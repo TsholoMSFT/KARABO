@@ -1,3 +1,5 @@
+import { CompanyInsight } from './company-research-service'
+
 export interface KPI {
   id: string
   name: string
@@ -463,6 +465,7 @@ export interface DiscoverySession {
   responses: DiscoveryResponse[]
   suggestedUseCases?: SuggestedUseCaseData[]
   earningsInsights?: EarningsInsight[] // AI-extracted insights from earnings calls
+  companyInsights?: CompanyInsight[] // AI-extracted insights from company research (news, docs, etc.)
   
   // ============================================================================
   // INNOVATION HUB METHODOLOGY: BUSINESS ENVISIONING DATA

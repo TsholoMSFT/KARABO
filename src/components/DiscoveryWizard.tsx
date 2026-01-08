@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DiscoveryResponse, DiscoverySession, Industry, DiscoveryQuestion } from '@/lib/types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { NavigationHeader } from '@/components/NavigationHeader'
@@ -12,9 +12,11 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb } from '@phosphor-icons/react'
+import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileSearch, SkipForward } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
+import { CompanyResearch } from '@/components/CompanyResearch'
+import { CompanyInsight } from '@/lib/company-research-service'
 
 interface DiscoveryWizardProps {
   sessionMetadata: SessionMetadata
@@ -27,7 +29,7 @@ interface DiscoveryWizardProps {
   initialResponses?: DiscoveryResponse[]
 }
 
-type WizardStep = 'name' | 'industry' | 'questions'
+type WizardStep = 'name' | 'industry' | 'research' | 'questions'
 
 const industryIcons: Record<Industry, React.ReactNode> = {
   general: <Buildings size={32} weight="duotone" />,
@@ -66,6 +68,11 @@ export function DiscoveryWizard({
   const [followUpQuestions, setFollowUpQuestions] = useState<DiscoveryQuestion[]>([])
   const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false)
   const [showFollowUpPrompt, setShowFollowUpPrompt] = useState(false)
+  const [companyInsights, setCompanyInsights] = useState<CompanyInsight[]>([])
+
+  const handleCompanyInsightsChange = useCallback((insights: CompanyInsight[]) => {
+    setCompanyInsights(insights)
+  }, [])
 
   const baseQuestions = selectedIndustry ? getQuestionsForIndustry(selectedIndustry) : discoveryQuestions.filter((q) => !q.industries)
   const allQuestions = [...baseQuestions, ...followUpQuestions]
@@ -195,6 +202,14 @@ Keep questions conversational, specific to their answer, and focused on discover
 
   const handleIndustrySelect = (industry: Industry) => {
     setSelectedIndustry(industry)
+    setWizardStep('research')
+  }
+
+  const handleResearchNext = () => {
+    setWizardStep('questions')
+  }
+
+  const handleResearchSkip = () => {
     setWizardStep('questions')
   }
 
@@ -226,6 +241,7 @@ Keep questions conversational, specific to their answer, and focused on discover
         primaryStakeholder: sessionMetadata.primaryStakeholder,
         stockTicker: sessionMetadata.stockTicker || undefined,
         responses: updatedResponses,
+        companyInsights: companyInsights.length > 0 ? companyInsights : undefined,
         createdAt: Date.now(),
         completedAt: Date.now(),
       }
@@ -281,6 +297,7 @@ Keep questions conversational, specific to their answer, and focused on discover
         primaryStakeholder: sessionMetadata.primaryStakeholder,
         stockTicker: sessionMetadata.stockTicker || undefined,
         responses: responses,
+        companyInsights: companyInsights.length > 0 ? companyInsights : undefined,
         createdAt: Date.now(),
         completedAt: Date.now(),
       }
@@ -295,10 +312,12 @@ Keep questions conversational, specific to their answer, and focused on discover
       const prevResponse = responses.find((r) => r.questionId === prevQuestion.id)
       setCurrentAnswer(prevResponse?.answer || '')
     } else if (wizardStep === 'questions') {
-      setWizardStep('industry')
+      setWizardStep('research')
       setCurrentStep(0)
       setResponses([])
       setCurrentAnswer('')
+    } else if (wizardStep === 'research') {
+      setWizardStep('industry')
     } else if (wizardStep === 'industry') {
       setWizardStep('name')
     }
@@ -459,6 +478,74 @@ Keep questions conversational, specific to their answer, and focused on discover
                   Switch to Live
                 </Button>
               )}
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (wizardStep === 'research') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-5xl"
+        >
+          <Card className="border-2">
+            <CardHeader className="space-y-4">
+              <div className="flex items-center gap-2">
+                <FileSearch size={28} weight="bold" className="text-primary" />
+                <div className="flex flex-col">
+                  <CardTitle className="text-2xl">Company Research</CardTitle>
+                  <CardDescription className="text-base mt-1">
+                    Add context about {sessionMetadata.customerName} to generate more relevant insights
+                  </CardDescription>
+                </div>
+              </div>
+              {selectedIndustry && (
+                <Badge variant="outline" className="w-fit">
+                  {industryLabels[selectedIndustry]}
+                </Badge>
+              )}
+            </CardHeader>
+
+            <CardContent>
+              <CompanyResearch
+                companyName={sessionMetadata.customerName}
+                onInsightsChange={handleCompanyInsightsChange}
+                initialInsights={companyInsights}
+              />
+            </CardContent>
+
+            <CardFooter className="border-t pt-6 flex justify-between">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+                <Button variant="ghost" onClick={handleBack}>
+                  <ArrowLeft size={18} className="mr-2" />
+                  Back
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleResearchSkip}
+                  className="gap-2"
+                >
+                  <SkipForward size={18} />
+                  Skip Research
+                </Button>
+                <Button onClick={handleResearchNext} className="gap-2">
+                  {companyInsights.length > 0 
+                    ? `Continue with ${companyInsights.length} Insight${companyInsights.length > 1 ? 's' : ''}`
+                    : 'Continue'
+                  }
+                  <ArrowRight size={18} />
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         </motion.div>

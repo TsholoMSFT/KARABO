@@ -2,6 +2,11 @@
  * AI Service
  * Provides AI integration via secure Azure Function proxy
  * Supports Azure OpenAI (direct or via proxy) and direct OpenAI API (for local dev)
+ * 
+ * Features:
+ * - Response caching (5-minute TTL)
+ * - Task-based model routing for cost optimization
+ * - Multi-model support (GPT-4o, GPT-4o-mini, Phi-4-mini-instruct, GPT-5-nano)
  */
 
 // API endpoint for the Azure Function proxy
@@ -20,6 +25,139 @@ const USE_AZURE_DIRECT = !!AZURE_OPENAI_ENDPOINT && !!AZURE_OPENAI_API_KEY
 const USE_OPENAI_DIRECT = !!OPENAI_API_KEY && !USE_AZURE_DIRECT
 const USE_PROXY = !USE_AZURE_DIRECT && !USE_OPENAI_DIRECT
 
+// ============================================================================
+// RESPONSE CACHING
+// ============================================================================
+
+interface CacheEntry {
+  content: string
+  timestamp: number
+  model: string
+}
+
+const CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+const responseCache = new Map<string, CacheEntry>()
+
+/**
+ * Generate a cache key from prompt and model
+ */
+function getCacheKey(prompt: string, model: string, expectJson: boolean): string {
+  // Simple hash function for cache key
+  const input = `${model}:${expectJson}:${prompt}`
+  let hash = 0
+  for (let i = 0; i < input.length; i++) {
+    const char = input.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32-bit integer
+  }
+  return `cache_${hash}`
+}
+
+/**
+ * Check cache for a response
+ */
+function getFromCache(key: string): string | null {
+  const entry = responseCache.get(key)
+  if (!entry) return null
+  
+  // Check if expired
+  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    responseCache.delete(key)
+    return null
+  }
+  
+  console.log(`[Cache HIT] Using cached response for ${entry.model}`)
+  return entry.content
+}
+
+/**
+ * Store response in cache
+ */
+function setCache(key: string, content: string, model: string): void {
+  responseCache.set(key, {
+    content,
+    timestamp: Date.now(),
+    model,
+  })
+  
+  // Cleanup old entries if cache is too large (max 100 entries)
+  if (responseCache.size > 100) {
+    const entries = Array.from(responseCache.entries())
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
+    // Remove oldest 20 entries
+    entries.slice(0, 20).forEach(([key]) => responseCache.delete(key))
+  }
+}
+
+/**
+ * Clear the entire cache
+ */
+export function clearAICache(): void {
+  responseCache.clear()
+  console.log('[Cache] Cleared all cached responses')
+}
+
+/**
+ * Get cache statistics
+ */
+export function getCacheStats(): { size: number; hits: number; misses: number } {
+  return {
+    size: responseCache.size,
+    hits: cacheHits,
+    misses: cacheMisses,
+  }
+}
+
+let cacheHits = 0
+let cacheMisses = 0
+
+// ============================================================================
+// MODEL ROUTING
+// ============================================================================
+
+export type ModelType = 'gpt-4o' | 'gpt-4o-mini' | 'phi-4-mini-instruct' | 'gpt-5-nano'
+
+export type AITask = 
+  | 'extraction'      // Use case extraction from text → Phi-4-mini-instruct
+  | 'formatting'      // JSON formatting, simple transforms → Phi-4-mini-instruct  
+  | 'analysis'        // COI estimation, effort estimation → GPT-4o-mini
+  | 'architecture'    // Solution architecture → GPT-4o-mini
+  | 'executive'       // Executive summaries → GPT-4o (premium)
+  | 'general'         // Default → Phi-4-mini-instruct
+
+/**
+ * Get the optimal model for a given task
+ * Cost-optimized routing:
+ * - Phi-4-mini-instruct ($0.075/1M): extraction, formatting, general
+ * - GPT-5-nano ($0.14/1M): fallback for extraction
+ * - GPT-4o-mini ($0.26/1M): analysis, architecture, effort
+ * - GPT-4o ($2.50/1M): executive summaries (premium)
+ */
+export function getModelForTask(task: AITask): ModelType {
+  const taskModelMap: Record<AITask, ModelType> = {
+    extraction: 'phi-4-mini-instruct',
+    formatting: 'phi-4-mini-instruct',
+    general: 'phi-4-mini-instruct',
+    analysis: 'gpt-4o-mini',
+    architecture: 'gpt-4o-mini',
+    executive: 'gpt-4o',
+  }
+  return taskModelMap[task] || 'phi-4-mini-instruct'
+}
+
+/**
+ * Call AI for a specific task with automatic model selection
+ */
+export async function callAIForTask(
+  task: AITask,
+  prompt: string,
+  options: { expectJson?: boolean; systemPrompt?: string } = {}
+): Promise<string> {
+  const model = getModelForTask(task)
+  console.log(`[AI] Task: ${task} → Model: ${model}`)
+  return callOpenAI(prompt, model, options.expectJson ?? false, options.systemPrompt)
+}
+
 interface ProxyResponse {
   content: string
   usage?: {
@@ -36,15 +174,16 @@ interface ProxyResponse {
  */
 async function callViaProxy(
   prompt: string,
-  model: 'gpt-4o' | 'gpt-4o-mini' = 'gpt-4o-mini',
-  expectJson: boolean = false
+  model: ModelType = 'phi-4-mini-instruct',
+  expectJson: boolean = false,
+  systemPrompt?: string
 ): Promise<string> {
   const response = await fetch(`${API_ENDPOINT}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ prompt, model, expectJson }),
+    body: JSON.stringify({ prompt, model, expectJson, systemPrompt }),
   })
 
   const data: ProxyResponse = await response.json()
@@ -58,14 +197,21 @@ async function callViaProxy(
 
 /**
  * Call Azure OpenAI directly (for local development)
+ * Note: Only supports GPT models, AI Hub models use proxy
  */
 async function callAzureOpenAI(
   prompt: string,
-  model: 'gpt-4o' | 'gpt-4o-mini' = 'gpt-4o-mini',
+  model: ModelType = 'gpt-4o-mini',
   expectJson: boolean = false
 ): Promise<string> {
   if (!AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_API_KEY) {
     throw new Error('Azure OpenAI not configured. Please add VITE_AZURE_OPENAI_ENDPOINT and VITE_AZURE_OPENAI_API_KEY to your .env file.')
+  }
+
+  // For AI Hub models, fall back to proxy (can't call directly from browser)
+  if (model === 'phi-4-mini-instruct' || model === 'gpt-5-nano') {
+    console.log(`Model ${model} requires proxy, falling back to gpt-4o-mini for direct call`)
+    model = 'gpt-4o-mini'
   }
 
   const deploymentName = model // deployment name matches model name
@@ -112,18 +258,26 @@ async function callAzureOpenAI(
 
 /**
  * Call OpenAI directly (for local development only)
+ * Note: Only supports OpenAI models, Phi/AI Hub models use proxy
  */
 async function callDirectOpenAI(
   prompt: string,
-  model: 'gpt-4o' | 'gpt-4o-mini' = 'gpt-4o-mini',
+  model: ModelType = 'gpt-4o-mini',
   expectJson: boolean = false
 ): Promise<string> {
   if (!OPENAI_API_KEY) {
     throw new Error('OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to your .env file.')
   }
 
+  // For AI Hub models, fall back to gpt-4o-mini (OpenAI doesn't have Phi)
+  let openaiModel = model
+  if (model === 'phi-4-mini-instruct' || model === 'gpt-5-nano') {
+    console.log(`Model ${model} not available on OpenAI, using gpt-4o-mini`)
+    openaiModel = 'gpt-4o-mini'
+  }
+
   const requestBody: any = {
-    model,
+    model: openaiModel,
     messages: [{ role: 'user', content: prompt }],
     temperature: 0.7,
     max_tokens: 2000,
@@ -165,27 +319,45 @@ async function callDirectOpenAI(
 /**
  * Call AI - automatically uses proxy in production, direct API in development
  * Priority: Azure OpenAI Direct > OpenAI Direct > Proxy
+ * Features: Response caching with 5-minute TTL
  * @param prompt - The user prompt
- * @param model - Model to use (gpt-4o or gpt-4o-mini)
+ * @param model - Model to use
  * @param expectJson - Whether to expect JSON response
+ * @param systemPrompt - Optional system prompt for prompt caching
  * @returns The completion text
  */
 export async function callOpenAI(
   prompt: string,
-  model: 'gpt-4o' | 'gpt-4o-mini' = 'gpt-4o-mini',
-  expectJson: boolean = false
+  model: ModelType = 'phi-4-mini-instruct',
+  expectJson: boolean = false,
+  systemPrompt?: string
 ): Promise<string> {
+  // Check cache first
+  const cacheKey = getCacheKey(prompt, model, expectJson)
+  const cached = getFromCache(cacheKey)
+  if (cached) {
+    cacheHits++
+    return cached
+  }
+  cacheMisses++
+
   try {
+    let result: string
+    
     if (USE_AZURE_DIRECT) {
-      console.log('Using Azure OpenAI direct API')
-      return await callAzureOpenAI(prompt, model, expectJson)
+      console.log(`Using Azure OpenAI direct API (${model})`)
+      result = await callAzureOpenAI(prompt, model, expectJson)
     } else if (USE_OPENAI_DIRECT) {
-      console.log('Using OpenAI direct API')
-      return await callDirectOpenAI(prompt, model, expectJson)
+      console.log(`Using OpenAI direct API (${model})`)
+      result = await callDirectOpenAI(prompt, model, expectJson)
     } else {
-      console.log('Using proxy API at', API_ENDPOINT)
-      return await callViaProxy(prompt, model, expectJson)
+      console.log(`Using proxy API at ${API_ENDPOINT} (${model})`)
+      result = await callViaProxy(prompt, model, expectJson, systemPrompt)
     }
+
+    // Cache the successful response
+    setCache(cacheKey, result, model)
+    return result
   } catch (error) {
     console.error('AI call failed:', error)
     throw error
@@ -383,21 +555,31 @@ Be concise but specific in reasoning.`
  */
 export const llmAPI = {
   llm: callOpenAI,
+  callForTask: callAIForTask,
   estimateEffort,
   estimateCOI,
+  clearCache: clearAICache,
+  getCacheStats,
+  getModelForTask,
 }
 
 // Make it available on window for global access
 declare global {
   interface Window {
     llm: typeof callOpenAI
+    llmForTask: typeof callAIForTask
     estimateEffort: typeof estimateEffort
     estimateCOI: typeof estimateCOI
+    clearAICache: typeof clearAICache
+    getAICacheStats: typeof getCacheStats
   }
 }
 
 if (typeof window !== 'undefined') {
   window.llm = callOpenAI
+  window.llmForTask = callAIForTask
   window.estimateEffort = estimateEffort
   window.estimateCOI = estimateCOI
+  window.clearAICache = clearAICache
+  window.getAICacheStats = getCacheStats
 }
