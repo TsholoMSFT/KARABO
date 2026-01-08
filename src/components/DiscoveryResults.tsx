@@ -882,6 +882,11 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
                           variant="compact"
                           customerName={session.customerName}
                           opportunityTitle={session.name}
+                          autoContext={{
+                            industry: session.industry ? industryLabels[session.industry] : undefined,
+                            companyName: session.customerName,
+                            annualRevenue: financialMetrics?.statements?.[0]?.revenue,
+                          }}
                         />
                       </div>
                     </div>

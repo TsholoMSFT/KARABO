@@ -45,6 +45,11 @@ interface QuickCOICalculatorProps {
   variant?: 'dialog' | 'inline' | 'compact'
   customerName?: string
   opportunityTitle?: string
+  autoContext?: {
+    industry?: string
+    companyName?: string
+    annualRevenue?: number
+  }
 }
 
 interface CostInputProps {
@@ -169,7 +174,8 @@ export function QuickCOICalculator({
   onSave,
   variant = 'inline',
   customerName,
-  opportunityTitle
+  opportunityTitle,
+  autoContext
 }: QuickCOICalculatorProps) {
   const [directCosts, setDirectCosts] = useState(initialValues?.directCosts || 0)
   const [opportunityCosts, setOpportunityCosts] = useState(initialValues?.opportunityCosts || 0)
@@ -177,6 +183,7 @@ export function QuickCOICalculator({
   const [notes, setNotes] = useState(initialValues?.notes || '')
   const [copied, setCopied] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [isAutoFilling, setIsAutoFilling] = useState(false)
 
   const totalCOI = useMemo(() => 
     directCosts + opportunityCosts + riskCosts,
@@ -226,6 +233,54 @@ ${notes ? `\nNotes: ${notes}` : ''}
       toast.error('Failed to copy')
     }
   }, [directCosts, opportunityCosts, riskCosts, totalCOI, customerName, opportunityTitle, notes])
+
+  const handleAutoFill = useCallback(async () => {
+    if (typeof window === 'undefined' || typeof window.estimateCOI !== 'function') {
+      toast.error('AI auto-fill unavailable', {
+        description: 'The COI estimator is not initialized. Check the console for errors and confirm the AI runtime is configured.',
+      })
+      return
+    }
+
+    const title = opportunityTitle?.trim() || 'Cost of Inaction'
+    const description = (notes && notes.trim().length > 0)
+      ? notes.trim()
+      : `Estimate the annual cost of delaying action on: ${title}.`
+
+    setIsAutoFilling(true)
+    try {
+      const estimate = await window.estimateCOI(
+        { title, description },
+        {
+          industry: autoContext?.industry,
+          companyName: autoContext?.companyName || customerName,
+          annualRevenue: autoContext?.annualRevenue,
+        }
+      )
+
+      setDirectCosts(estimate.directCosts || 0)
+      setOpportunityCosts(estimate.opportunityCosts || 0)
+      setRiskCosts(estimate.riskCosts || 0)
+
+      const aiNotes = [
+        'AI auto-fill (review and adjust as needed).',
+        estimate.reasoning ? `Reasoning: ${estimate.reasoning}` : '',
+        Array.isArray(estimate.assumptions) && estimate.assumptions.length > 0
+          ? `Assumptions: ${estimate.assumptions.join(' | ')}`
+          : '',
+      ].filter(Boolean).join('\n')
+
+      setNotes((prev) => (prev && prev.trim().length > 0 ? prev : aiNotes))
+      toast.success('COI auto-filled from AI')
+    } catch (error) {
+      console.error('COI auto-fill failed:', error)
+      toast.error('COI auto-fill failed', {
+        description: 'Try again, or enter values manually if the AI service is unavailable.',
+      })
+    } finally {
+      setIsAutoFilling(false)
+    }
+  }, [autoContext?.annualRevenue, autoContext?.companyName, autoContext?.industry, customerName, notes, opportunityTitle])
 
   const calculatorContent = (
     <div className="space-y-4">
@@ -348,6 +403,16 @@ ${notes ? `\nNotes: ${notes}` : ''}
 
   const actionButtons = (
     <div className="flex gap-2 justify-end">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleAutoFill}
+        className="gap-2"
+        disabled={isAutoFilling || typeof window === 'undefined' || typeof window.estimateCOI !== 'function'}
+      >
+        <Sparkle size={16} weight="fill" />
+        {isAutoFilling ? 'Auto-filling…' : 'Auto-fill'}
+      </Button>
       <Button variant="outline" size="sm" onClick={handleReset} className="gap-2">
         <ArrowClockwise size={16} />
         Reset

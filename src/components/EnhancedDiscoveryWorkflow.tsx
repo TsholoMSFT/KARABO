@@ -20,6 +20,7 @@ import { toast } from 'sonner'
 import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
 import { ProcessFlowDiagram } from '@/components/ProcessFlowDiagram'
 import { REFERENCE_ARCHITECTURES, PRODUCT_FAMILY_LABELS, COMPLEXITY_INDICATORS, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
+import { fetchFinancialStatements } from '@/lib/earnings-service'
 
 interface WorkflowUseCase {
   id: string
@@ -135,6 +136,37 @@ export function EnhancedDiscoveryWorkflow({
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
   const [executiveSummary, setExecutiveSummary] = useState('')
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [annualRevenue, setAnnualRevenue] = useState<number | undefined>(undefined)
+
+  // Pull financial scale forward (optional) so COI estimation can be better grounded.
+  useEffect(() => {
+    const ticker = session.stockTicker?.trim()
+    if (!ticker) {
+      setAnnualRevenue(undefined)
+      return
+    }
+
+    let cancelled = false
+
+    const run = async () => {
+      try {
+        const financials = await fetchFinancialStatements(ticker)
+        const revenue = financials.statements?.[0]?.revenue
+        if (!cancelled) {
+          setAnnualRevenue(typeof revenue === 'number' && Number.isFinite(revenue) ? revenue : undefined)
+        }
+      } catch {
+        if (!cancelled) {
+          setAnnualRevenue(undefined)
+        }
+      }
+    }
+
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [session.stockTicker])
 
   const selectedUseCases = useCases.filter(uc => uc.selected)
   const currentUseCase = step === 'impact-feasibility' || step === 'rice' || step === 'diagrams'
@@ -611,7 +643,8 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
               }}
               context={{
                 industry: session.industry ? industryLabels[session.industry] : undefined,
-                companyName: session.customerName
+                companyName: session.customerName,
+                annualRevenue
               }}
             />
           )}
@@ -737,6 +770,11 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                       variant="compact"
                       customerName={session.customerName}
                       opportunityTitle={session.name}
+                      autoContext={{
+                        industry: session.industry ? industryLabels[session.industry] : undefined,
+                        companyName: session.customerName,
+                        annualRevenue,
+                      }}
                     />
                   </div>
                 </CardContent>
@@ -863,7 +901,7 @@ interface RiceStepProps {
   totalCount: number
   onSave: (rice: WorkflowUseCase['rice'], aiEffortEstimate?: WorkflowUseCase['aiEffortEstimate'], coiEstimate?: WorkflowUseCase['coiEstimate']) => void
   onBack: () => void
-  context?: { industry?: string; companyName?: string }
+  context?: { industry?: string; companyName?: string; annualRevenue?: number }
 }
 
 interface COIEstimateResult {
@@ -947,7 +985,7 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
           if (typeof window.estimateCOI === 'function') {
             const result = await window.estimateCOI(
               { title: useCase.title, description: useCase.description },
-              { industry: context?.industry, companyName: context?.companyName }
+              { industry: context?.industry, companyName: context?.companyName, annualRevenue: context?.annualRevenue }
             )
             setCoiEstimate(result)
             if (!hasOverriddenImpact) {

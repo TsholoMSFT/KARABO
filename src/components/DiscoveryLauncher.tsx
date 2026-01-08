@@ -251,6 +251,9 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
             <QuickCOICalculator 
               variant="inline"
               customerName={customerName}
+              autoContext={{
+                companyName: customerName,
+              }}
               onSave={(coiData) => {
                 toast.success(`COI of ${coiData.totalCOI.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} calculated`)
               }}
