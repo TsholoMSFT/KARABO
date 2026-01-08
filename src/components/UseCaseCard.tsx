@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { UseCaseSourceBadges } from '@/components/ui/use-case-source-badge'
 import { ArchitectureBadge } from '@/components/ArchitectureDiagram'
+import { ReferenceArchitectureMermaid } from '@/components/ReferenceArchitectureMermaid'
 import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
@@ -637,6 +638,15 @@ export function UseCaseCard({
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-[10px] text-muted-foreground">Reference Architecture:</span>
                             <ArchitectureBadge pattern={useCase.referenceArchitecture as any} />
+                          </div>
+                        )}
+
+                        {useCase.referenceArchitecture && (
+                          <div className="mt-2">
+                            <ReferenceArchitectureMermaid
+                              pattern={useCase.referenceArchitecture as any}
+                              className="rounded-md border border-border bg-muted/10 p-2"
+                            />
                           </div>
                         )}
                       </div>

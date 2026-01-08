@@ -122,9 +122,9 @@ export function SessionManager({ open, onOpenChange, onViewSession, onCompareSes
     toast.success('Enterprise session deleted')
   }
 
-  const handleExportEnterprisePDF = (session: EnterpriseDiscoverySession) => {
+  const handleExportEnterprisePDF = async (session: EnterpriseDiscoverySession) => {
     try {
-      const fileName = exportEnterpriseDiscoveryToPDF(session)
+      const fileName = await exportEnterpriseDiscoveryToPDF(session)
       toast.success('PDF exported', { description: fileName })
     } catch (e) {
       toast.error('Failed to export PDF')

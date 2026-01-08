@@ -49,6 +49,9 @@ export function LiveDiscoveryMode({
   initialResponses,
 }: LiveDiscoveryModeProps) {
   const { isAIFeatureEnabled } = useDiscoverySettings()
+  const normalizedStockTicker = sessionMetadata.stockTicker?.trim()
+    ? sessionMetadata.stockTicker.trim().toUpperCase()
+    : undefined
   const [currentStep, setCurrentStep] = useState(0)
   const [responses, setResponses] = useState<DiscoveryResponse[]>(initialResponses || [])
   const [manualOverride, setManualOverride] = useState<string>('')
@@ -254,6 +257,7 @@ Keep questions conversational, specific to their answer, and focused on discover
         customerId,
         customerName: sessionMetadata.customerName,
         innovationHubSPOC: sessionMetadata.innovationHubSPOC,
+        stockTicker: normalizedStockTicker,
         name: sessionName,
         industry: selectedIndustry,
         innovationHubLocation: sessionMetadata.innovationHubLocation,
@@ -310,6 +314,7 @@ Keep questions conversational, specific to their answer, and focused on discover
         customerId,
         customerName: sessionMetadata.customerName,
         innovationHubSPOC: sessionMetadata.innovationHubSPOC,
+        stockTicker: normalizedStockTicker,
         name: sessionName,
         industry: selectedIndustry,
         innovationHubLocation: sessionMetadata.innovationHubLocation,

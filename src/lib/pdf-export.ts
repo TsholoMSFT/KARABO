@@ -1,8 +1,11 @@
-import jsPDF from 'jspdf'
+import { jsPDF } from 'jspdf'
 import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData } from './types'
 import { calculateRICEScore, getQuadrant } from './scoring'
 import { getKPIById } from './kpis'
 import { DISCLAIMERS, getPolicyById } from './ai-policies'
+import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from './microsoft-solutions'
+import { buildReferenceArchitectureDiagramSpec } from './architecture-diagrams'
+import { diagramSpecToMermaidFlowchart, renderMermaidToPngDataUrl } from './mermaid'
 
 export interface ExportOptions {
   effortUnit: 'person-weeks' | 'fte' | 'man-hours'
@@ -12,6 +15,7 @@ export interface ExportOptions {
   includeCOI?: boolean
   includeExpectedValue?: boolean
   includeDataSources?: boolean
+  includeArchitectureDiagrams?: boolean
 }
 
 function formatCurrency(value: number): string {
@@ -53,7 +57,7 @@ export function getEffortUnitLabel(unit: 'person-weeks' | 'fte' | 'man-hours'): 
   }
 }
 
-export function exportToPDF(
+export async function exportToPDF(
   useCases: UseCase[],
   topUseCases: UseCase[],
   scoringMethod: ScoringMethod,
@@ -399,7 +403,7 @@ export function exportToPDF(
   doc.text('Top Recommendations', margin, y)
   y += 10
 
-  topUseCases.forEach((useCase, index) => {
+  for (const [index, useCase] of topUseCases.entries()) {
     addPageIfNeeded(70)
 
     doc.setFillColor(165, 120, 255)
@@ -425,6 +429,44 @@ export function exportToPDF(
         y += 4
       })
       y += 4
+    }
+
+    // Reference architecture diagram (JSON → Mermaid → PNG)
+    if (options.includeArchitectureDiagrams !== false && useCase.referenceArchitecture) {
+      const pattern = useCase.referenceArchitecture as ReferenceArchitecturePattern
+      const arch = REFERENCE_ARCHITECTURES[pattern]
+      if (arch) {
+        addPageIfNeeded(10)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(8)
+        doc.setTextColor(90, 90, 120)
+        doc.text(`Reference Architecture: ${arch.label}`, margin + 5, y)
+        y += 4
+
+        try {
+          const spec = buildReferenceArchitectureDiagramSpec({
+            title: arch.label,
+            services: arch.typicalServices,
+            direction: 'LR',
+          })
+          const mermaid = diagramSpecToMermaidFlowchart(spec)
+          const img = await renderMermaidToPngDataUrl(mermaid, { width: 1200, height: 650 })
+
+          const imgWidthMm = pageWidth - 2 * margin - 10
+          const imgHeightMm = (img.height / img.width) * imgWidthMm
+
+          addPageIfNeeded(imgHeightMm + 8)
+          doc.addImage(img.dataUrl, 'PNG', margin + 5, y, imgWidthMm, imgHeightMm)
+          y += imgHeightMm + 6
+        } catch {
+          // Best-effort: skip diagram if rendering fails.
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(8)
+          doc.setTextColor(120, 120, 120)
+          doc.text('Diagram rendering unavailable for this export.', margin + 5, y)
+          y += 6
+        }
+      }
     }
 
     // Data Sources
@@ -532,7 +574,7 @@ export function exportToPDF(
       doc.text(`Impact: ${useCase.impact}/10 | Feasibility: ${useCase.feasibility}/10`, margin + 8, y)
     }
     y += 12
-  })
+  }
 
   if (useCases.length > topUseCases.length) {
     doc.addPage()

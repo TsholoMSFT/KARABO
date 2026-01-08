@@ -11,14 +11,17 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import { ReferenceArchitectureMermaid } from '@/components/ReferenceArchitectureMermaid'
 import {
   REFERENCE_ARCHITECTURES,
   PRODUCT_FAMILY_LABELS,
   PRODUCT_FAMILY_COLORS,
   PRODUCT_FAMILY_ICONS,
   COMPLEXITY_INDICATORS,
+  getServiceLabel,
   type ReferenceArchitecturePattern,
 } from '@/lib/microsoft-solutions'
+import { SERVICE_TIER_MAPPING, type ServiceTier } from '@/lib/architecture-diagrams'
 import { 
   ArrowRight, 
   ArrowsClockwise, 
@@ -59,9 +62,6 @@ const ARCHITECTURE_ICONS: Record<ReferenceArchitecturePattern, React.ElementType
   'agentic-ai': Robot,
 }
 
-// Service tier classification for diagram layout
-type ServiceTier = 'ingestion' | 'processing' | 'intelligence' | 'storage' | 'presentation' | 'integration'
-
 const SERVICE_TIER_CONFIG: Record<ServiceTier, { label: string; color: string; icon: React.ElementType }> = {
   ingestion: { label: 'Data Ingestion', color: 'bg-blue-500', icon: Cloud },
   processing: { label: 'Processing', color: 'bg-purple-500', icon: Gear },
@@ -69,130 +69,6 @@ const SERVICE_TIER_CONFIG: Record<ServiceTier, { label: string; color: string; i
   storage: { label: 'Data Storage', color: 'bg-green-500', icon: Database },
   presentation: { label: 'Presentation', color: 'bg-amber-500', icon: ChartLine },
   integration: { label: 'Integration', color: 'bg-sky-500', icon: ArrowsClockwise },
-}
-
-// Map services to tiers for visual grouping
-const SERVICE_TIER_MAPPING: Record<string, ServiceTier> = {
-  'azure-iot-hub': 'ingestion',
-  'azure-event-hubs': 'ingestion',
-  'azure-data-factory': 'ingestion',
-  'power-automate': 'ingestion',
-  'azure-functions': 'processing',
-  'azure-logic-apps': 'processing',
-  'azure-stream-analytics': 'processing',
-  'azure-databricks': 'processing',
-  'azure-container-apps': 'processing',
-  'azure-kubernetes': 'processing',
-  'azure-openai': 'intelligence',
-  'azure-ai-search': 'intelligence',
-  'azure-ai-vision': 'intelligence',
-  'azure-ai-speech': 'intelligence',
-  'azure-ai-language': 'intelligence',
-  'azure-ai-document-intelligence': 'intelligence',
-  'azure-machine-learning': 'intelligence',
-  'azure-ai-studio': 'intelligence',
-  'azure-ai-content-safety': 'intelligence',
-  'azure-bot-service': 'intelligence',
-  'azure-digital-twins': 'intelligence',
-  'copilot-studio': 'intelligence',
-  'github-copilot': 'intelligence',
-  'azure-sql': 'storage',
-  'azure-cosmos-db': 'storage',
-  'azure-synapse': 'storage',
-  'azure-data-lake': 'storage',
-  'dataverse': 'storage',
-  'sharepoint': 'storage',
-  'fabric-data-warehouse': 'storage',
-  'fabric-lakehouse': 'storage',
-  'fabric-data-science': 'storage',
-  'power-bi': 'presentation',
-  'power-apps': 'presentation',
-  'power-pages': 'presentation',
-  'm365-copilot': 'presentation',
-  'copilot-for-sales': 'presentation',
-  'copilot-for-service': 'presentation',
-  'copilot-for-finance': 'presentation',
-  'teams': 'presentation',
-  'outlook': 'presentation',
-  'azure-api-management': 'integration',
-  'd365-sales': 'integration',
-  'd365-customer-service': 'integration',
-  'd365-field-service': 'integration',
-  'd365-finance': 'integration',
-  'd365-supply-chain': 'integration',
-  'd365-commerce': 'integration',
-  'd365-business-central': 'integration',
-  'd365-customer-insights': 'integration',
-  'azure-purview': 'integration',
-  'entra-id': 'integration',
-  'microsoft-defender': 'integration',
-  'microsoft-sentinel': 'integration',
-  'purview-compliance': 'integration',
-  'intune': 'integration',
-  'viva': 'integration',
-}
-
-function getServiceLabel(serviceId: string): string {
-  const labels: Record<string, string> = {
-    'azure-openai': 'Azure OpenAI',
-    'azure-ai-search': 'AI Search',
-    'azure-ai-vision': 'AI Vision',
-    'azure-ai-speech': 'AI Speech',
-    'azure-ai-language': 'AI Language',
-    'azure-ai-document-intelligence': 'Document Intelligence',
-    'azure-machine-learning': 'Azure ML',
-    'azure-ai-studio': 'AI Studio',
-    'azure-ai-content-safety': 'Content Safety',
-    'azure-bot-service': 'Bot Service',
-    'azure-sql': 'Azure SQL',
-    'azure-cosmos-db': 'Cosmos DB',
-    'azure-synapse': 'Synapse',
-    'azure-data-factory': 'Data Factory',
-    'azure-databricks': 'Databricks',
-    'azure-event-hubs': 'Event Hubs',
-    'azure-stream-analytics': 'Stream Analytics',
-    'azure-data-lake': 'Data Lake',
-    'azure-purview': 'Purview',
-    'azure-iot-hub': 'IoT Hub',
-    'azure-digital-twins': 'Digital Twins',
-    'azure-functions': 'Functions',
-    'azure-logic-apps': 'Logic Apps',
-    'azure-api-management': 'API Management',
-    'azure-kubernetes': 'AKS',
-    'azure-container-apps': 'Container Apps',
-    'power-apps': 'Power Apps',
-    'power-automate': 'Power Automate',
-    'power-bi': 'Power BI',
-    'power-pages': 'Power Pages',
-    'copilot-studio': 'Copilot Studio',
-    'dataverse': 'Dataverse',
-    'm365-copilot': 'M365 Copilot',
-    'copilot-for-sales': 'Copilot for Sales',
-    'copilot-for-service': 'Copilot for Service',
-    'copilot-for-finance': 'Copilot for Finance',
-    'github-copilot': 'GitHub Copilot',
-    'sharepoint': 'SharePoint',
-    'teams': 'Teams',
-    'outlook': 'Outlook',
-    'viva': 'Viva',
-    'd365-sales': 'D365 Sales',
-    'd365-customer-service': 'D365 Service',
-    'd365-field-service': 'D365 Field',
-    'd365-finance': 'D365 Finance',
-    'd365-supply-chain': 'D365 Supply Chain',
-    'd365-commerce': 'D365 Commerce',
-    'd365-business-central': 'Business Central',
-    'd365-customer-insights': 'Customer Insights',
-    'fabric-data-warehouse': 'Fabric DW',
-    'fabric-lakehouse': 'Fabric Lakehouse',
-    'fabric-data-science': 'Fabric DS',
-    'entra-id': 'Entra ID',
-    'microsoft-defender': 'Defender',
-    'microsoft-sentinel': 'Sentinel',
-    'purview-compliance': 'Purview Compliance',
-    'intune': 'Intune',
-  }
-  return labels[serviceId] || serviceId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
 interface ArchitectureDiagramProps {
@@ -313,6 +189,14 @@ export function ArchitectureDiagram({
         </CardHeader>
 
         <CardContent className="space-y-4">
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+              <Sparkle size={14} />
+              Rendered Diagram (JSON → Mermaid)
+            </div>
+            <ReferenceArchitectureMermaid pattern={pattern} className="rounded-md border border-border bg-muted/10 p-2" />
+          </div>
+
           <div className="relative">
             <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
               <Gear size={14} />

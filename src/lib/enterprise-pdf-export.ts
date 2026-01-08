@@ -1,19 +1,23 @@
-import jsPDF from 'jspdf'
+import { jsPDF } from 'jspdf'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
 import { calculateTotalCOI } from '@/lib/financial-calculations'
+import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
+import { buildReferenceArchitectureDiagramSpec } from '@/lib/architecture-diagrams'
+import { diagramSpecToMermaidFlowchart, renderMermaidToPngDataUrl } from '@/lib/mermaid'
 
 const INNOVATION_HUB_BLUE = [0, 120, 212] as const // #0078D4
 
 interface ExportEnterpriseDiscoveryOptions {
   includeFinancials?: boolean
   includeYellowLights?: boolean
+  includeArchitectureDiagrams?: boolean
 }
 
-export function exportEnterpriseDiscoveryToPDF(
+export async function exportEnterpriseDiscoveryToPDF(
   session: EnterpriseDiscoverySession,
   options: ExportEnterpriseDiscoveryOptions = {}
 ) {
-  const { includeFinancials = true, includeYellowLights = true } = options
+  const { includeFinancials = true, includeYellowLights = true, includeArchitectureDiagrams = true } = options
   
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
@@ -374,6 +378,69 @@ export function exportEnterpriseDiscoveryToPDF(
     
     y += 45
     doc.setTextColor(0, 0, 0)
+  }
+
+  // ============ SOLUTION ARCHITECTURE DIAGRAMS ============
+  if (includeArchitectureDiagrams && stage5Data) {
+    const mappings = (stage5Data as any)?.solutionArchitecture?.useCaseMappings as Array<{
+      useCaseId?: string
+      referenceArchitecture?: string
+      microsoftSolutions?: any[]
+    }> | undefined
+
+    const mapped = (mappings ?? []).filter(m => m.referenceArchitecture)
+    if (mapped.length > 0) {
+      doc.addPage()
+      y = margin
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(18)
+      doc.setTextColor(...INNOVATION_HUB_BLUE)
+      doc.text('Solution Architecture Diagrams', margin, y)
+      y += 12
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text('Rendered from curated JSON templates (Mermaid → SVG/PNG).', margin, y)
+      y += 10
+
+      for (const mapping of mapped) {
+        const pattern = mapping.referenceArchitecture as ReferenceArchitecturePattern
+        const arch = REFERENCE_ARCHITECTURES[pattern]
+        if (!arch) continue
+
+        addPageIfNeeded(14)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+        doc.setTextColor(0, 0, 0)
+        doc.text(arch.label, margin, y)
+        y += 6
+
+        try {
+          const spec = buildReferenceArchitectureDiagramSpec({
+            title: arch.label,
+            services: arch.typicalServices,
+            direction: 'LR',
+          })
+          const mermaid = diagramSpecToMermaidFlowchart(spec)
+          const img = await renderMermaidToPngDataUrl(mermaid, { width: 1200, height: 650 })
+
+          const imgWidthMm = pageWidth - 2 * margin
+          const imgHeightMm = (img.height / img.width) * imgWidthMm
+
+          addPageIfNeeded(imgHeightMm + 10)
+          doc.addImage(img.dataUrl, 'PNG', margin, y, imgWidthMm, imgHeightMm)
+          y += imgHeightMm + 8
+        } catch {
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9)
+          doc.setTextColor(120, 120, 120)
+          doc.text('Diagram rendering unavailable for this item.', margin, y)
+          y += 8
+        }
+      }
+    }
   }
 
   // ============ YELLOW LIGHTS ============

@@ -158,7 +158,7 @@ export function EnterpriseDiscoveryOrchestratorMVP({
   }, [session, isLiveMode, saveToLocalStorage, onSave, onPause, onCancel])
 
   // Handle end session with PDF export
-  const handleEndSession = useCallback(() => {
+  const handleEndSession = useCallback(async () => {
     const completedSession: EnterpriseDiscoverySessionMVP = {
       ...session,
       completedAt: Date.now(),
@@ -170,7 +170,7 @@ export function EnterpriseDiscoveryOrchestratorMVP({
     try {
       // For now, we'll use the existing export which may need adjustment
       // @ts-ignore - temporary compatibility
-      const fileName = exportEnterpriseDiscoveryToPDF(completedSession)
+      const fileName = await exportEnterpriseDiscoveryToPDF(completedSession)
       toast.success('Discovery session completed!', {
         description: `PDF exported as ${fileName}`,
       })
@@ -185,10 +185,10 @@ export function EnterpriseDiscoveryOrchestratorMVP({
   }, [session, isLiveMode, onComplete])
 
   // Handle PDF export
-  const handleExportPDF = useCallback(() => {
+  const handleExportPDF = useCallback(async () => {
     try {
       // @ts-ignore - temporary compatibility
-      const fileName = exportEnterpriseDiscoveryToPDF(session)
+      const fileName = await exportEnterpriseDiscoveryToPDF(session)
       toast.success('PDF exported successfully', {
         description: fileName,
       })

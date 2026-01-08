@@ -7,7 +7,7 @@
  * - AI-assisted free-text parsing for unstructured documents
  */
 
-import * as XLSX from 'xlsx'
+import readXlsxFile from 'read-excel-file'
 import mammoth from 'mammoth'
 import * as pdfjsLib from 'pdfjs-dist'
 
@@ -52,17 +52,24 @@ const COLUMN_VARIANTS = {
 
 export async function parseExcel(file: File): Promise<DocumentParseResult> {
   try {
-    const buffer = await file.arrayBuffer()
-    const workbook = XLSX.read(buffer, { type: 'array' })
-    
-    // Get first sheet
-    const sheetName = workbook.SheetNames[0]
-    const sheet = workbook.Sheets[sheetName]
-    
-    // Convert to JSON with header detection
-    const data = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' })
-    
-    if (data.length === 0) {
+    // Basic guardrails for user-supplied spreadsheets.
+    const MAX_EXCEL_BYTES = 10 * 1024 * 1024 // 10MB
+    if (file.size > MAX_EXCEL_BYTES) {
+      return {
+        success: false,
+        useCases: [],
+        warnings: [],
+        error: 'Excel file is too large (max 10MB). Please upload a smaller file.',
+        documentType: 'excel',
+        parseMethod: 'table',
+      }
+    }
+
+    // Read as arrays of values: string | number | boolean | Date | null.
+    // Avoids using untrusted header strings as object keys.
+    const rows = (await readXlsxFile(file)) as unknown[][]
+
+    if (rows.length < 2) {
       return {
         success: false,
         useCases: [],
@@ -72,9 +79,36 @@ export async function parseExcel(file: File): Promise<DocumentParseResult> {
         parseMethod: 'table',
       }
     }
+
+    const warnings: string[] = []
+
+    const MAX_ROWS = 5000
+    const MAX_COLS = 200
+    if (rows.length > MAX_ROWS) {
+      return {
+        success: false,
+        useCases: [],
+        warnings: [],
+        error: `Excel file has too many rows (${rows.length}). Please reduce to <= ${MAX_ROWS}.`,
+        documentType: 'excel',
+        parseMethod: 'table',
+      }
+    }
+
+    // Header row
+    const headerRow = rows[0] ?? []
+    const headers = (Array.isArray(headerRow) ? headerRow : [])
+      .slice(0, MAX_COLS)
+      .map((h) => String(h ?? '').trim())
+      .map((h) => (h.length > 200 ? h.slice(0, 200) : h))
+
+    const dangerous = new Set(['__proto__', 'prototype', 'constructor'])
+    const hasDangerousHeaders = headers.some((h) => dangerous.has(h.toLowerCase()))
+    if (hasDangerousHeaders) {
+      warnings.push('Some spreadsheet headers were ignored for safety.')
+    }
     
     // Detect column mappings
-    const headers = Object.keys(data[0])
     const columnMapping = detectColumnMapping(headers)
     
     if (!columnMapping.name) {
@@ -88,24 +122,51 @@ export async function parseExcel(file: File): Promise<DocumentParseResult> {
       }
     }
     
-    const warnings: string[] = []
     if (!columnMapping.problemStatement) warnings.push('No Problem Statement column found')
     if (!columnMapping.expectedBenefits) warnings.push('No Expected Benefits column found')
     if (!columnMapping.kpis) warnings.push('No KPIs column found')
+
+    const nameIndex = columnMapping.name ? headers.indexOf(columnMapping.name) : -1
+    const problemIndex = columnMapping.problemStatement ? headers.indexOf(columnMapping.problemStatement) : -1
+    const benefitsIndex = columnMapping.expectedBenefits ? headers.indexOf(columnMapping.expectedBenefits) : -1
+    const kpisIndex = columnMapping.kpis ? headers.indexOf(columnMapping.kpis) : -1
+
+    if (nameIndex < 0) {
+      return {
+        success: false,
+        useCases: [],
+        warnings,
+        error: 'Missing required column: Use Case Name',
+        documentType: 'excel',
+        parseMethod: 'table',
+      }
+    }
     
-    // Parse rows
-    const useCases: ParsedUseCase[] = data
-      .filter(row => row[columnMapping.name!]?.trim())
-      .map(row => ({
-        name: row[columnMapping.name!]?.trim() || '',
-        problemStatement: columnMapping.problemStatement ? row[columnMapping.problemStatement]?.trim() || '' : '',
-        expectedBenefits: columnMapping.expectedBenefits ? row[columnMapping.expectedBenefits]?.trim() || '' : '',
-        kpis: columnMapping.kpis 
-          ? parseKPIString(row[columnMapping.kpis])
-          : [],
-        parseConfidence: 'high' as const,
-        parseMethod: 'table' as const,
-      }))
+    const getCell = (row: unknown[], idx: number): string => {
+      if (idx < 0) return ''
+      const val = row[idx]
+      return String(val ?? '').trim()
+    }
+
+    // Parse rows (skip header)
+    const useCases: ParsedUseCase[] = rows
+      .slice(1)
+      .filter((row) => Array.isArray(row) && getCell(row, nameIndex))
+      .map((row) => {
+        const safeRow = row.slice(0, MAX_COLS)
+        const name = getCell(safeRow, nameIndex)
+        const problemStatement = getCell(safeRow, problemIndex)
+        const expectedBenefits = getCell(safeRow, benefitsIndex)
+        const kpisRaw = getCell(safeRow, kpisIndex)
+        return {
+          name,
+          problemStatement,
+          expectedBenefits,
+          kpis: kpisIndex >= 0 ? parseKPIString(kpisRaw) : [],
+          parseConfidence: 'high' as const,
+          parseMethod: 'table' as const,
+        }
+      })
     
     return {
       success: true,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -87,43 +87,8 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
   const [showTickerSuggestions, setShowTickerSuggestions] = useState(false)
   const [tickerAutoPopulated, setTickerAutoPopulated] = useState(false)
 
-  // Auto-populate from existing customer when customer name changes
-  useEffect(() => {
-    const customerName = metadata.customerName.trim().toLowerCase()
-    if (!customerName || tickerAutoPopulated) return
-
-    const existingCustomer = customers.find(
-      (c) => c.name.toLowerCase().trim() === customerName
-    )
-
-    if (existingCustomer && existingCustomer.stockTicker) {
-      setMetadata((current) => ({
-        ...current,
-        stockTicker: existingCustomer.stockTicker || '',
-      }))
-      setTickerAutoPopulated(true)
-      toast.success(`Ticker ${existingCustomer.stockTicker} loaded from previous session`)
-    }
-  }, [metadata.customerName, customers])
-
-  // Auto-search ticker when customer name has 3+ characters
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (
-        metadata.customerName.trim().length >= 3 && 
-        !metadata.stockTicker && 
-        !tickerAutoPopulated &&
-        !isSearchingTicker
-      ) {
-        handleTickerSearch()
-      }
-    }, 1500) // Debounce 1.5 seconds
-
-    return () => clearTimeout(timer)
-  }, [metadata.customerName])
-
   // Auto-search ticker when customer name is filled
-  const handleTickerSearch = async () => {
+  const handleTickerSearch = useCallback(async () => {
     if (!metadata.customerName.trim() || metadata.customerName.trim().length < 3) {
       toast.error('Please enter a customer name (minimum 3 characters)')
       return
@@ -148,7 +113,42 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
     } finally {
       setIsSearchingTicker(false)
     }
-  }
+  }, [metadata.customerName])
+
+  // Auto-populate from existing customer when customer name changes
+  useEffect(() => {
+    const customerName = metadata.customerName.trim().toLowerCase()
+    if (!customerName || tickerAutoPopulated) return
+
+    const existingCustomer = customers.find(
+      (c) => c.name.toLowerCase().trim() === customerName
+    )
+
+    if (existingCustomer && existingCustomer.stockTicker) {
+      setMetadata((current) => ({
+        ...current,
+        stockTicker: existingCustomer.stockTicker || '',
+      }))
+      setTickerAutoPopulated(true)
+      toast.success(`Ticker ${existingCustomer.stockTicker} loaded from previous session`)
+    }
+  }, [metadata.customerName, customers, tickerAutoPopulated])
+
+  // Auto-search ticker when customer name has 3+ characters
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (
+        metadata.customerName.trim().length >= 3 && 
+        !metadata.stockTicker && 
+        !tickerAutoPopulated &&
+        !isSearchingTicker
+      ) {
+        handleTickerSearch()
+      }
+    }, 1500) // Debounce 1.5 seconds
+
+    return () => clearTimeout(timer)
+  }, [metadata.customerName, metadata.stockTicker, tickerAutoPopulated, isSearchingTicker, handleTickerSearch])
 
   const handleSelectTicker = (ticker: TickerLookupResult) => {
     setMetadata((current) => ({

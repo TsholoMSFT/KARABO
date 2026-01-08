@@ -1,7 +1,22 @@
 import { UseCase, ScoringMethod, CustomerMetadata } from './types'
 import { calculateRICEScore, getQuadrant } from './scoring'
 import { getKPIById } from './kpis'
-import * as XLSX from 'xlsx'
+import writeXlsxFile from 'write-excel-file'
+
+type ExcelCell = {
+  value: string | number | boolean | Date | null | undefined
+  type?: StringConstructor | NumberConstructor | BooleanConstructor | DateConstructor | 'Formula'
+  fontWeight?: 'bold'
+}
+
+function cell(value: ExcelCell['value'], type?: ExcelCell['type'], extra?: Omit<ExcelCell, 'value' | 'type'>): ExcelCell {
+  if (extra) return { value, type, ...extra }
+  return { value, type }
+}
+
+function header(value: string): ExcelCell {
+  return { value, type: String, fontWeight: 'bold' }
+}
 
 export function formatEffort(personWeeks: number, unit: 'person-weeks' | 'fte' | 'man-hours'): string {
   switch (unit) {
@@ -95,110 +110,106 @@ export function exportToExcel(
   effortUnit: 'person-weeks' | 'fte' | 'man-hours',
   customerMetadata?: CustomerMetadata
 ) {
-  // Create workbook with multiple sheets
-  const workbook = XLSX.utils.book_new()
+  const fileName = `use-case-assessment-${new Date().toISOString().split('T')[0]}.xlsx`
 
-  // Sheet 1: Summary with metadata
-  const summaryData: any[] = []
+  // Sheet 1: Summary
+  const summaryRows: ExcelCell[][] = []
   if (customerMetadata) {
-    summaryData.push(['Customer Information'], [])
-    summaryData.push(['Customer Name:', customerMetadata.customerName])
-    summaryData.push(['Primary Stakeholder:', customerMetadata.primaryStakeholder])
-    summaryData.push(['Account Team Rep:', customerMetadata.accountTeamRep])
-    summaryData.push(['Innovation Hub Location:', customerMetadata.innovationHubLocation])
-    summaryData.push(['Solution Engineer:', customerMetadata.solutionEngineer])
+    summaryRows.push([cell('Customer Information', String, { fontWeight: 'bold' })])
+    summaryRows.push([cell('', String)])
+    summaryRows.push([cell('Customer Name:', String), cell(customerMetadata.customerName || '', String)])
+    summaryRows.push([cell('Primary Stakeholder:', String), cell(customerMetadata.primaryStakeholder || '', String)])
+    summaryRows.push([cell('Account Team Rep:', String), cell(customerMetadata.accountTeamRep || '', String)])
+    summaryRows.push([cell('Innovation Hub Location:', String), cell(customerMetadata.innovationHubLocation || '', String)])
+    summaryRows.push([cell('Solution Engineer:', String), cell(customerMetadata.solutionEngineer || '', String)])
     if (customerMetadata.executiveSummary) {
-      summaryData.push(['Executive Summary:', customerMetadata.executiveSummary])
+      summaryRows.push([cell('Executive Summary:', String), cell(customerMetadata.executiveSummary, String)])
     }
-    summaryData.push([])
+    summaryRows.push([cell('', String)])
   }
-  
-  summaryData.push(['Assessment Summary'], [])
-  summaryData.push(['Scoring Method:', scoringMethod === 'rice' ? 'RICE Framework' : 'Impact/Feasibility Matrix'])
-  summaryData.push(['Total Use Cases:', useCases.length])
-  summaryData.push(['Export Date:', new Date().toISOString().split('T')[0]])
-  summaryData.push(['Effort Unit:', effortUnit])
+  summaryRows.push([cell('Assessment Summary', String, { fontWeight: 'bold' })])
+  summaryRows.push([cell('', String)])
+  summaryRows.push([cell('Scoring Method:', String), cell(scoringMethod === 'rice' ? 'RICE Framework' : 'Impact/Feasibility Matrix', String)])
+  summaryRows.push([cell('Total Use Cases:', String), cell(useCases.length, Number)])
+  summaryRows.push([cell('Export Date:', String), cell(new Date().toISOString().split('T')[0], String)])
+  summaryRows.push([cell('Effort Unit:', String), cell(effortUnit, String)])
 
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
-
-  // Sheet 2: Detailed Use Cases
-  const headers: string[] = []
-  const rows: (string | number)[][] = []
-
+  // Sheet 2: Use Cases
+  const useCaseRows: ExcelCell[][] = []
   if (scoringMethod === 'rice') {
-    headers.push('Rank', 'Title', 'Description', 'KPIs', 'Reach', 'Impact (multiplier)', 'Confidence (%)', `Effort (${effortUnit})`, 'RICE Score')
-    
+    useCaseRows.push([
+      header('Rank'),
+      header('Title'),
+      header('Description'),
+      header('KPIs'),
+      header('Reach'),
+      header('Impact (multiplier)'),
+      header('Confidence (%)'),
+      header(`Effort (${effortUnit})`),
+      header('RICE Score'),
+    ])
+
     useCases.forEach((useCase, index) => {
       const kpiNames = (useCase.kpis || [])
         .map(kpiId => getKPIById(kpiId)?.name)
         .filter(Boolean)
         .join('; ')
-      
+
       const score = calculateRICEScore(useCase)
-      rows.push([
-        index + 1,
-        useCase.title,
-        useCase.description || '',
-        kpiNames,
-        useCase.rice.reach,
-        useCase.rice.impact,
-        useCase.rice.confidence,
-        formatEffort(useCase.rice.effort, effortUnit),
-        parseFloat(score.toFixed(2))
+      useCaseRows.push([
+        cell(index + 1, Number),
+        cell(useCase.title, String),
+        cell(useCase.description || '', String),
+        cell(kpiNames, String),
+        cell(useCase.rice.reach, Number),
+        cell(useCase.rice.impact, Number),
+        cell(useCase.rice.confidence, Number),
+        cell(formatEffort(useCase.rice.effort, effortUnit), String),
+        cell(parseFloat(score.toFixed(2)), Number),
       ])
     })
   } else {
-    headers.push('Rank', 'Title', 'Description', 'KPIs', 'Impact (1-10)', 'Feasibility (1-10)', 'Quadrant', 'Composite Score')
-    
+    useCaseRows.push([
+      header('Rank'),
+      header('Title'),
+      header('Description'),
+      header('KPIs'),
+      header('Impact (1-10)'),
+      header('Feasibility (1-10)'),
+      header('Quadrant'),
+      header('Composite Score'),
+    ])
+
     useCases.forEach((useCase, index) => {
       const kpiNames = (useCase.kpis || [])
         .map(kpiId => getKPIById(kpiId)?.name)
         .filter(Boolean)
         .join('; ')
-      
+
       const score = useCase.impact * useCase.feasibility
-      rows.push([
-        index + 1,
-        useCase.title,
-        useCase.description || '',
-        kpiNames,
-        useCase.impact,
-        useCase.feasibility,
-        getQuadrant(useCase.impact, useCase.feasibility),
-        parseFloat(score.toFixed(2))
+      useCaseRows.push([
+        cell(index + 1, Number),
+        cell(useCase.title, String),
+        cell(useCase.description || '', String),
+        cell(kpiNames, String),
+        cell(useCase.impact, Number),
+        cell(useCase.feasibility, Number),
+        cell(getQuadrant(useCase.impact, useCase.feasibility), String),
+        cell(parseFloat(score.toFixed(2)), Number),
       ])
     })
   }
 
-  const detailSheet = XLSX.utils.aoa_to_sheet([headers, ...rows])
-  // Format header row
-  const range = XLSX.utils.decode_range(detailSheet['!ref'] || 'A1')
-  for (let col = range.s.c; col <= range.e.c; col++) {
-    const cell_address = XLSX.utils.encode_col(col) + '1'
-    if (!detailSheet[cell_address]) continue
-    detailSheet[cell_address].fill = { patternType: 'solid', fgColor: { rgb: 'FF4472C4' } }
-    detailSheet[cell_address].font = { bold: true, color: { rgb: 'FFFFFFFF' } }
-  }
-  
-  // Set column widths
-  detailSheet['!cols'] = [
-    { wch: 6 },
-    { wch: 25 },
-    { wch: 40 },
-    { wch: 30 },
-    { wch: 12 },
-    { wch: 15 },
-    { wch: 15 },
-    { wch: 18 },
-    { wch: 16 }
-  ]
+  const summaryColumns = [{ width: 28 }, { width: 70 }]
+  const useCasesColumns = scoringMethod === 'rice'
+    ? [{ width: 6 }, { width: 26 }, { width: 50 }, { width: 30 }, { width: 12 }, { width: 16 }, { width: 16 }, { width: 18 }, { width: 12 }]
+    : [{ width: 6 }, { width: 26 }, { width: 50 }, { width: 30 }, { width: 12 }, { width: 16 }, { width: 18 }, { width: 14 }]
 
-  XLSX.utils.book_append_sheet(workbook, detailSheet, 'Use Cases')
-
-  // Generate and download
-  const fileName = `use-case-assessment-${new Date().toISOString().split('T')[0]}.xlsx`
-  XLSX.writeFile(workbook, fileName)
+  void writeXlsxFile([summaryRows, useCaseRows], {
+    fileName,
+    sheets: ['Summary', 'Use Cases'],
+    columns: [summaryColumns, useCasesColumns],
+  })
 }
 export function exportToJSON(
   useCases: UseCase[],

@@ -1,249 +1,273 @@
-import * as XLSX from 'xlsx'
+import writeXlsxFile from 'write-excel-file'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
 import { calculateTotalCOI } from '@/lib/financial-calculations'
 
-export function exportEnterpriseDiscoveryToExcel(session: EnterpriseDiscoverySession): string {
-  const workbook = XLSX.utils.book_new()
+type ExcelCell = {
+  value: string | number | boolean | Date | null | undefined
+  type?: StringConstructor | NumberConstructor | BooleanConstructor | DateConstructor | 'Formula'
+  fontWeight?: 'bold'
+}
 
-  // ============ SUMMARY SHEET ============
-  const summaryData = [
-    ['Microsoft Innovation Hub - Enterprise Discovery Report'],
-    [''],
-    ['Client Name', session.clientName || 'Unnamed'],
-    ['Session Date', new Date(session.sessionDate).toLocaleDateString()],
-    ['Discovery Type', session.discoveryType],
-    ['Completed', session.completedAt ? 'Yes' : 'No'],
-    ['Stages Completed', Object.values(session.stages).filter(s => s.status === 'completed').length + ' of 9'],
-    [''],
-    ['Attendees'],
-    ...session.attendees.map(a => [`  ${a.name}`, a.role]),
+function cell(value: ExcelCell['value'], type?: ExcelCell['type'], extra?: Omit<ExcelCell, 'value' | 'type'>): ExcelCell {
+  if (extra) return { value, type, ...extra }
+  return { value, type }
+}
+
+function header(value: string): ExcelCell {
+  return { value, type: String, fontWeight: 'bold' }
+}
+
+export function exportEnterpriseDiscoveryToExcel(session: EnterpriseDiscoverySession): string {
+  const summarySheet: ExcelCell[][] = [
+    [cell('Microsoft Innovation Hub - Enterprise Discovery Report', String, { fontWeight: 'bold' })],
+    [cell('', String)],
+    [cell('Client Name', String), cell(session.clientName || 'Unnamed', String)],
+    [cell('Session Date', String), cell(new Date(session.sessionDate).toLocaleDateString(), String)],
+    [cell('Discovery Type', String), cell(session.discoveryType, String)],
+    [cell('Completed', String), cell(session.completedAt ? 'Yes' : 'No', String)],
+    [cell('Stages Completed', String), cell(`${Object.values(session.stages).filter(s => s.status === 'completed').length} of 9`, String)],
+    [cell('', String)],
+    [cell('Attendees', String, { fontWeight: 'bold' }), cell('', String)],
+    ...session.attendees.map(a => [cell(`  ${a.name}`, String), cell(a.role, String)]),
   ]
-  
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
+
+  const sheets: string[] = ['Summary']
+  const data: ExcelCell[][][] = [summarySheet]
+  const columns: Array<Array<{ width?: number }>> = [[{ width: 30 }, { width: 70 }]]
 
   // ============ STAGE 1: OPPORTUNITY ============
   const stage1Data = session.stages[1].data
   if (stage1Data) {
-    const opportunityData = [
-      ['Stage 1: Opportunity'],
-      [''],
-      ['Problem Statement', stage1Data.problemStatement || ''],
-      ['Problem Category', stage1Data.problemCategory || ''],
-      ['Affected Area', stage1Data.affectedArea || ''],
-      [''],
-      ['Desired Outcome', stage1Data.desiredOutcome || ''],
-      ['Timeline Expectation', stage1Data.timelineExpectation || ''],
-      [''],
-      ['Success Metrics'],
-      ...(stage1Data.successMetrics || []).map((m: string) => [`  ${m}`]),
-      [''],
-      ['SCQ Framework'],
-      ['Situation', stage1Data.scq?.situation || ''],
-      ['Complication', stage1Data.scq?.complication || ''],
-      ['Question', stage1Data.scq?.question || ''],
-      [''],
-      ['Cost of Inaction'],
-      ['Direct Costs (One-time)', stage1Data.coi?.directCosts?.oneTime || 0],
-      ['Direct Costs (Monthly)', stage1Data.coi?.directCosts?.recurring || 0],
-      ['Opportunity Costs (One-time)', stage1Data.coi?.opportunityCosts?.oneTime || 0],
-      ['Opportunity Costs (Monthly)', stage1Data.coi?.opportunityCosts?.recurring || 0],
-      ['Risk Costs (One-time)', stage1Data.coi?.riskCosts?.oneTime || 0],
-      ['Risk Probability (%)', stage1Data.coi?.riskCosts?.oneTimeProbability || 0],
-      ['Risk Costs (Monthly)', stage1Data.coi?.riskCosts?.recurring || 0],
-      ['Total Annual COI', stage1Data.coi ? calculateTotalCOI(stage1Data.coi) : 0],
+    const opportunitySheet: ExcelCell[][] = [
+      [cell('Stage 1: Opportunity', String, { fontWeight: 'bold' })],
+      [cell('', String)],
+      [cell('Problem Statement', String), cell(stage1Data.problemStatement || '', String)],
+      [cell('Problem Category', String), cell(stage1Data.problemCategory || '', String)],
+      [cell('Affected Area', String), cell(stage1Data.affectedArea || '', String)],
+      [cell('', String)],
+      [cell('Desired Outcome', String), cell(stage1Data.desiredOutcome || '', String)],
+      [cell('Timeline Expectation', String), cell(stage1Data.timelineExpectation || '', String)],
+      [cell('', String)],
+      [cell('Success Metrics', String, { fontWeight: 'bold' })],
+      ...((stage1Data.successMetrics || []) as string[]).map((m: string) => [cell(`  ${m}`, String)]),
+      [cell('', String)],
+      [cell('SCQ Framework', String, { fontWeight: 'bold' })],
+      [cell('Situation', String), cell(stage1Data.scq?.situation || '', String)],
+      [cell('Complication', String), cell(stage1Data.scq?.complication || '', String)],
+      [cell('Question', String), cell(stage1Data.scq?.question || '', String)],
+      [cell('', String)],
+      [cell('Cost of Inaction', String, { fontWeight: 'bold' })],
+      [cell('Direct Costs (One-time)', String), cell(stage1Data.coi?.directCosts?.oneTime || 0, Number)],
+      [cell('Direct Costs (Monthly)', String), cell(stage1Data.coi?.directCosts?.recurring || 0, Number)],
+      [cell('Opportunity Costs (One-time)', String), cell(stage1Data.coi?.opportunityCosts?.oneTime || 0, Number)],
+      [cell('Opportunity Costs (Monthly)', String), cell(stage1Data.coi?.opportunityCosts?.recurring || 0, Number)],
+      [cell('Risk Costs (One-time)', String), cell(stage1Data.coi?.riskCosts?.oneTime || 0, Number)],
+      [cell('Risk Probability (%)', String), cell(stage1Data.coi?.riskCosts?.oneTimeProbability || 0, Number)],
+      [cell('Risk Costs (Monthly)', String), cell(stage1Data.coi?.riskCosts?.recurring || 0, Number)],
+      [cell('Total Annual COI', String), cell(stage1Data.coi ? calculateTotalCOI(stage1Data.coi) : 0, Number)],
     ]
-    
-    const opportunitySheet = XLSX.utils.aoa_to_sheet(opportunityData)
-    XLSX.utils.book_append_sheet(workbook, opportunitySheet, 'Opportunity')
+    sheets.push('Opportunity')
+    data.push(opportunitySheet)
+    columns.push([{ width: 30 }, { width: 80 }])
   }
 
   // ============ STAGE 2: RESOURCES ============
   const stage2Data = session.stages[2].data
   if (stage2Data) {
-    const resourcesData = [
-      ['Stage 2: Resources'],
-      [''],
-      ['Financial'],
-      ['Budget Status', stage2Data.budgetStatus || ''],
-      ['Budget Range', stage2Data.budgetRange || ''],
-      ['ROI Expectation', stage2Data.roiExpectation || ''],
-      ['Budget Owner', stage2Data.budgetOwner || ''],
-      [''],
-      ['Human Resources'],
-      ['Executive Sponsor', stage2Data.executiveSponsor || ''],
-      ['Project Lead', stage2Data.projectLead || ''],
-      ['Team Capacity', stage2Data.teamCapacity || ''],
-      ['Change Readiness', stage2Data.changeReadiness || ''],
-      [''],
-      ['Technical'],
-      ['Data Availability', stage2Data.dataAvailability || ''],
-      ['Technical Debt Concerns', stage2Data.technicalDebtConcerns || ''],
-      [''],
-      ['Existing Platforms'],
-      ...(stage2Data.existingPlatforms || []).map((p: string) => [`  ${p}`]),
-      [''],
-      ['Integration Requirements'],
-      ...(stage2Data.integrationRequirements || []).map((r: string) => [`  ${r}`]),
+    const resourcesSheet: ExcelCell[][] = [
+      [cell('Stage 2: Resources', String, { fontWeight: 'bold' })],
+      [cell('', String)],
+      [cell('Financial', String, { fontWeight: 'bold' })],
+      [cell('Budget Status', String), cell(stage2Data.budgetStatus || '', String)],
+      [cell('Budget Range', String), cell(stage2Data.budgetRange || '', String)],
+      [cell('ROI Expectation', String), cell(stage2Data.roiExpectation || '', String)],
+      [cell('Budget Owner', String), cell(stage2Data.budgetOwner || '', String)],
+      [cell('', String)],
+      [cell('Human Resources', String, { fontWeight: 'bold' })],
+      [cell('Executive Sponsor', String), cell(stage2Data.executiveSponsor || '', String)],
+      [cell('Project Lead', String), cell(stage2Data.projectLead || '', String)],
+      [cell('Team Capacity', String), cell(stage2Data.teamCapacity || '', String)],
+      [cell('Change Readiness', String), cell(stage2Data.changeReadiness || '', String)],
+      [cell('', String)],
+      [cell('Technical', String, { fontWeight: 'bold' })],
+      [cell('Data Availability', String), cell(stage2Data.dataAvailability || '', String)],
+      [cell('Technical Debt Concerns', String), cell(stage2Data.technicalDebtConcerns || '', String)],
+      [cell('', String)],
+      [cell('Existing Platforms', String, { fontWeight: 'bold' })],
+      ...((stage2Data.existingPlatforms || []) as string[]).map((p: string) => [cell(`  ${p}`, String)]),
+      [cell('', String)],
+      [cell('Integration Requirements', String, { fontWeight: 'bold' })],
+      ...((stage2Data.integrationRequirements || []) as string[]).map((r: string) => [cell(`  ${r}`, String)]),
     ]
-    
-    const resourcesSheet = XLSX.utils.aoa_to_sheet(resourcesData)
-    XLSX.utils.book_append_sheet(workbook, resourcesSheet, 'Resources')
+    sheets.push('Resources')
+    data.push(resourcesSheet)
+    columns.push([{ width: 30 }, { width: 80 }])
   }
 
   // ============ STAGE 4: PRIORITISATION ============
   const stage4Data = session.stages[4].data
   if (stage4Data?.opportunities && stage4Data.opportunities.length > 0) {
-    const prioData = [
-      ['Stage 4: Prioritisation (RICE Scoring)'],
-      [''],
-      ['Title', 'Reach', 'Impact', 'Confidence', 'Effort', 'RICE Score', 'Recommended'],
+    const prioSheet: ExcelCell[][] = [
+      [cell('Stage 4: Prioritisation (RICE Scoring)', String, { fontWeight: 'bold' })],
+      [cell('', String)],
+      [header('Title'), header('Reach'), header('Impact'), header('Confidence'), header('Effort'), header('RICE Score'), header('Recommended')],
       ...stage4Data.opportunities.map((opp: any) => [
-        opp.title,
-        opp.rice?.reach || 0,
-        opp.rice?.impact || 0,
-        opp.rice?.confidence || 0,
-        opp.rice?.effort || 0,
-        opp.rice?.score || 0,
-        opp.id === stage4Data.recommendedOpportunityId ? 'Yes' : ''
+        cell(opp.title || '', String),
+        cell(opp.rice?.reach || 0, Number),
+        cell(opp.rice?.impact || 0, Number),
+        cell(opp.rice?.confidence || 0, Number),
+        cell(opp.rice?.effort || 0, Number),
+        cell(opp.rice?.score || 0, Number),
+        cell(opp.id === stage4Data.recommendedOpportunityId ? 'Yes' : '', String),
       ])
     ]
-    
-    const prioSheet = XLSX.utils.aoa_to_sheet(prioData)
-    XLSX.utils.book_append_sheet(workbook, prioSheet, 'Prioritisation')
+    sheets.push('Prioritisation')
+    data.push(prioSheet)
+    columns.push([{ width: 30 }, { width: 12 }, { width: 12 }, { width: 14 }, { width: 10 }, { width: 12 }, { width: 12 }])
   }
 
   // ============ STAGE 5: SOLUTION SCOPE ============
   const stage5Data = session.stages[5].data
   if (stage5Data) {
     // Revenue Impact
-    const revenueData = [
-      ['Stage 5: Solution Scope - Revenue Impact'],
-      [''],
-      ['Driver Type', 'Annual Value', 'Enabled'],
-      ...(stage5Data.revenueImpact?.drivers || []).map((d: any) => [
-        d.type?.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || '',
-        d.calculatedAnnualValue || 0,
-        d.enabled ? 'Yes' : 'No'
+    const revenueSheet: ExcelCell[][] = [
+      [cell('Stage 5: Solution Scope - Revenue Impact', String, { fontWeight: 'bold' })],
+      [cell('', String)],
+      [header('Driver Type'), header('Annual Value'), header('Enabled')],
+      ...((stage5Data.revenueImpact?.drivers || []) as any[]).map((d: any) => [
+        cell(d.type?.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || '', String),
+        cell(d.calculatedAnnualValue || 0, Number),
+        cell(d.enabled ? 'Yes' : 'No', String),
       ]),
-      [''],
-      ['Total Revenue Impact', stage5Data.revenueImpact?.totalAnnualRevenue || 0],
+      [cell('', String)],
+      [cell('Total Revenue Impact', String), cell(stage5Data.revenueImpact?.totalAnnualRevenue || 0, Number)],
     ]
-    const revenueSheet = XLSX.utils.aoa_to_sheet(revenueData)
-    XLSX.utils.book_append_sheet(workbook, revenueSheet, 'Revenue Impact')
+    sheets.push('Revenue Impact')
+    data.push(revenueSheet)
+    columns.push([{ width: 34 }, { width: 18 }, { width: 10 }])
 
     // Cost Impact
-    const costData = [
-      ['Stage 5: Solution Scope - Cost Impact'],
-      [''],
-      ['Driver Type', 'Annual Value', 'FTE Equivalent', 'P&L Line', 'Enabled'],
-      ...(stage5Data.costImpact?.drivers || []).map((d: any) => [
-        d.type?.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || '',
-        d.calculatedAnnualValue || 0,
-        d.fteEquivalent || 0,
-        d.plLine || '',
-        d.enabled ? 'Yes' : 'No'
+    const costSheet: ExcelCell[][] = [
+      [cell('Stage 5: Solution Scope - Cost Impact', String, { fontWeight: 'bold' })],
+      [cell('', String)],
+      [header('Driver Type'), header('Annual Value'), header('FTE Equivalent'), header('P&L Line'), header('Enabled')],
+      ...((stage5Data.costImpact?.drivers || []) as any[]).map((d: any) => [
+        cell(d.type?.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || '', String),
+        cell(d.calculatedAnnualValue || 0, Number),
+        cell(d.fteEquivalent || 0, Number),
+        cell(d.plLine || '', String),
+        cell(d.enabled ? 'Yes' : 'No', String),
       ]),
-      [''],
-      ['Total Cost Savings', stage5Data.costImpact?.totalAnnualSavings || 0],
-      ['Total FTE Equivalent', stage5Data.costImpact?.totalFTEEquivalent || 0],
+      [cell('', String)],
+      [cell('Total Cost Savings', String), cell(stage5Data.costImpact?.totalAnnualSavings || 0, Number)],
+      [cell('Total FTE Equivalent', String), cell(stage5Data.costImpact?.totalFTEEquivalent || 0, Number)],
     ]
-    const costSheet = XLSX.utils.aoa_to_sheet(costData)
-    XLSX.utils.book_append_sheet(workbook, costSheet, 'Cost Impact')
+    sheets.push('Cost Impact')
+    data.push(costSheet)
+    columns.push([{ width: 34 }, { width: 18 }, { width: 16 }, { width: 18 }, { width: 10 }])
 
     // Balance Sheet
-    const bsData = [
-      ['Stage 5: Solution Scope - Balance Sheet & Cash Flow'],
-      [''],
-      ['Driver Type', 'Value', 'Cash Flow Impact', 'Enabled'],
-      ...(stage5Data.balanceSheetCashFlow?.drivers || []).map((d: any) => [
-        d.type?.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || '',
-        d.calculatedValue || 0,
-        d.cashFlowImpact || 0,
-        d.enabled ? 'Yes' : 'No'
+    const bsSheet: ExcelCell[][] = [
+      [cell('Stage 5: Solution Scope - Balance Sheet & Cash Flow', String, { fontWeight: 'bold' })],
+      [cell('', String)],
+      [header('Driver Type'), header('Value'), header('Cash Flow Impact'), header('Enabled')],
+      ...((stage5Data.balanceSheetCashFlow?.drivers || []) as any[]).map((d: any) => [
+        cell(d.type?.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || '', String),
+        cell(d.calculatedValue || 0, Number),
+        cell(d.cashFlowImpact || 0, Number),
+        cell(d.enabled ? 'Yes' : 'No', String),
       ]),
-      [''],
-      ['Total Working Capital Impact', stage5Data.balanceSheetCashFlow?.totalWorkingCapitalImpact || 0],
-      ['Total Cash Flow Impact', stage5Data.balanceSheetCashFlow?.totalCashFlowImpact || 0],
+      [cell('', String)],
+      [cell('Total Working Capital Impact', String), cell(stage5Data.balanceSheetCashFlow?.totalWorkingCapitalImpact || 0, Number)],
+      [cell('Total Cash Flow Impact', String), cell(stage5Data.balanceSheetCashFlow?.totalCashFlowImpact || 0, Number)],
     ]
-    const bsSheet = XLSX.utils.aoa_to_sheet(bsData)
-    XLSX.utils.book_append_sheet(workbook, bsSheet, 'Balance Sheet')
+    sheets.push('Balance Sheet')
+    data.push(bsSheet)
+    columns.push([{ width: 34 }, { width: 16 }, { width: 18 }, { width: 10 }])
   }
 
   // ============ STAGE 8: FINANCIAL SUMMARY ============
   const stage8Data = session.stages[8].data
   if (stage8Data) {
-    const financialSummary = [
-      ['Stage 8: Financial Summary'],
-      [''],
-      ['Investment Analysis'],
-      ['Total Investment (Year 1)', stage8Data.investmentAnalysis?.totalInvestmentYear1 || 0],
-      ['Annual Benefit', stage8Data.investmentAnalysis?.totalAnnualBenefit || 0],
-      ['Payback Period (Months)', stage8Data.investmentAnalysis?.simplePaybackMonths || 0],
-      ['3-Year ROI (%)', stage8Data.investmentAnalysis?.roi3Year || 0],
-      ['NPV (10%)', stage8Data.investmentAnalysis?.npv10Percent || 0],
-      ['IRR (%)', stage8Data.investmentAnalysis?.irr || 0],
-      [''],
-      ['Sensitivity Analysis'],
-      ['', 'Conservative', 'Base', 'Optimistic'],
-      ['Annual Benefit', 
-        stage8Data.sensitivityAnalysis?.conservative?.annualBenefit || 0,
-        stage8Data.sensitivityAnalysis?.base?.annualBenefit || 0,
-        stage8Data.sensitivityAnalysis?.optimistic?.annualBenefit || 0
+    const financialSheet: ExcelCell[][] = [
+      [cell('Stage 8: Financial Summary', String, { fontWeight: 'bold' })],
+      [cell('', String)],
+      [cell('Investment Analysis', String, { fontWeight: 'bold' })],
+      [cell('Total Investment (Year 1)', String), cell(stage8Data.investmentAnalysis?.totalInvestmentYear1 || 0, Number)],
+      [cell('Annual Benefit', String), cell(stage8Data.investmentAnalysis?.totalAnnualBenefit || 0, Number)],
+      [cell('Payback Period (Months)', String), cell(stage8Data.investmentAnalysis?.simplePaybackMonths || 0, Number)],
+      [cell('3-Year ROI (%)', String), cell(stage8Data.investmentAnalysis?.roi3Year || 0, Number)],
+      [cell('NPV (10%)', String), cell(stage8Data.investmentAnalysis?.npv10Percent || 0, Number)],
+      [cell('IRR (%)', String), cell(stage8Data.investmentAnalysis?.irr || 0, Number)],
+      [cell('', String)],
+      [cell('Sensitivity Analysis', String, { fontWeight: 'bold' })],
+      [cell('', String), cell('Conservative', String, { fontWeight: 'bold' }), cell('Base', String, { fontWeight: 'bold' }), cell('Optimistic', String, { fontWeight: 'bold' })],
+      [
+        cell('Annual Benefit', String),
+        cell(stage8Data.sensitivityAnalysis?.conservative?.annualBenefit || 0, Number),
+        cell(stage8Data.sensitivityAnalysis?.base?.annualBenefit || 0, Number),
+        cell(stage8Data.sensitivityAnalysis?.optimistic?.annualBenefit || 0, Number),
       ],
-      ['Payback (Months)',
-        stage8Data.sensitivityAnalysis?.conservative?.paybackMonths || 0,
-        stage8Data.sensitivityAnalysis?.base?.paybackMonths || 0,
-        stage8Data.sensitivityAnalysis?.optimistic?.paybackMonths || 0
+      [
+        cell('Payback (Months)', String),
+        cell(stage8Data.sensitivityAnalysis?.conservative?.paybackMonths || 0, Number),
+        cell(stage8Data.sensitivityAnalysis?.base?.paybackMonths || 0, Number),
+        cell(stage8Data.sensitivityAnalysis?.optimistic?.paybackMonths || 0, Number),
       ],
-      ['3-Year ROI (%)',
-        stage8Data.sensitivityAnalysis?.conservative?.roi3Year || 0,
-        stage8Data.sensitivityAnalysis?.base?.roi3Year || 0,
-        stage8Data.sensitivityAnalysis?.optimistic?.roi3Year || 0
+      [
+        cell('3-Year ROI (%)', String),
+        cell(stage8Data.sensitivityAnalysis?.conservative?.roi3Year || 0, Number),
+        cell(stage8Data.sensitivityAnalysis?.base?.roi3Year || 0, Number),
+        cell(stage8Data.sensitivityAnalysis?.optimistic?.roi3Year || 0, Number),
       ],
-      ['NPV',
-        stage8Data.sensitivityAnalysis?.conservative?.npv || 0,
-        stage8Data.sensitivityAnalysis?.base?.npv || 0,
-        stage8Data.sensitivityAnalysis?.optimistic?.npv || 0
+      [
+        cell('NPV', String),
+        cell(stage8Data.sensitivityAnalysis?.conservative?.npv || 0, Number),
+        cell(stage8Data.sensitivityAnalysis?.base?.npv || 0, Number),
+        cell(stage8Data.sensitivityAnalysis?.optimistic?.npv || 0, Number),
       ],
-      [''],
-      ['P&L Impact - Year 1'],
-      ['Revenue Impact', stage8Data.plImpact?.year1?.revenueImpact || 0],
-      ['COGS Impact', stage8Data.plImpact?.year1?.cogsImpact || 0],
-      ['Gross Margin Impact', stage8Data.plImpact?.year1?.grossMarginImpact || 0],
-      ['OpEx Impact', stage8Data.plImpact?.year1?.opexImpact || 0],
-      ['EBIT Impact', stage8Data.plImpact?.year1?.ebitImpact || 0],
+      [cell('', String)],
+      [cell('P&L Impact - Year 1', String, { fontWeight: 'bold' })],
+      [cell('Revenue Impact', String), cell(stage8Data.plImpact?.year1?.revenueImpact || 0, Number)],
+      [cell('COGS Impact', String), cell(stage8Data.plImpact?.year1?.cogsImpact || 0, Number)],
+      [cell('Gross Margin Impact', String), cell(stage8Data.plImpact?.year1?.grossMarginImpact || 0, Number)],
+      [cell('OpEx Impact', String), cell(stage8Data.plImpact?.year1?.opexImpact || 0, Number)],
+      [cell('EBIT Impact', String), cell(stage8Data.plImpact?.year1?.ebitImpact || 0, Number)],
     ]
-    
-    const financialSheet = XLSX.utils.aoa_to_sheet(financialSummary)
-    XLSX.utils.book_append_sheet(workbook, financialSheet, 'Financial Summary')
+    sheets.push('Financial Summary')
+    data.push(financialSheet)
+    columns.push([{ width: 30 }, { width: 18 }, { width: 18 }, { width: 18 }])
   }
 
   // ============ YELLOW LIGHTS ============
   if (session.allYellowLights && session.allYellowLights.length > 0) {
-    const yellowLightsData = [
-      ['Yellow Lights & Concerns'],
-      [''],
-      ['Description', 'Severity', 'Stage Identified', 'Resolution Plan', 'Owner', 'Resolved'],
+    const yellowLightsSheet: ExcelCell[][] = [
+      [cell('Yellow Lights & Concerns', String, { fontWeight: 'bold' })],
+      [cell('', String)],
+      [header('Description'), header('Severity'), header('Stage Identified'), header('Resolution Plan'), header('Owner'), header('Resolved')],
       ...session.allYellowLights.map(light => [
-        light.description,
-        light.severity,
-        light.stageIdentified,
-        light.resolutionPlan || '',
-        light.owner || '',
-        light.resolved ? 'Yes' : 'No'
+        cell(light.description, String),
+        cell(light.severity, String),
+        cell(light.stageIdentified, Number),
+        cell(light.resolutionPlan || '', String),
+        cell(light.owner || '', String),
+        cell(light.resolved ? 'Yes' : 'No', String),
       ])
     ]
-    
-    const yellowLightsSheet = XLSX.utils.aoa_to_sheet(yellowLightsData)
-    XLSX.utils.book_append_sheet(workbook, yellowLightsSheet, 'Yellow Lights')
+    sheets.push('Yellow Lights')
+    data.push(yellowLightsSheet)
+    columns.push([{ width: 50 }, { width: 12 }, { width: 14 }, { width: 30 }, { width: 18 }, { width: 10 }])
   }
 
   // Generate filename and save
   const clientSlug = (session.clientName || 'discovery').toLowerCase().replace(/\s+/g, '-').slice(0, 30)
   const fileName = `enterprise-discovery-${clientSlug}-${new Date().toISOString().split('T')[0]}.xlsx`
-  
-  XLSX.writeFile(workbook, fileName)
-  
+
+  void writeXlsxFile(data, {
+    fileName,
+    sheets,
+    columns,
+  })
+
   return fileName
 }
