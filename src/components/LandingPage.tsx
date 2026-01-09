@@ -18,13 +18,15 @@ import {
   HardHat,
   ShoppingCart,
   Bank,
-  FileText
+  FileText,
+  TreeStructure
 } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 
 interface LandingPageProps {
   customers: Customer[]
   onStartNew: () => void
+  onStartAIAssessment?: () => void
   onStartEnterpriseDiscovery: () => void
   onStartNotesAnalysis?: () => void
   onViewExisting: () => void
@@ -36,6 +38,7 @@ interface LandingPageProps {
 export function LandingPage({ 
   customers, 
   onStartNew, 
+  onStartAIAssessment,
   onStartEnterpriseDiscovery,
   onStartNotesAnalysis, 
   onViewExisting,
@@ -102,7 +105,7 @@ export function LandingPage({
           </motion.div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* Quick Discovery Card */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -246,6 +249,55 @@ export function LandingPage({
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* AI Assessment Card */}
+          {onStartAIAssessment && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.67 }}
+            >
+              <Card className="h-full border-2 border-purple-500/40 hover:shadow-lg transition-all duration-300 hover:border-purple-500 bg-gradient-to-br from-purple-500/5 to-transparent">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-500/10">
+                      <TreeStructure size={28} weight="duotone" className="text-purple-600" />
+                    </div>
+                    <Badge variant="outline" className="text-xs">Process</Badge>
+                  </div>
+                  <CardTitle className="text-xl">AI Assessment</CardTitle>
+                  <CardDescription className="text-sm">
+                    Structured process analysis to refine agent opportunities
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <TreeStructure size={16} weight="duotone" className="mt-0.5 text-purple-600 flex-shrink-0" />
+                      <span>Map workflows, handoffs, and constraints</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-purple-600 flex-shrink-0" />
+                      <span>Generate value + feasibility analysis</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-purple-600 flex-shrink-0" />
+                      <span>Feed the portfolio prioritization matrix</span>
+                    </li>
+                  </ul>
+                  <Separator />
+                  <Button
+                    onClick={onStartAIAssessment}
+                    className="w-full gap-2 bg-purple-600 hover:bg-purple-700"
+                    size="lg"
+                  >
+                    <Sparkle size={20} weight="duotone" />
+                    AI Assessment
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Continue Existing Card */}
           <motion.div

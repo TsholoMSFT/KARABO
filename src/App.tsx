@@ -19,6 +19,7 @@ import { DiscoveryLauncher } from '@/components/DiscoveryLauncher'
 import { DiscoveryWizard } from '@/components/DiscoveryWizard'
 import { DiscoveryResults } from '@/components/DiscoveryResults'
 import { DiscoveryNotesInput } from '@/components/DiscoveryNotesInput'
+import { AIAssessmentWorkflow } from '@/components/AIAssessmentWorkflow'
 import { LiveDiscoveryMode } from '@/components/LiveDiscoveryMode'
 import { LiveDiscoverySetup } from '@/components/LiveDiscoverySetup'
 import { SessionManager } from '@/components/SessionManager'
@@ -47,6 +48,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -54,7 +56,7 @@ import { Footer } from '@/components/ui/footer'
 import { ImportUseCasesDialog } from '@/components/ImportUseCasesDialog'
 import type { ExtractedUseCase } from '@/lib/use-case-extraction'
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'ai-assessment' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -78,7 +80,7 @@ function App() {
   const [comparingSessions, setComparingSessions] = useState<DiscoverySession[]>([])
   const [sessionState, setSessionState] = useState<SessionState | null>(null)
   const [pendingSessionMetadata, setPendingSessionMetadata] = useState<SessionMetadata | null>(null)
-  const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live'>('standard')
+  const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live' | 'ai-assessment'>('standard')
   const [notesSession, setNotesSession] = useState<{ metadata: SessionMetadata; notes: string; extractedUseCases: ExtractedUseCase[] } | null>(null)
   const [scoringMethod, setScoringMethod] = useState<ScoringMethod>('impact-feasibility')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -91,6 +93,7 @@ function App() {
   const [showRiceDesc, setShowRiceDesc] = useState(false)
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [postQuickDiscoveryGateOpen, setPostQuickDiscoveryGateOpen] = useState(false)
 
   const filteredSessions = selectedCustomerId 
     ? discoverySessions?.filter((s) => s.customerId === selectedCustomerId) || []
@@ -207,6 +210,14 @@ function App() {
     toast.success(`Imported ${newUseCases.length} use case${newUseCases.length !== 1 ? 's' : ''} successfully!`)
   }
 
+  const handleUpsertUseCasesForSession = (sessionId: string, nextForSession: UseCase[]) => {
+    setUseCases((current) => {
+      const existing = current || []
+      const others = existing.filter((uc) => uc.discoverySessionId !== sessionId)
+      return [...others, ...nextForSession]
+    })
+  }
+
   const handleDeleteUseCase = (id: string) => {
     setUseCases((current) => (current || []).filter((uc) => uc.id !== id))
     toast.success('Use case deleted')
@@ -232,6 +243,18 @@ function App() {
     setSessionState(null)
     setPendingSessionMetadata(null)
     setDiscoveryMode('standard')
+    setCurrentView('session-metadata')
+  }
+
+  const handleStartAIAssessment = () => {
+    if (selectedSessionId && selectedSession) {
+      setCurrentView('ai-assessment')
+      return
+    }
+
+    setSessionState(null)
+    setPendingSessionMetadata(null)
+    setDiscoveryMode('ai-assessment')
     setCurrentView('session-metadata')
   }
 
@@ -369,6 +392,35 @@ function App() {
   }
   
   const handleSessionMetadataSubmit = (metadata: SessionMetadata) => {
+    if (discoveryMode === 'ai-assessment') {
+      const session: DiscoverySession = {
+        id: `ai-${Date.now()}`,
+        customerId: '',
+        customerName: metadata.customerName,
+        innovationHubSPOC: metadata.innovationHubSPOC,
+        primaryStakeholder: metadata.primaryStakeholder,
+        accountTeamRep: metadata.accountTeamRep,
+        innovationHubLocation: metadata.innovationHubLocation,
+        solutionEngineer: metadata.solutionEngineer,
+        stockTicker: metadata.stockTicker,
+        name: `AI Assessment - ${metadata.customerName}`,
+        industry: 'general',
+        responses: [],
+        suggestedUseCases: [],
+        createdAt: Date.now(),
+        completedAt: Date.now(),
+      }
+
+      const customer = findOrCreateCustomer(session.customerName, session.innovationHubSPOC || '', session.stockTicker)
+      session.customerId = customer.id
+      addSession(session)
+      setSelectedCustomerId(customer.id)
+      setSelectedSessionId(session.id)
+      setDiscoveryMode('standard')
+      setCurrentView('ai-assessment')
+      return
+    }
+
     setPendingSessionMetadata(metadata)
     if (discoveryMode === 'live') {
       setCurrentView('live-discovery')
@@ -512,6 +564,10 @@ function App() {
     setCurrentDiscoverySession(null)
     setSessionState(null)
     toast.success(`Session saved! Added ${createdUseCases.length} use case${createdUseCases.length !== 1 ? 's' : ''} successfully!`)
+
+    // Explicit end-of-mode decision gate (Quick Discovery -> Proceed or Conclude)
+    // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to AI Assessment.
+    setPostQuickDiscoveryGateOpen(true)
   }
 
   const handleViewSession = (session: DiscoverySession) => {
@@ -535,6 +591,7 @@ function App() {
             setDiscoveryMode('standard')
             setCurrentView('session-metadata')
           }}
+          onStartAIAssessment={handleStartAIAssessment}
           onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
           onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
@@ -555,11 +612,52 @@ function App() {
             <EnterpriseDiscoveryOrchestrator
             initialSession={currentEnterpriseSession || undefined}
             initialCustomerName={selectedCustomerId ? customers.find(c => c.id === selectedCustomerId)?.name : undefined}
+            businessEnvisioning={selectedSession?.businessEnvisioning}
             onSave={handleEnterpriseSessionSave}
             onComplete={handleEnterpriseSessionComplete}
             onCancel={handleEnterpriseDiscoveryCancel}
             onPause={handleEnterpriseSessionPause}
             />
+          </div>
+        </>
+      )}
+
+      {currentView === 'ai-assessment' && (
+        <>
+          <NavigationHeader
+            onBackToLanding={handleBackToLanding}
+            onBack={() => setCurrentView('dashboard')}
+            backLabel="Back"
+            title="AI Assessment"
+            subtitle="Process analysis and agent opportunity refinement"
+          />
+          <div className="container mx-auto px-4 md:px-6 py-8 max-w-5xl">
+            {!selectedSession ? (
+              <Card className="border-2 bg-card">
+                <CardHeader>
+                  <CardTitle>No active session selected</CardTitle>
+                  <CardDescription>
+                    Create or select a discovery session before running an AI Assessment.
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter className="flex justify-end">
+                  <Button onClick={() => setCurrentView('dashboard')}>Back to Dashboard</Button>
+                </CardFooter>
+              </Card>
+            ) : (
+              <AIAssessmentWorkflow
+                session={selectedSession}
+                useCases={filteredUseCases}
+                onUpdateSession={updateSession}
+                onUpsertUseCases={(next) => handleUpsertUseCasesForSession(selectedSession.id, next)}
+                onProceedToPortfolio={() => setCurrentView('dashboard')}
+                onProceedToEnterprise={() => {
+                  setCurrentEnterpriseSession(null)
+                  setCurrentView('enterprise-discovery')
+                }}
+                onConclude={() => setCurrentView('dashboard')}
+              />
+            )}
           </div>
         </>
       )}
@@ -795,6 +893,7 @@ function App() {
               <>
                 <DiscoveryLauncher 
                   onStartDiscovery={handleStartDiscovery} 
+                  onStartAIAssessment={handleStartAIAssessment}
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
@@ -845,6 +944,7 @@ function App() {
 
                 <DiscoveryLauncher 
                   onStartDiscovery={handleStartDiscovery} 
+                  onStartAIAssessment={handleStartAIAssessment}
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
@@ -1054,6 +1154,36 @@ function App() {
                 )}
                 </AnimatePresence>
 
+                <Card className="border-2 bg-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle>Portfolio/Matrix: Next step</CardTitle>
+                    <CardDescription>
+                      When you’re ready, proceed to Enterprise Discovery or conclude this assessment.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      className="flex-1"
+                      onClick={() => {
+                        handleStartEnterpriseDiscovery()
+                      }}
+                    >
+                      Proceed to Enterprise Discovery
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      variant="outline"
+                      onClick={() => {
+                        toast.success('Portfolio step concluded', {
+                          description: 'You can proceed to Enterprise Discovery anytime from the launcher.',
+                        })
+                      }}
+                    >
+                      Conclude
+                    </Button>
+                  </CardContent>
+                </Card>
+
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <motion.h2 
@@ -1145,6 +1275,38 @@ function App() {
           />
         </motion.div>
       )}
+
+      <Dialog open={postQuickDiscoveryGateOpen} onOpenChange={setPostQuickDiscoveryGateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Quick Discovery complete</DialogTitle>
+            <DialogDescription>
+              Decide whether to proceed to AI Assessment (recommended) or conclude here.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2">
+            <Button
+              onClick={() => {
+                setPostQuickDiscoveryGateOpen(false)
+                handleStartAIAssessment()
+              }}
+            >
+              Proceed to AI Assessment
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPostQuickDiscoveryGateOpen(false)
+                toast.info('Concluded after Quick Discovery', {
+                  description: 'You’re in the Portfolio/Matrix view. You can continue later.',
+                })
+              }}
+            >
+              Conclude
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Footer />
     </>
   )

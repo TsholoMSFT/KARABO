@@ -3,7 +3,7 @@ import { DiscoveryResponse, DiscoverySession, Industry, DiscoveryQuestion } from
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
-import { discoveryQuestions, getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
+import { discoveryQuestions, getQuestionsForIndustry, industryLabels, type DiscoveryTrack } from '@/lib/discovery-questions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileMagnifyingGlass, SkipForward } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -29,7 +30,7 @@ interface DiscoveryWizardProps {
   initialResponses?: DiscoveryResponse[]
 }
 
-type WizardStep = 'name' | 'industry' | 'research' | 'questions'
+type WizardStep = 'name' | 'industry' | 'track' | 'research' | 'questions'
 
 const industryIcons: Record<Industry, React.ReactNode> = {
   general: <Buildings size={32} weight="duotone" />,
@@ -59,22 +60,27 @@ export function DiscoveryWizard({
   )
   const [sessionName, setSessionName] = useState(initialSessionName || '')
   const [selectedIndustry, setSelectedIndustry] = useState<Industry | null>(initialIndustry || null)
+  const [discoveryTrack, setDiscoveryTrack] = useState<DiscoveryTrack>('use-case')
   const [currentStep, setCurrentStep] = useState(0)
   const [responses, setResponses] = useState<DiscoveryResponse[]>(initialResponses || [])
   const [currentAnswer, setCurrentAnswer] = useState('')
-  const [aiSuggestion, setAiSuggestion] = useState<string>('')
+  const [aiSuggestionItems, setAiSuggestionItems] = useState<string[]>([])
   const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false)
   const [showAiSuggestion, setShowAiSuggestion] = useState(false)
   const [followUpQuestions, setFollowUpQuestions] = useState<DiscoveryQuestion[]>([])
   const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false)
   const [showFollowUpPrompt, setShowFollowUpPrompt] = useState(false)
   const [companyInsights, setCompanyInsights] = useState<CompanyInsight[]>([])
+  const [currentRanking, setCurrentRanking] = useState<Record<string, number | null>>({})
+  const [currentComment, setCurrentComment] = useState('')
 
   const handleCompanyInsightsChange = useCallback((insights: CompanyInsight[]) => {
     setCompanyInsights(insights)
   }, [])
 
-  const baseQuestions = selectedIndustry ? getQuestionsForIndustry(selectedIndustry) : discoveryQuestions.filter((q) => !q.industries)
+  const baseQuestions = selectedIndustry
+    ? getQuestionsForIndustry(selectedIndustry, discoveryTrack)
+    : discoveryQuestions.filter((q) => !q.industries)
   const allQuestions = [...baseQuestions, ...followUpQuestions]
   const questions = allQuestions
   const progress = wizardStep === 'questions' ? ((currentStep + 1) / questions.length) * 100 : 0
@@ -82,12 +88,43 @@ export function DiscoveryWizard({
   const isLastBaseQuestion = currentQuestion && currentStep === baseQuestions.length - 1
   const isLastQuestion = currentQuestion && currentStep === questions.length - 1
 
+  const getDefaultRankingState = useCallback((question: DiscoveryQuestion | null) => {
+    if (!question || question.inputType !== 'ranking' || !question.rankingItems?.length) return {}
+    return Object.fromEntries(question.rankingItems.map((item) => [item, null])) as Record<string, number | null>
+  }, [])
+
+  const buildAnswerForCurrentQuestion = useCallback((question: DiscoveryQuestion | null) => {
+    if (!question) return ''
+    if (question.inputType === 'ranking') {
+      const selected = Object.entries(currentRanking)
+        .filter(([, rank]) => typeof rank === 'number')
+        .map(([item, rank]) => ({ item, rank: rank as number }))
+        .sort((a, b) => a.rank - b.rank)
+
+      const rankedText = selected.length
+        ? `Ranked priorities:\n${selected.map((x) => `${x.rank}. ${x.item}`).join('\n')}`
+        : ''
+
+      const commentText = currentComment.trim() ? `Notes: ${currentComment.trim()}` : ''
+
+      return [rankedText, commentText].filter(Boolean).join('\n\n')
+    }
+
+    return currentAnswer.trim()
+  }, [currentAnswer, currentComment, currentRanking])
+
   useEffect(() => {
     if (currentQuestion && wizardStep === 'questions') {
       const existingResponse = responses.find((r) => r.questionId === currentQuestion.id)
       setCurrentAnswer(existingResponse?.answer || '')
+      setCurrentRanking(
+        existingResponse?.ranking
+          ? Object.fromEntries(Object.entries(existingResponse.ranking).map(([k, v]) => [k, v]))
+          : getDefaultRankingState(currentQuestion)
+      )
+      setCurrentComment(existingResponse?.comment || '')
       setShowAiSuggestion(false)
-      setAiSuggestion('')
+      setAiSuggestionItems([])
     }
   }, [currentStep, currentQuestion, wizardStep])
 
@@ -105,7 +142,7 @@ export function DiscoveryWizard({
           }).join('\n\n')}\n\n`
         : ''
 
-      const promptText = `You are an innovation consultant helping someone think through a discovery question.
+      const promptText = `You are an innovation consultant helping someone answer a discovery question.
 
 ${contextText}Current Question: ${currentQuestion.question}
 
@@ -113,15 +150,41 @@ Customer Context:
 - Company: ${sessionMetadata.customerName}
 - Industry: ${selectedIndustry ? industryLabels[selectedIndustry] : 'General'}
 
-Provide 2-3 thoughtful prompts or examples (bullet points) to help them think about how to answer this question effectively. Focus on:
-1. Key areas they should consider
-2. Common challenges or opportunities in this area
-3. Specific examples relevant to their industry
+Generate 3-5 short, speakable, first-person questions the user can ask themselves to produce a better answer.
 
-Keep it brief, actionable, and thought-provoking. Do not answer the question for them - just help them think through it.`
+Rules:
+- Each item must be phrased as a question and end with "?"
+- Use first person ("What do I...", "How do we...", "Which...", "Who owns...", etc.)
+- No markdown, no bullets, no asterisks
 
-      const suggestion = await window.llm(promptText, 'gpt-4o-mini')
-      setAiSuggestion(suggestion)
+Return ONLY a JSON object with this exact structure:
+{
+  "questions": ["...?"]
+}`
+
+      const result = await window.llm(promptText, 'gpt-4o-mini', true)
+
+      let items: string[] = []
+      try {
+        const parsed = JSON.parse(result)
+        if (Array.isArray(parsed?.questions)) {
+          items = parsed.questions
+        }
+      } catch {
+        // Fall back to parsing plain text if JSON parsing fails
+        items = String(result)
+          .split(/\r?\n/)
+          .map((line) => line.replace(/^\s*([*\-•]+|\d+[\.)])\s*/g, '').trim())
+          .filter(Boolean)
+      }
+
+      const normalized = items
+        .map((q) => q.replace(/^\s*"|"\s*$/g, '').trim())
+        .filter(Boolean)
+        .slice(0, 6)
+        .map((q) => (q.endsWith('?') ? q : `${q}?`))
+
+      setAiSuggestionItems(normalized)
     } catch (error) {
       console.error('Error generating suggestion:', error)
       toast.error('Failed to generate suggestion')
@@ -202,6 +265,11 @@ Keep questions conversational, specific to their answer, and focused on discover
 
   const handleIndustrySelect = (industry: Industry) => {
     setSelectedIndustry(industry)
+    setWizardStep('track')
+  }
+
+  const handleTrackSelect = (track: DiscoveryTrack) => {
+    setDiscoveryTrack(track)
     setWizardStep('research')
   }
 
@@ -217,10 +285,26 @@ Keep questions conversational, specific to their answer, and focused on discover
     if (!currentQuestion) return
 
     const filteredResponses = responses.filter((r) => r.questionId !== currentQuestion.id)
-    const updatedResponses = currentAnswer.trim()
+
+    const builtAnswer = buildAnswerForCurrentQuestion(currentQuestion)
+    const hasStructuredAnswer = currentQuestion.inputType === 'ranking'
+      ? (Object.values(currentRanking).some((v) => typeof v === 'number') || currentComment.trim().length > 0)
+      : builtAnswer.trim().length > 0
+
+    const updatedResponses = hasStructuredAnswer
       ? [...filteredResponses, {
           questionId: currentQuestion.id,
-          answer: currentAnswer.trim(),
+          answer: builtAnswer,
+          ranking: currentQuestion.inputType === 'ranking'
+            ? Object.fromEntries(
+                Object.entries(currentRanking)
+                  .filter(([, v]) => typeof v === 'number')
+                  .map(([k, v]) => [k, v as number])
+              )
+            : undefined,
+          comment: currentQuestion.inputType === 'ranking' && currentComment.trim()
+            ? currentComment.trim()
+            : undefined,
         }]
       : filteredResponses
     
@@ -247,7 +331,7 @@ Keep questions conversational, specific to their answer, and focused on discover
       }
       onComplete(session)
     } else {
-      if (isLastBaseQuestion && currentAnswer.trim() && !currentQuestion.isFollowUp && isAIFeatureEnabled('enableFollowUpQuestions')) {
+      if (isLastBaseQuestion && builtAnswer.trim() && !currentQuestion.isFollowUp && isAIFeatureEnabled('enableFollowUpQuestions')) {
         setShowFollowUpPrompt(true)
       } else {
         setCurrentStep(currentStep + 1)
@@ -317,6 +401,8 @@ Keep questions conversational, specific to their answer, and focused on discover
       setResponses([])
       setCurrentAnswer('')
     } else if (wizardStep === 'research') {
+      setWizardStep('track')
+    } else if (wizardStep === 'track') {
       setWizardStep('industry')
     } else if (wizardStep === 'industry') {
       setWizardStep('name')
@@ -478,6 +564,124 @@ Keep questions conversational, specific to their answer, and focused on discover
                   Switch to Live
                 </Button>
               )}
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (wizardStep === 'track') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-5xl"
+        >
+          <Card className="border-2">
+            <CardHeader className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Lightbulb size={28} weight="bold" className="text-primary" />
+                <CardTitle className="text-2xl">Select a Discovery Track</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Choose whether you want to focus on identifying use cases or assess AI readiness and architecture.
+              </CardDescription>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedIndustry && (
+                  <Badge variant="outline" className="w-fit">
+                    {industryLabels[selectedIndustry]}
+                  </Badge>
+                )}
+                {sessionName.trim() && (
+                  <Badge variant="secondary" className="w-fit">
+                    {sessionName}
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => handleTrackSelect('use-case')}
+                  className={`group relative p-6 rounded-lg border-2 transition-all text-left bg-card hover:bg-muted/50 ${
+                    discoveryTrack === 'use-case' ? 'border-primary' : 'border-border hover:border-primary'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <MagnifyingGlass size={28} weight="duotone" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground text-base">Use Case Discovery</h3>
+                        {discoveryTrack === 'use-case' && (
+                          <Badge className="text-xs">Selected</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Identify business opportunities, pain points, users, data sources, and candidate use cases.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Best when the goal is: “What should we build?”
+                      </p>
+                    </div>
+                  </div>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => handleTrackSelect('ai-assessment')}
+                  className={`group relative p-6 rounded-lg border-2 transition-all text-left bg-card hover:bg-muted/50 ${
+                    discoveryTrack === 'ai-assessment' ? 'border-primary' : 'border-border hover:border-primary'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                      <Sparkle size={28} weight="duotone" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground text-base">AI Assessment</h3>
+                        {discoveryTrack === 'ai-assessment' && (
+                          <Badge className="text-xs">Selected</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Assess application architecture, data readiness, model approach, security, governance, and scale.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Best when the goal is: “Are we ready, and how should we implement safely?”
+                      </p>
+                    </div>
+                  </div>
+                </motion.button>
+              </div>
+            </CardContent>
+
+            <CardFooter className="border-t pt-6 flex justify-between">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+                <Button variant="ghost" onClick={handleBack}>
+                  <ArrowLeft size={18} className="mr-2" />
+                  Back
+                </Button>
+              </div>
+              <Button
+                onClick={() => setWizardStep('research')}
+                className="gap-2"
+              >
+                Continue
+                <ArrowRight size={18} />
+              </Button>
             </CardFooter>
           </Card>
         </motion.div>
@@ -673,13 +877,95 @@ Keep questions conversational, specific to their answer, and focused on discover
                     <h3 className="text-lg font-semibold text-foreground leading-relaxed">
                       {currentQuestion.question}
                     </h3>
-                    <Textarea
-                      value={currentAnswer}
-                      onChange={(e) => setCurrentAnswer(e.target.value)}
-                      placeholder={currentQuestion.placeholder}
-                      className="min-h-[180px] resize-none text-base"
-                      autoFocus
-                    />
+                    {currentQuestion.inputType === 'ranking' && currentQuestion.rankingItems?.length ? (
+                      <div className="space-y-4">
+                        <div className="space-y-3">
+                          {currentQuestion.rankingItems.map((item) => {
+                            const usedRanks = new Set(
+                              Object.entries(currentRanking)
+                                .filter(([k, v]) => k !== item && typeof v === 'number')
+                                .map(([, v]) => v as number)
+                            )
+
+                            const selectedRank = currentRanking[item]
+                            const maxRank = currentQuestion.rankingItems?.length ?? 0
+
+                            return (
+                              <div key={item} className="flex items-center justify-between gap-3">
+                                <div className="text-sm text-foreground flex-1">{item}</div>
+                                <Select
+                                  value={selectedRank ? String(selectedRank) : ''}
+                                  onValueChange={(value) => {
+                                    const rank = value ? Number(value) : null
+                                    setCurrentRanking((prev) => {
+                                      const next = { ...prev }
+                                      if (rank !== null) {
+                                        for (const key of Object.keys(next)) {
+                                          if (key !== item && next[key] === rank) {
+                                            next[key] = null
+                                          }
+                                        }
+                                      }
+                                      next[item] = rank
+                                      return next
+                                    })
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder="Select rank" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from({ length: maxRank }).map((_, i) => {
+                                      const rankValue = i + 1
+                                      const disabled = usedRanks.has(rankValue) && selectedRank !== rankValue
+                                      return (
+                                        <SelectItem key={rankValue} value={String(rankValue)} disabled={disabled}>
+                                          {rankValue}
+                                        </SelectItem>
+                                      )
+                                    })}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm">Comments / context (optional)</Label>
+                          <Textarea
+                            value={currentComment}
+                            onChange={(e) => setCurrentComment(e.target.value)}
+                            placeholder={currentQuestion.placeholder}
+                            className="min-h-[120px] resize-none text-base"
+                            autoFocus
+                          />
+                        </div>
+
+                        <div className="flex justify-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setCurrentRanking(getDefaultRankingState(currentQuestion))
+                              setCurrentComment('')
+                            }}
+                            className="text-xs"
+                          >
+                            Clear ranking
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Textarea
+                        value={currentAnswer}
+                        onChange={(e) => setCurrentAnswer(e.target.value)}
+                        placeholder={currentQuestion.placeholder}
+                        className="min-h-[180px] resize-none text-base"
+                        autoFocus
+                      />
+                    )}
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-muted-foreground">
                         Optional: You can skip questions and come back later
@@ -712,7 +998,17 @@ Keep questions conversational, specific to their answer, and focused on discover
                               {isGeneratingSuggestion ? (
                                 <span className="text-muted-foreground italic">Generating suggestions...</span>
                               ) : (
-                                <div className="text-foreground whitespace-pre-wrap">{aiSuggestion}</div>
+                                <div className="text-foreground">
+                                  {aiSuggestionItems.length > 0 ? (
+                                    <ol className="list-decimal pl-5 space-y-1">
+                                      {aiSuggestionItems.map((q, idx) => (
+                                        <li key={`${idx}-${q}`}>{q}</li>
+                                      ))}
+                                    </ol>
+                                  ) : (
+                                    <span className="text-muted-foreground">No suggestions available.</span>
+                                  )}
+                                </div>
                               )}
                             </AlertDescription>
                           </Alert>
@@ -745,10 +1041,25 @@ Keep questions conversational, specific to their answer, and focused on discover
                     onClick={() => {
                       if (sessionName.trim() && selectedIndustry) {
                         const filteredResponses = responses.filter((r) => r.questionId !== currentQuestion?.id)
-                        const updatedResponses = currentAnswer.trim() && currentQuestion
+                        const builtAnswer = buildAnswerForCurrentQuestion(currentQuestion || null)
+                        const hasStructuredAnswer = currentQuestion?.inputType === 'ranking'
+                          ? (Object.values(currentRanking).some((v) => typeof v === 'number') || currentComment.trim().length > 0)
+                          : builtAnswer.trim().length > 0
+
+                        const updatedResponses = hasStructuredAnswer && currentQuestion
                           ? [...filteredResponses, {
                               questionId: currentQuestion.id,
-                              answer: currentAnswer.trim(),
+                              answer: builtAnswer,
+                              ranking: currentQuestion.inputType === 'ranking'
+                                ? Object.fromEntries(
+                                    Object.entries(currentRanking)
+                                      .filter(([, v]) => typeof v === 'number')
+                                      .map(([k, v]) => [k, v as number])
+                                  )
+                                : undefined,
+                              comment: currentQuestion.inputType === 'ranking' && currentComment.trim()
+                                ? currentComment.trim()
+                                : undefined,
                             }]
                           : filteredResponses
                         onSwitchToLive(sessionName, selectedIndustry, updatedResponses)

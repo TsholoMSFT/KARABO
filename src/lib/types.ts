@@ -440,12 +440,16 @@ export interface DiscoveryQuestion {
   industries?: Industry[]
   isFollowUp?: boolean
   parentQuestionId?: string
+  inputType?: 'text' | 'ranking'
+  rankingItems?: string[]
 }
 
 export interface DiscoveryResponse {
   questionId: string
   answer: string
   followUpQuestions?: DiscoveryQuestion[]
+  ranking?: Record<string, number>
+  comment?: string
 }
 
 export interface DiscoverySession {

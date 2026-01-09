@@ -1,21 +1,51 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { AVAILABLE_KPIS, KPI_CATEGORIES, getKPIById } from '@/lib/kpis'
+import { suggestKPIIdsForUseCase } from '@/lib/kpi-suggestions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { X, Check } from '@phosphor-icons/react'
+import { X, Check, CaretDown, Sparkle, CircleNotch } from '@phosphor-icons/react'
 
 interface KPISelectorProps {
   selectedKPIs: string[]
   onChange: (kpis: string[]) => void
   maxSelection?: number
+  collapsible?: boolean
+  defaultOpen?: boolean
+  enableAISuggestions?: boolean
+  useCaseTitle?: string
+  useCaseDescription?: string
+  expectedBenefits?: string
 }
 
-export function KPISelector({ selectedKPIs, onChange, maxSelection }: KPISelectorProps) {
+export function KPISelector({
+  selectedKPIs,
+  onChange,
+  maxSelection,
+  collapsible,
+  defaultOpen,
+  enableAISuggestions,
+  useCaseTitle,
+  useCaseDescription,
+  expectedBenefits,
+}: KPISelectorProps) {
   const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [isOpen, setIsOpen] = useState<boolean>(defaultOpen ?? true)
+  const [isSuggesting, setIsSuggesting] = useState(false)
+  const [suggestionStatus, setSuggestionStatus] = useState<string | null>(null)
+
+  const canSuggest = Boolean(
+    enableAISuggestions && (useCaseTitle?.trim() || useCaseDescription?.trim() || expectedBenefits?.trim())
+  )
+
+  const remainingSlots = useMemo(() => {
+    if (!maxSelection) return Infinity
+    return Math.max(0, maxSelection - selectedKPIs.length)
+  }, [maxSelection, selectedKPIs.length])
 
   const toggleKPI = (kpiId: string) => {
     if (selectedKPIs.includes(kpiId)) {
@@ -25,6 +55,41 @@ export function KPISelector({ selectedKPIs, onChange, maxSelection }: KPISelecto
         return
       }
       onChange([...selectedKPIs, kpiId])
+    }
+  }
+
+  const handleSuggest = async () => {
+    if (!canSuggest || isSuggesting) return
+    if (remainingSlots <= 0) {
+      setSuggestionStatus('Max KPIs selected. Remove one to add more.')
+      return
+    }
+
+    setIsSuggesting(true)
+    setSuggestionStatus(null)
+
+    try {
+      const suggestedIds = await suggestKPIIdsForUseCase({
+        title: useCaseTitle || '',
+        description: useCaseDescription,
+        expectedBenefits,
+        existingSelectedKpiIds: selectedKPIs,
+        maxSuggestions: Number.isFinite(remainingSlots) ? remainingSlots : 6,
+      })
+
+      if (suggestedIds.length === 0) {
+        setSuggestionStatus('No new KPI suggestions found.')
+        return
+      }
+
+      const next = Array.from(new Set([...selectedKPIs, ...suggestedIds]))
+      onChange(next)
+      setSuggestionStatus(`Added ${suggestedIds.length} KPI${suggestedIds.length === 1 ? '' : 's'} from AI suggestions.`)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to suggest KPIs'
+      setSuggestionStatus(message)
+    } finally {
+      setIsSuggesting(false)
     }
   }
 
@@ -38,28 +103,8 @@ export function KPISelector({ selectedKPIs, onChange, maxSelection }: KPISelecto
     return cat?.color || 'oklch(0.5 0.1 240)'
   }
 
-  return (
+  const content = (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">Select KPIs & Metrics</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Choose metrics this use case will impact {maxSelection ? `(max ${maxSelection})` : ''}
-          </p>
-        </div>
-        {selectedKPIs.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onChange([])}
-            className="h-8 gap-1.5"
-          >
-            <X size={16} />
-            Clear
-          </Button>
-        )}
-      </div>
-
       {selectedKPIs.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {selectedKPIs.map((kpiId) => {
@@ -80,6 +125,8 @@ export function KPISelector({ selectedKPIs, onChange, maxSelection }: KPISelecto
                 <button
                   onClick={() => toggleKPI(kpiId)}
                   className="hover:bg-black/10 rounded-full p-0.5"
+                  title={`Remove ${kpi.name}`}
+                  aria-label={`Remove ${kpi.name}`}
                 >
                   <X size={12} weight="bold" />
                 </button>
@@ -87,6 +134,10 @@ export function KPISelector({ selectedKPIs, onChange, maxSelection }: KPISelecto
             )
           })}
         </div>
+      )}
+
+      {suggestionStatus && (
+        <p className="text-xs text-muted-foreground">{suggestionStatus}</p>
       )}
 
       <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
@@ -158,6 +209,89 @@ export function KPISelector({ selectedKPIs, onChange, maxSelection }: KPISelecto
           </ScrollArea>
         </TabsContent>
       </Tabs>
+    </div>
+  )
+
+  const header = (
+    <div className="flex items-center justify-between gap-2">
+      {collapsible ? (
+        <CollapsibleTrigger asChild>
+          <button type="button" className="flex-1 text-left">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground">Select KPIs & Metrics</h3>
+              <CaretDown
+                size={14}
+                className={`text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              />
+              {selectedKPIs.length > 0 && (
+                <span className="text-xs text-muted-foreground">({selectedKPIs.length} selected)</span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Choose metrics this use case will impact {maxSelection ? `(max ${maxSelection})` : ''}
+            </p>
+          </button>
+        </CollapsibleTrigger>
+      ) : (
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-foreground">Select KPIs & Metrics</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Choose metrics this use case will impact {maxSelection ? `(max ${maxSelection})` : ''}
+          </p>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        {enableAISuggestions && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleSuggest}
+            disabled={!canSuggest || isSuggesting}
+            className="h-8 gap-1.5"
+            title={!canSuggest ? 'Add a title/description to enable suggestions' : 'Suggest KPIs with AI'}
+          >
+            {isSuggesting ? (
+              <CircleNotch size={16} className="animate-spin" />
+            ) : (
+              <Sparkle size={16} weight="fill" />
+            )}
+            AI Suggest
+          </Button>
+        )}
+
+        {selectedKPIs.length > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onChange([])}
+            className="h-8 gap-1.5"
+          >
+            <X size={16} />
+            Clear
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+
+  if (collapsible) {
+    return (
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="space-y-4">
+          {header}
+          <CollapsibleContent className="space-y-4">{content}</CollapsibleContent>
+        </div>
+      </Collapsible>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {header}
+      {content}
     </div>
   )
 }

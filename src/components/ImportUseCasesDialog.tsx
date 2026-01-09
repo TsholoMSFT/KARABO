@@ -37,9 +37,11 @@ import {
   ArrowRight,
   CaretDown,
   CaretRight,
+  Sparkle,
 } from '@phosphor-icons/react'
 import { parseDocument, type ParsedUseCase, type DocumentParseResult } from '@/lib/document-parser'
 import { matchKPI, type KPIMatchResult } from '@/lib/kpi-matcher'
+import { suggestKPIIdsForUseCase } from '@/lib/kpi-suggestions'
 import type { UseCase, UseCaseCOI, KPI } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -84,6 +86,9 @@ export function ImportUseCasesDialog({
   const [enrichedUseCases, setEnrichedUseCases] = useState<EnrichedUseCase[]>([])
   const [dragActive, setDragActive] = useState(false)
   const [expandedUseCase, setExpandedUseCase] = useState<string | null>(null)
+  const [suggestingKPIsForUseCase, setSuggestingKPIsForUseCase] = useState<string | null>(null)
+  const [kpiSuggestionErrorByUseCase, setKpiSuggestionErrorByUseCase] = useState<Record<string, string>>({})
+  const [kpiSuggestionStatusByUseCase, setKpiSuggestionStatusByUseCase] = useState<Record<string, string>>({})
 
   const resetState = useCallback(() => {
     setStep('upload')
@@ -181,6 +186,49 @@ export function ImportUseCasesDialog({
       })
     )
   }, [])
+
+  const addKPIsToUseCase = useCallback((useCaseIndex: number, kpiIds: string[]) => {
+    const toAdd = kpiIds.map((s) => s.trim()).filter(Boolean)
+    if (toAdd.length === 0) return
+
+    setEnrichedUseCases(prev =>
+      prev.map((uc, i) => {
+        if (i !== useCaseIndex) return uc
+        const merged = Array.from(new Set([...uc.finalKPIs, ...toAdd]))
+        return { ...uc, finalKPIs: merged }
+      })
+    )
+  }, [])
+
+  const handleSuggestKPIs = useCallback(async (useCaseIndex: number) => {
+    const uc = enrichedUseCases[useCaseIndex]
+    if (!uc) return
+
+    setKpiSuggestionErrorByUseCase((prev) => ({ ...prev, [uc.name]: '' }))
+    setKpiSuggestionStatusByUseCase((prev) => ({ ...prev, [uc.name]: '' }))
+    setSuggestingKPIsForUseCase(uc.name)
+
+    try {
+      const suggested = await suggestKPIIdsForUseCase({
+        title: uc.name,
+        description: uc.problemStatement,
+        expectedBenefits: uc.expectedBenefits,
+        existingSelectedKpiIds: uc.finalKPIs,
+        maxSuggestions: 6,
+      })
+
+      addKPIsToUseCase(useCaseIndex, suggested)
+      setKpiSuggestionStatusByUseCase((prev) => ({
+        ...prev,
+        [uc.name]: suggested.length === 0 ? 'No new KPI suggestions found.' : `Added ${suggested.length} KPI${suggested.length === 1 ? '' : 's'}.`,
+      }))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to suggest KPIs'
+      setKpiSuggestionErrorByUseCase((prev) => ({ ...prev, [uc.name]: message }))
+    } finally {
+      setSuggestingKPIsForUseCase(null)
+    }
+  }, [addKPIsToUseCase, enrichedUseCases])
 
   const handleImport = useCallback(() => {
     const selectedUseCases = enrichedUseCases.filter(uc => uc.selected)
@@ -442,6 +490,42 @@ export function ImportUseCasesDialog({
                       
                       {isExpanded && (
                         <CardContent className="p-4 pt-0 space-y-4">
+                          {/* AI Suggestions */}
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <Label className="text-sm font-medium">KPI Suggestions</Label>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Use AI to suggest additional KPIs from the full catalog (adds to existing).
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 gap-1.5"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleSuggestKPIs(realIndex)
+                              }}
+                              disabled={suggestingKPIsForUseCase === uc.name}
+                            >
+                              {suggestingKPIsForUseCase === uc.name ? (
+                                <CircleNotch size={16} className="animate-spin" />
+                              ) : (
+                                <Sparkle size={16} weight="fill" />
+                              )}
+                              AI Suggest
+                            </Button>
+                          </div>
+
+                          {!!kpiSuggestionErrorByUseCase[uc.name] && (
+                            <p className="text-xs text-destructive">{kpiSuggestionErrorByUseCase[uc.name]}</p>
+                          )}
+
+                          {!!kpiSuggestionStatusByUseCase[uc.name] && !kpiSuggestionErrorByUseCase[uc.name] && (
+                            <p className="text-xs text-muted-foreground">{kpiSuggestionStatusByUseCase[uc.name]}</p>
+                          )}
+
                           {/* Matched KPIs */}
                           <div>
                             <Label className="text-sm font-medium">Matched KPIs</Label>

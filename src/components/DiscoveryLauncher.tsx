@@ -6,15 +6,16 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { PausedSessionsList } from '@/components/enterprise-discovery/PausedSessionsList'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
-import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket, Play, Toolbox, Calculator, FileArrowDown, ArrowsLeftRight, FileText } from '@phosphor-icons/react'
+import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, TreeStructure, Buildings, Microphone, GearSix, Briefcase, Rocket, Play, Toolbox, Calculator, FileArrowDown, ArrowsLeftRight, FileText } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
 
-type DiscoveryMode = 'quick' | 'enterprise' | 'tools'
+type DiscoveryMode = 'quick' | 'ai-assessment' | 'enterprise' | 'tools'
 
 interface DiscoveryLauncherProps {
   onStartDiscovery: () => void
+  onStartAIAssessment?: () => void
   onStartLiveDiscovery?: () => void
   onStartEnterpriseDiscovery?: () => void
   onResumeEnterpriseDiscovery?: (session: EnterpriseDiscoverySession) => void
@@ -25,7 +26,7 @@ interface DiscoveryLauncherProps {
   onOpenExport?: () => void
 }
 
-export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport }: DiscoveryLauncherProps) {
+export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport }: DiscoveryLauncherProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mode, setMode] = useState<DiscoveryMode>('quick')
 
@@ -35,10 +36,14 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
         {/* Mode Toggle with Settings */}
         <div className="flex justify-center items-center gap-3">
           <Tabs value={mode} onValueChange={(v) => setMode(v as DiscoveryMode)} className="w-auto">
-            <TabsList className="grid w-[500px] grid-cols-3">
+            <TabsList className="grid w-[680px] grid-cols-4">
               <TabsTrigger value="quick" className="gap-2">
                 <Rocket size={16} />
                 Quick Discovery
+              </TabsTrigger>
+              <TabsTrigger value="ai-assessment" className="gap-2">
+                <Sparkle size={16} weight="fill" />
+                AI Assessment
               </TabsTrigger>
               <TabsTrigger value="enterprise" className="gap-2">
                 <Briefcase size={16} />
@@ -132,6 +137,92 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onSt
                     <h4 className="font-semibold text-sm mb-1">Prioritize & Assess</h4>
                     <p className="text-xs text-muted-foreground">
                       Add selected use cases to your dashboard for detailed scoring and comparison
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* AI Assessment Card */}
+        {mode === 'ai-assessment' && (
+          <Card className="border-2 border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-secondary/5">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <CardTitle className="text-2xl flex items-center gap-3">
+                    <Sparkle size={28} weight="fill" className="text-purple-500" />
+                    AI Assessment Discovery
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    Structured process analysis to identify and refine agent opportunities, then feed your portfolio and enterprise discovery.
+                  </CardDescription>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Badge variant="outline" className="gap-1.5 bg-background">
+                      <TreeStructure size={14} />
+                      Process Mapping
+                    </Badge>
+                    <Badge variant="outline" className="gap-1.5 bg-background">
+                      <Sparkle size={14} weight="fill" />
+                      Agent Opportunity Analysis
+                    </Badge>
+                    <Badge variant="outline" className="gap-1.5 bg-background">
+                      <ChartLine size={14} />
+                      Value & Feasibility
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <Button
+                    onClick={() => {
+                      if (!onStartAIAssessment) {
+                        toast.info('AI Assessment is not available in this context')
+                        return
+                      }
+                      onStartAIAssessment()
+                    }}
+                    size="lg"
+                    className="gap-2 bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Sparkle size={20} weight="fill" />
+                    Start AI Assessment
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex gap-3 items-start">
+                  <div className="bg-purple-500/10 p-2 rounded-lg shrink-0">
+                    <TreeStructure size={24} weight="bold" className="text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Map Processes</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Validate end-to-end workflows, systems of record, handoffs, and approvals
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <div className="bg-secondary/10 p-2 rounded-lg shrink-0">
+                    <Sparkle size={24} weight="fill" className="text-secondary" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Identify Agent Jobs</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Convert pain points into agent-able jobs with triggers, actions, and oversight
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <div className="bg-accent/10 p-2 rounded-lg shrink-0">
+                    <ChartLine size={24} weight="bold" className="text-accent" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Feed the Portfolio</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Draft impact/feasibility, KPIs, and constraints—then prioritize in the existing matrix
                     </p>
                   </div>
                 </div>

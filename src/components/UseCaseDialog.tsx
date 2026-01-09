@@ -203,7 +203,15 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
 
           <Separator />
 
-          <KPISelector selectedKPIs={selectedKPIs} onChange={setSelectedKPIs} />
+          <KPISelector
+            selectedKPIs={selectedKPIs}
+            onChange={setSelectedKPIs}
+            collapsible
+            defaultOpen={false}
+            enableAISuggestions
+            useCaseTitle={title}
+            useCaseDescription={description}
+          />
 
           <Separator />
 

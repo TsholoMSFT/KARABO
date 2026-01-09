@@ -7,6 +7,7 @@ import { callAIForTask } from './openai-service'
 import { Industry } from './types'
 import { industryLabels } from './discovery-questions'
 import { CompanyInsight } from './company-research-service'
+import { parseJsonLenient } from './lenient-json'
 
 export interface SourceTextHighlight {
   text: string
@@ -252,13 +253,17 @@ Generate 4-8 use cases. Return valid JSON only.`
   try {
     // Use Phi-4-mini-instruct for extraction (71% cheaper than GPT-4o-mini)
     const result = await callAIForTask('extraction', prompt, { expectJson: true })
-    const parsed = JSON.parse(result)
+    const parsed = parseJsonLenient<any>(result)
+
+    const useCases = Array.isArray(parsed)
+      ? parsed
+      : (parsed.useCases ?? parsed.usecases ?? parsed.use_cases)
     
-    if (!parsed.useCases || !Array.isArray(parsed.useCases)) {
+    if (!useCases || !Array.isArray(useCases)) {
       throw new Error('Invalid response format: missing useCases array')
     }
 
-    return parsed.useCases.map((uc: any) => ({
+    return useCases.map((uc: any) => ({
       title: uc.title || 'Untitled Use Case',
       description: uc.description || '',
       rationale: uc.rationale || '',
