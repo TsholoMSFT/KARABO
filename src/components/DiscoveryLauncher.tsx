@@ -147,12 +147,12 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
 
         {/* AI Assessment Card */}
         {mode === 'ai-assessment' && (
-          <Card className="border-2 border-purple-500/30 bg-gradient-to-br from-purple-500/5 to-secondary/5">
+          <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-secondary/5">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
-                    <Sparkle size={28} weight="fill" className="text-purple-500" />
+                    <Sparkle size={28} weight="fill" className="text-primary" />
                     AI Assessment Discovery
                   </CardTitle>
                   <CardDescription className="text-base">
@@ -183,7 +183,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                       onStartAIAssessment()
                     }}
                     size="lg"
-                    className="gap-2 bg-purple-600 hover:bg-purple-700"
+                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     <Sparkle size={20} weight="fill" />
                     Start AI Assessment
@@ -194,8 +194,8 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex gap-3 items-start">
-                  <div className="bg-purple-500/10 p-2 rounded-lg shrink-0">
-                    <TreeStructure size={24} weight="bold" className="text-purple-600" />
+                  <div className="bg-primary/10 p-2 rounded-lg shrink-0">
+                    <TreeStructure size={24} weight="bold" className="text-primary" />
                   </div>
                   <div>
                     <h4 className="font-semibold text-sm mb-1">Map Processes</h4>
@@ -239,12 +239,12 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
               <PausedSessionsList onResume={onResumeEnterpriseDiscovery} />
             )}
             
-            <Card className="border-2 border-[#0078D4]/30 bg-gradient-to-br from-[#0078D4]/5 to-secondary/5">
+            <Card className="border-2 border-brand-blue/30 bg-gradient-to-br from-brand-blue/5 to-secondary/5">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
-                    <Briefcase size={28} weight="bold" className="text-[#0078D4]" />
+                    <Briefcase size={28} weight="bold" className="text-brand-blue" />
                     Enterprise Discovery Process
                   </CardTitle>
                   <CardDescription className="text-base">
@@ -269,7 +269,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                   <Button 
                     onClick={onStartEnterpriseDiscovery}
                     size="lg" 
-                    className="gap-2 bg-[#0078D4] hover:bg-[#106EBE]"
+                    className="gap-2 bg-brand-blue hover:bg-brand-blue/90 text-brand-blue-foreground"
                   >
                     <Briefcase size={20} weight="fill" />
                     Start Enterprise Discovery
@@ -297,8 +297,8 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex gap-3 items-start">
-                  <div className="bg-[#0078D4]/10 p-2 rounded-lg shrink-0">
-                    <MagnifyingGlass size={24} weight="bold" className="text-[#0078D4]" />
+                  <div className="bg-brand-blue/10 p-2 rounded-lg shrink-0">
+                    <MagnifyingGlass size={24} weight="bold" className="text-brand-blue" />
                   </div>
                   <div>
                     <h4 className="font-semibold text-sm mb-1">Discover & Analyze</h4>

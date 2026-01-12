@@ -50,6 +50,8 @@ import {
   formatMonths,
 } from '@/lib/financial-calculations'
 import { mapToIncomeStatement, createEmptyMetricHierarchy } from '@/lib/financial-mapping'
+import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
+import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 
 interface Stage8CommunicateProps {
   initialData: CommunicateStageData | null
@@ -591,6 +593,64 @@ export function Stage8Communicate({
                     Positive NPV of {formatCurrency(financialOutputs.investmentAnalysis.npv10Percent, 'USD')} at 10% discount rate
                   </li>
                 </ul>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                <h4 className="font-semibold">Threadlight BYOP Output</h4>
+                <ThreadlightPasteCard
+                  industryLabel="<USER_SELECT_IN_WIZARD>"
+                  industryValue="<USER_SELECT_IN_WIZARD>"
+                  shortName={makeThreadlightShortName('Enterprise Discovery')}
+                  topScoredLabel="Top value drivers"
+                  topScoredItems={[
+                    ...financialOutputs.valueDriversByPLLine.revenue.map((d) => ({
+                      title: `${d.driver} (Revenue)` ,
+                      scoreLabel: 'Annual',
+                      scoreValue: d.annualValue,
+                    })),
+                    ...financialOutputs.valueDriversByPLLine.opex.map((d) => ({
+                      title: `${d.driver} (OPEX)` ,
+                      scoreLabel: 'Annual',
+                      scoreValue: d.annualValue,
+                    })),
+                  ].slice(0, 3)}
+                  processAnalysis={buildThreadlightProcessAnalysis({
+                    customerName: '<CUSTOMER>',
+                    opportunityName: 'Enterprise Discovery',
+                    industryLabel: '<USER_SELECT_IN_WIZARD>',
+                    processCandidates: [
+                      ...financialOutputs.valueDriversByPLLine.revenue.map((d) => `- ${d.driver} (Revenue)`),
+                      ...financialOutputs.valueDriversByPLLine.opex.map((d) => `- ${d.driver} (OPEX)`),
+                      ...financialOutputs.valueDriversByPLLine.cogs.map((d) => `- ${d.driver} (COGS)`),
+                    ].slice(0, 8).join('\n'),
+                    processNotes: 'Use enterprise discovery outputs as the source of truth; replace placeholders with Stage 1 narrative if available.',
+                    constraints: '<USER_INPUT>',
+                  })}
+                  pasteText={buildThreadlightByopPasteText({
+                    customerName: '<CUSTOMER>',
+                    opportunityName: 'Enterprise Discovery',
+                    industryLabel: '<USER_SELECT_IN_WIZARD>',
+                    processCandidates: [
+                      ...financialOutputs.valueDriversByPLLine.revenue.map((d) => `- ${d.driver} (Revenue)`),
+                      ...financialOutputs.valueDriversByPLLine.opex.map((d) => `- ${d.driver} (OPEX)`),
+                      ...financialOutputs.valueDriversByPLLine.cogs.map((d) => `- ${d.driver} (COGS)`),
+                    ].slice(0, 8).join('\n'),
+                    processNotes: 'Use enterprise discovery outputs as the source of truth; replace placeholders with Stage 1 narrative if available.',
+                    constraints: '<USER_INPUT>',
+                    financials: {
+                      annualCOI: (coiData?.totalAnnual || 0) > 0 ? coiData?.totalAnnual : undefined,
+                      annualValue: annualBenefit > 0 ? annualBenefit : undefined,
+                      implementationCost: investment,
+                      paybackMonths: financialOutputs.investmentAnalysis.simplePaybackMonths,
+                      roi3YearPercent: financialOutputs.investmentAnalysis.roi3Year,
+                    },
+                  })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Note: Stage 8 currently doesn’t receive Stage 1 narrative fields (problem/outcome/metrics), so this block includes placeholders.
+                </p>
               </div>
             </CardContent>
           </Card>

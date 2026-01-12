@@ -69,6 +69,37 @@ export async function exportToPDF(
   const margin = 20
   let y = margin
 
+  const drawWrappedText = (text: string, x: number, maxWidth: number, lineHeight = 4.5) => {
+    const lines = doc.splitTextToSize(text, maxWidth)
+    lines.forEach((line: string) => {
+      addPageIfNeeded(lineHeight + 1)
+      doc.text(line, x, y)
+      y += lineHeight
+    })
+  }
+
+  const drawBullets = (items: string[], x: number, maxWidth: number) => {
+    items.filter(Boolean).forEach((item) => {
+      addPageIfNeeded(6)
+      doc.text('•', x, y)
+      const lines = doc.splitTextToSize(item, maxWidth - 6)
+      doc.text(lines, x + 4, y)
+      y += Math.max(5, lines.length * 4.5)
+    })
+  }
+
+  const drawMiniSection = (title: string) => {
+    addPageIfNeeded(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.setTextColor(90, 90, 120)
+    doc.text(title, margin + 5, y)
+    y += 4
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(70, 70, 70)
+  }
+
   const addPageIfNeeded = (requiredSpace: number) => {
     if (y + requiredSpace > pageHeight - margin) {
       doc.addPage()
@@ -93,7 +124,12 @@ export async function exportToPDF(
   doc.setTextColor(100, 100, 100)
   doc.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, pageWidth / 2, y, { align: 'center' })
   y += 4
-  doc.text(`Scoring Method: ${scoringMethod === 'rice' ? 'RICE' : 'Impact vs. Feasibility'}`, pageWidth / 2, y, { align: 'center' })
+  doc.text(
+    `Scoring Method: ${scoringMethod === 'rice' ? 'RICE' : scoringMethod === 'financial-impact' ? 'Financial Impact' : 'Impact vs. Feasibility'}`,
+    pageWidth / 2,
+    y,
+    { align: 'center' }
+  )
   y += 12
 
   if (options.customerMetadata) {
@@ -328,7 +364,7 @@ export async function exportToPDF(
     })
 
     y += 5
-  } else {
+  } else if (scoringMethod === 'impact-feasibility') {
     addPageIfNeeded(70)
     doc.setDrawColor(200, 200, 200)
     doc.line(margin, y, pageWidth - margin, y)
@@ -392,6 +428,31 @@ export async function exportToPDF(
     doc.setTextColor(80, 50, 180)
     doc.text('Score = Impact × Feasibility (both rated 1-10)', margin, y)
     y += 10
+  } else {
+    addPageIfNeeded(60)
+    doc.setDrawColor(200, 200, 200)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 8
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(14)
+    doc.setTextColor(80, 50, 180)
+    doc.text('Financial Impact Scoring', margin, y)
+    y += 8
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.setTextColor(40, 40, 40)
+    const intro = 'Financial Impact prioritizes opportunities by the largest quantified upside or downside across your portfolio. This highlights the biggest business cases, even if feasibility is uncertain.'
+    doc.text(intro, margin, y, { maxWidth: pageWidth - 2 * margin })
+    y += 14
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(80, 50, 180)
+    doc.text('Score = max(Annual Expected Value, Annual Cost of Inaction)', margin, y)
+    y += 10
+  }
   }
 
   doc.addPage()
@@ -542,6 +603,104 @@ export async function exportToPDF(
       y += 14
     }
 
+    // Notes / assumptions + discovery artifacts (executive-ready)
+    const coiNotes = useCase.costOfInaction?.notes
+    const evNotes = useCase.expectedValue?.notes
+    const hasAnyNotes = (coiNotes && coiNotes.trim().length > 0) || (evNotes && evNotes.trim().length > 0)
+    const hasAnyBusiness = useCase.businessProcesses && useCase.businessProcesses.length > 0
+    const hasAnySolutions = useCase.microsoftSolutions && useCase.microsoftSolutions.length > 0
+    const hasAnyConstraints = (useCase.aiRegulations?.applicableFrameworks?.length || useCase.cybersecurity)
+    const hasAnyFinContext = (useCase.earningsContext && useCase.earningsContext.length > 0) || (useCase.industryContext && useCase.industryContext.length > 0)
+    const hasAnyEffort = useCase.aiEffortEstimate?.effortWeeks
+
+    if (hasAnyNotes || hasAnyBusiness || hasAnySolutions || hasAnyConstraints || hasAnyFinContext || hasAnyEffort) {
+      addPageIfNeeded(30)
+      doc.setFillColor(252, 252, 255)
+      doc.roundedRect(margin + 5, y - 2, pageWidth - 2 * margin - 10, 8, 2, 2, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(60, 60, 80)
+      doc.text('Evidence, Assumptions & Design Inputs', margin + 8, y + 3)
+      y += 10
+
+      if (hasAnyNotes) {
+        drawMiniSection('Financial calculation notes')
+        if (coiNotes && coiNotes.trim().length > 0) {
+          drawBullets([`COI notes: ${coiNotes.trim()}`], margin + 8, pageWidth - 2 * margin - 16)
+        }
+        if (evNotes && evNotes.trim().length > 0) {
+          drawBullets([`ROI/Value notes: ${evNotes.trim()}`], margin + 8, pageWidth - 2 * margin - 16)
+        }
+        y += 2
+      }
+
+      if (hasAnyBusiness) {
+        drawMiniSection('Business processes')
+        const items = (useCase.businessProcesses || []).slice(0, 8).map((p) => {
+          const cycle = p.expectedCycleTimeReduction ? ` (cycle time: ${p.expectedCycleTimeReduction})` : ''
+          return `${p.processName}: ${p.proposedImprovement}${cycle}`
+        })
+        drawBullets(items, margin + 8, pageWidth - 2 * margin - 16)
+        y += 2
+      }
+
+      if (hasAnySolutions) {
+        drawMiniSection('Microsoft solution & architecture')
+        const solutionItems = (useCase.microsoftSolutions || []).slice(0, 8).map((s) => {
+          const services = (s.services || []).join(', ')
+          const justification = s.justification ? ` — ${s.justification}` : ''
+          return `${s.productFamily} (${s.role}): ${services}${justification}`
+        })
+        drawBullets(solutionItems, margin + 8, pageWidth - 2 * margin - 16)
+        y += 2
+      }
+
+      if (hasAnyConstraints) {
+        drawMiniSection('Constraints & security')
+        const constraintLines: string[] = []
+        if (useCase.aiRegulations?.applicableFrameworks?.length) {
+          constraintLines.push(`AI regulations: ${useCase.aiRegulations.applicableFrameworks.join(', ')}`)
+        }
+        if (useCase.aiRegulations?.riskClassification) {
+          constraintLines.push(`AI risk classification: ${useCase.aiRegulations.riskClassification}`)
+        }
+        if (useCase.cybersecurity?.dataClassification) {
+          constraintLines.push(`Data classification: ${useCase.cybersecurity.dataClassification}`)
+        }
+        if (useCase.cybersecurity?.securityRequirements?.length) {
+          constraintLines.push(`Security requirements: ${useCase.cybersecurity.securityRequirements.join(', ')}`)
+        }
+        if (useCase.cybersecurity?.securityNotes) {
+          constraintLines.push(`Security notes: ${useCase.cybersecurity.securityNotes}`)
+        }
+        if (useCase.aiRegulations?.complianceNotes) {
+          constraintLines.push(`Compliance notes: ${useCase.aiRegulations.complianceNotes}`)
+        }
+        drawBullets(constraintLines, margin + 8, pageWidth - 2 * margin - 16)
+        y += 2
+      }
+
+      if (hasAnyFinContext) {
+        drawMiniSection('Financial analysis highlights')
+        const earnings = (useCase.earningsContext || []).slice(0, 5).map((t) => `Earnings: ${t}`)
+        const industry = (useCase.industryContext || []).slice(0, 5).map((t) => `Market: ${t}`)
+        drawBullets([...earnings, ...industry], margin + 8, pageWidth - 2 * margin - 16)
+        y += 2
+      }
+
+      if (hasAnyEffort) {
+        drawMiniSection('Implementation effort estimate')
+        const weeks = useCase.aiEffortEstimate?.effortWeeks
+        const reason = useCase.aiEffortEstimate?.reasoning
+        const lines = [
+          weeks ? `Estimated effort: ${weeks} person-weeks` : '',
+          reason ? `Reasoning: ${reason}` : '',
+        ].filter(Boolean)
+        drawBullets(lines, margin + 8, pageWidth - 2 * margin - 16)
+        y += 2
+      }
+    }
+
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(9)
     doc.setTextColor(40, 40, 40)
@@ -560,7 +719,7 @@ export async function exportToPDF(
       doc.text(`Reach: ${useCase.rice.reach.toLocaleString()} users/${useCase.rice.period || 'period'}`, margin + 8, y)
       y += 4
       doc.text(`Impact: ${useCase.rice.impact}× | Confidence: ${useCase.rice.confidence}% | Effort: ${effortConverted.toFixed(2)} ${effortLabel}`, margin + 8, y)
-    } else {
+    } else if (scoringMethod === 'impact-feasibility') {
       const combinedScore = useCase.impact * useCase.feasibility
       const quadrant = getQuadrant(useCase.impact, useCase.feasibility)
       
@@ -572,6 +731,19 @@ export async function exportToPDF(
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
       doc.text(`Impact: ${useCase.impact}/10 | Feasibility: ${useCase.feasibility}/10`, margin + 8, y)
+    } else {
+      const coi = useCase.costOfInaction?.totalAnnualCOI || 0
+      const ev = useCase.expectedValue?.totalAnnualValue || 0
+      const score = Math.max(coi, ev)
+
+      doc.setFillColor(240, 240, 250)
+      doc.roundedRect(margin + 5, y - 3, pageWidth - 2 * margin - 10, 14, 2, 2, 'F')
+
+      doc.text(`Financial Impact Score: ${formatCurrency(score)}/yr`, margin + 8, y + 2)
+      y += 7
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.text(`Uses max(COI, Value) across quantified inputs`, margin + 8, y)
     }
     y += 12
   }
@@ -669,6 +841,24 @@ export async function exportToPDF(
         y += 5
       }
 
+      // Notes (compact)
+      const notes: string[] = []
+      if (useCase.costOfInaction?.notes && useCase.costOfInaction.notes.trim().length > 0) {
+        notes.push(`COI notes: ${useCase.costOfInaction.notes.trim()}`)
+      }
+      if (useCase.expectedValue?.notes && useCase.expectedValue.notes.trim().length > 0) {
+        notes.push(`ROI/Value notes: ${useCase.expectedValue.notes.trim()}`)
+      }
+      if (notes.length > 0) {
+        addPageIfNeeded(10)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(7)
+        doc.setTextColor(90, 90, 90)
+        const joined = notes.join(' | ')
+        doc.text(doc.splitTextToSize(joined, pageWidth - 2 * margin - 6), margin + 3, y)
+        y += 6
+      }
+
       doc.setFontSize(8)
       doc.setTextColor(60, 60, 60)
       if (scoringMethod === 'rice') {
@@ -681,10 +871,19 @@ export async function exportToPDF(
           margin + 3,
           y
         )
-      } else {
+      } else if (scoringMethod === 'impact-feasibility') {
         const combinedScore = useCase.impact * useCase.feasibility
         doc.text(
           `Score: ${combinedScore.toFixed(1)} | Impact: ${useCase.impact}/10 | Feasibility: ${useCase.feasibility}/10`,
+          margin + 3,
+          y
+        )
+      } else {
+        const coi = useCase.costOfInaction?.totalAnnualCOI || 0
+        const ev = useCase.expectedValue?.totalAnnualValue || 0
+        const score = Math.max(coi, ev)
+        doc.text(
+          `Financial Impact: ${formatCurrency(score)}/yr | COI: ${formatCurrency(coi)}/yr | Value: ${formatCurrency(ev)}/yr`,
           margin + 3,
           y
         )
@@ -898,4 +1097,3 @@ export async function exportToPDF(
   const customerSlug = (options.customerMetadata?.customerName || 'assessment').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 30)
   const fileName = `innovation-hub-${customerSlug}-${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
-}

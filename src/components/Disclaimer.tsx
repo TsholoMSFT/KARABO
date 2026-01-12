@@ -74,7 +74,7 @@ export function Disclaimer({
           <div className="mt-2 space-y-3 text-xs text-muted-foreground border-t pt-3">
             {showAIDisclaimer && (
               <div className="flex items-start gap-2">
-                <Robot size={14} className="text-purple-500 flex-shrink-0 mt-0.5" />
+                <Robot size={14} className="text-primary flex-shrink-0 mt-0.5" />
                 <p>
                   <span className="font-medium text-foreground">AI-Generated Content:</span> Portions of this assessment 
                   are generated using AI. Content should be reviewed and validated before use.
@@ -132,10 +132,10 @@ export function Disclaimer({
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         {showAIDisclaimer && (
-          <div className="flex items-start gap-3 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-            <Robot size={20} weight="duotone" className="text-purple-500 flex-shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+            <Robot size={20} weight="duotone" className="text-primary flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-purple-700 dark:text-purple-300 mb-1">AI-Generated Content</p>
+              <p className="font-medium text-primary mb-1">AI-Generated Content</p>
               <p className="text-muted-foreground text-xs">
                 Portions of this assessment, including executive summaries, use case rationales, and recommendations, 
                 have been generated using artificial intelligence. While we strive for accuracy, AI-generated content 
@@ -209,7 +209,7 @@ export function AIBadge({ className }: { className?: string }) {
     <Badge 
       variant="outline" 
       className={cn(
-        "gap-1 text-xs bg-purple-500/10 border-purple-500/30 text-purple-700 dark:text-purple-300",
+        "gap-1 text-xs bg-primary/10 border-primary/30 text-primary",
         className
       )}
     >
@@ -232,7 +232,7 @@ export function InlineDisclaimer({
   const iconComponents = {
     info: <Info size={14} weight="fill" className="text-blue-500 flex-shrink-0" />,
     warning: <Warning size={14} weight="fill" className="text-amber-500 flex-shrink-0" />,
-    ai: <Robot size={14} weight="fill" className="text-purple-500 flex-shrink-0" />,
+    ai: <Robot size={14} weight="fill" className="text-primary flex-shrink-0" />,
     legal: <Scales size={14} weight="fill" className="text-orange-500 flex-shrink-0" />
   }
 

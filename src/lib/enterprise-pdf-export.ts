@@ -7,6 +7,8 @@ import { diagramSpecToMermaidFlowchart, renderMermaidToPngDataUrl } from '@/lib/
 
 const INNOVATION_HUB_BLUE = [0, 120, 212] as const // #0078D4
 
+const formatGBP = (value: number) => `£${Math.round(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+
 interface ExportEnterpriseDiscoveryOptions {
   includeFinancials?: boolean
   includeYellowLights?: boolean
@@ -60,6 +62,20 @@ export async function exportEnterpriseDiscoveryToPDF(
     const lines = doc.splitTextToSize(text, pageWidth - margin * 2 - 50)
     doc.text(lines, margin + 50, y)
     y += lines.length * 5 + 3
+  }
+
+  const drawBullets = (items: string[]) => {
+    items.filter(Boolean).forEach((item) => {
+      addPageIfNeeded(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(40, 40, 40)
+
+      doc.text('•', margin, y)
+      const lines = doc.splitTextToSize(item, pageWidth - margin * 2 - 8)
+      doc.text(lines, margin + 5, y)
+      y += Math.max(6, lines.length * 4.5) + 1
+    })
   }
 
   // ============ COVER PAGE ============
@@ -271,6 +287,89 @@ export async function exportEnterpriseDiscoveryToPDF(
     y += 5
   }
 
+  // ============ STAGE 3: DECISION PROCESS ============
+  const stage3Data = session.stages[3].data
+  if (stage3Data) {
+    addPageIfNeeded(70)
+    drawSectionHeader('Decision Process')
+
+    if (stage3Data.stakeholders && stage3Data.stakeholders.length > 0) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text('Stakeholders', margin, y)
+      y += 7
+
+      drawBullets(stage3Data.stakeholders.slice(0, 12).map(s => `${s.name} (${s.role}) — ${s.type}, disposition: ${s.disposition}, access: ${s.accessLevel}. Concern: ${s.keyConcern}`))
+      y += 4
+    }
+
+    if (stage3Data.formalCriteria && stage3Data.formalCriteria.length > 0) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text('Evaluation Criteria', margin, y)
+      y += 7
+
+      drawBullets(stage3Data.formalCriteria.slice(0, 10).map(c => c.weighting != null ? `${c.criterion} (weight ${c.weighting})` : c.criterion))
+      if (stage3Data.informalCriteria && stage3Data.informalCriteria.length > 0) {
+        drawBullets(stage3Data.informalCriteria.slice(0, 8).map(c => `Informal: ${c}`))
+      }
+      y += 4
+    }
+
+    drawField('Competition', stage3Data.competition)
+    drawField('Competitive Position', stage3Data.competitivePosition)
+    drawField('Decision Style', stage3Data.decisionStyle)
+    drawField('Procurement Involvement', stage3Data.procurementInvolvement == null ? undefined : (stage3Data.procurementInvolvement ? 'Yes' : 'No'))
+    drawField('Decision Timeline', stage3Data.decisionTimeline ? new Date(stage3Data.decisionTimeline).toLocaleDateString('en-GB') : undefined)
+
+    if (stage3Data.approvalStages && stage3Data.approvalStages.length > 0) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text('Approval Stages', margin, y)
+      y += 7
+
+      drawBullets(stage3Data.approvalStages.slice(0, 10).map(s => {
+        const dt = s.expectedDate ? new Date(s.expectedDate).toLocaleDateString('en-GB') : 'TBD'
+        return `${s.stage}: ${s.approver} (target ${dt})`
+      }))
+      y += 4
+    }
+  }
+
+  // ============ STAGE 4: PRIORITISATION ============
+  const stage4Data = session.stages[4].data
+  if (stage4Data) {
+    addPageIfNeeded(60)
+    drawSectionHeader('Prioritisation (RICE)')
+
+    if (stage4Data.recommendedOpportunityId) {
+      const rec = stage4Data.opportunities?.find(o => o.id === stage4Data.recommendedOpportunityId)
+      if (rec) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(10)
+        doc.setTextColor(60, 60, 60)
+        doc.text('Recommended Opportunity', margin, y)
+        y += 7
+        drawBullets([`${rec.title} — RICE ${rec.rice.score.toFixed(1)} (R ${rec.rice.reach}, I ${rec.rice.impact}, C ${rec.rice.confidence}%, E ${rec.rice.effort})`])
+        y += 4
+      }
+    }
+
+    if (stage4Data.opportunities && stage4Data.opportunities.length > 0) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text('Top opportunities', margin, y)
+      y += 7
+      const ranked = [...stage4Data.opportunities].sort((a, b) => (b.rice.score || 0) - (a.rice.score || 0)).slice(0, 8)
+      drawBullets(ranked.map(o => `${o.title} — RICE ${o.rice.score.toFixed(1)}`))
+      y += 4
+    }
+  }
+
   // ============ STAGE 5: SOLUTION SCOPE ============
   const stage5Data = session.stages[5].data
   if (stage5Data && includeFinancials) {
@@ -378,6 +477,112 @@ export async function exportEnterpriseDiscoveryToPDF(
     
     y += 45
     doc.setTextColor(0, 0, 0)
+  }
+
+  // ============ STAGE 6: VALIDATION & ASSUMPTIONS ============
+  const stage6Data = session.stages[6].data
+  if (stage6Data) {
+    addPageIfNeeded(70)
+    drawSectionHeader('Validation & Assumptions')
+
+    if (stage6Data.assumptions && stage6Data.assumptions.length > 0) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text('Key assumptions (with validation plan)', margin, y)
+      y += 7
+      drawBullets(stage6Data.assumptions.slice(0, 10).map(a => `${a.assumption} — basis: ${a.basis} (confidence: ${a.confidence}). Validate: ${a.validationPlan}`))
+      y += 4
+    }
+
+    drawField('Value location', stage6Data.valueLocation)
+    drawField('Value validator', stage6Data.valueValidator)
+    drawField('Review frequency', stage6Data.reviewFrequency)
+    y += 4
+  }
+
+  // ============ STAGE 7: COMMIT ============
+  const stage7Data = session.stages[7].data
+  if (stage7Data) {
+    addPageIfNeeded(70)
+    drawSectionHeader('Commit Decision')
+
+    drawField('Decision', stage7Data.decision)
+
+    const trust = stage7Data.trustIndicators
+    const engage = stage7Data.engagementIndicators
+    const fit = stage7Data.fitIndicators
+    drawBullets([
+      `Trust: numbers shared (${trust.sharingRealNumbers}), concerns shared (${trust.sharingRealConcerns}), confidence we can deliver (${trust.believeWeCanDeliver}).`,
+      `Engagement: access to decision makers (${engage.accessToDecisionMakers}), responsiveness (${engage.responsiveness}), client investing resources (${engage.clientInvestingResources}).`,
+      `Fit: strategic fit (${fit.strategicFit}), can deliver (${fit.canDeliver}), commercial viability (${fit.commercialViability}).`,
+    ])
+    y += 4
+  }
+
+  // ============ STAGE 8: COMMUNICATE (ROI / INVESTMENT ANALYSIS) ============
+  const stage8Data = session.stages[8].data
+  if (stage8Data && includeFinancials) {
+    addPageIfNeeded(90)
+    drawSectionHeader('Investment Analysis (Stage 8)')
+
+    const ia = stage8Data.investmentAnalysis
+    if (ia) {
+      // Summary box
+      addPageIfNeeded(35)
+      doc.setFillColor(240, 248, 255)
+      doc.roundedRect(margin, y, pageWidth - margin * 2, 32, 3, 3, 'F')
+
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(12)
+      doc.setTextColor(...INNOVATION_HUB_BLUE)
+      doc.text('ROI Summary', margin + 10, y + 10)
+
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text(`Investment (Y1): ${formatGBP(ia.totalInvestmentYear1)}`, margin + 10, y + 18)
+      doc.text(`Annual benefit: ${formatGBP(ia.totalAnnualBenefit)}`, margin + 10, y + 24)
+      doc.text(`Payback: ${ia.simplePaybackMonths.toFixed(0)} months`, pageWidth - margin - 10, y + 18, { align: 'right' })
+      doc.text(`3Y ROI: ${ia.roi3Year.toFixed(0)}%`, pageWidth - margin - 10, y + 24, { align: 'right' })
+      y += 40
+      doc.setTextColor(0, 0, 0)
+
+      drawField('NPV @ 10%', formatGBP(ia.npv10Percent))
+      drawField('IRR', `${ia.irr.toFixed(1)}%`)
+      y += 4
+    }
+
+    const sa = stage8Data.sensitivityAnalysis
+    if (sa) {
+      addPageIfNeeded(60)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text('Sensitivity analysis', margin, y)
+      y += 7
+      drawBullets([
+        `Conservative: benefit ${formatGBP(sa.conservative.annualBenefit)}, payback ${sa.conservative.paybackMonths.toFixed(0)}mo, ROI ${sa.conservative.roi3Year.toFixed(0)}%, NPV ${formatGBP(sa.conservative.npv)}.`,
+        `Base: benefit ${formatGBP(sa.base.annualBenefit)}, payback ${sa.base.paybackMonths.toFixed(0)}mo, ROI ${sa.base.roi3Year.toFixed(0)}%, NPV ${formatGBP(sa.base.npv)}.`,
+        `Optimistic: benefit ${formatGBP(sa.optimistic.annualBenefit)}, payback ${sa.optimistic.paybackMonths.toFixed(0)}mo, ROI ${sa.optimistic.roi3Year.toFixed(0)}%, NPV ${formatGBP(sa.optimistic.npv)}.`,
+      ])
+      y += 4
+    }
+
+    const pl = stage8Data.plImpact
+    if (pl) {
+      addPageIfNeeded(40)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(60, 60, 60)
+      doc.text('P&L impact (3-year total)', margin, y)
+      y += 7
+      drawBullets([
+        `Revenue impact: ${formatGBP(pl.total.revenueImpact)}`,
+        `OPEX impact: ${formatGBP(pl.total.opexImpact)}`,
+        `EBIT impact: ${formatGBP(pl.total.ebitImpact)}`,
+      ])
+      y += 4
+    }
   }
 
   // ============ SOLUTION ARCHITECTURE DIAGRAMS ============

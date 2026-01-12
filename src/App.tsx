@@ -49,7 +49,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel } from '@phosphor-icons/react'
+import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar } from '@phosphor-icons/react'
+import { FinancialImpactTab } from '@/components/FinancialImpactTab'
 import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Footer } from '@/components/ui/footer'
@@ -91,6 +92,7 @@ function App() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [showImpactFeasibilityDesc, setShowImpactFeasibilityDesc] = useState(false)
   const [showRiceDesc, setShowRiceDesc] = useState(false)
+    const [showFinancialImpactDesc, setShowFinancialImpactDesc] = useState(false)
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [postQuickDiscoveryGateOpen, setPostQuickDiscoveryGateOpen] = useState(false)
@@ -548,6 +550,18 @@ function App() {
         effort: 1,
       },
       kpis: data.kpis || [],
+      dataSources: data.dataSources,
+      aiEffortEstimate: data.aiEffortEstimate,
+      costOfInaction: data.costOfInaction,
+      expectedValue: data.expectedValue,
+      strategicAlignment: data.strategicAlignment,
+      businessProcesses: data.businessProcesses,
+      microsoftSolutions: data.microsoftSolutions,
+      referenceArchitecture: data.referenceArchitecture,
+      agenticOpportunities: data.agenticOpportunities,
+      implementationComplexity: data.implementationComplexity,
+      aiRegulations: data.aiRegulations,
+      cybersecurity: data.cybersecurity,
       createdAt: Date.now(),
     }))
 
@@ -749,6 +763,7 @@ function App() {
               aiRegulations: uc.aiRegulations,
               cybersecurity: uc.cybersecurity,
               costOfInaction: uc.costOfInaction,
+              expectedValue: uc.expectedValue,
               aiEffortEstimate: uc.aiEffortEstimate,
               createdAt: Date.now(),
             }))
@@ -995,7 +1010,7 @@ function App() {
                       onValueChange={(value) => setScoringMethod(value as ScoringMethod)}
                       className="w-full sm:w-auto"
                     >
-                      <TabsList className="grid w-full sm:w-auto grid-cols-2">
+                      <TabsList className="grid w-full sm:w-auto grid-cols-3">
                         <TabsTrigger value="impact-feasibility" className="gap-2">
                           <ChartScatter size={18} />
                           <span className="hidden sm:inline">Impact/Feasibility</span>
@@ -1004,6 +1019,11 @@ function App() {
                         <TabsTrigger value="rice" className="gap-2">
                           <ListNumbers size={18} />
                           RICE
+                        </TabsTrigger>
+                        <TabsTrigger value="financial-impact" className="gap-2">
+                          <CurrencyDollar size={18} />
+                          <span className="hidden sm:inline">Financial Impact</span>
+                          <span className="sm:hidden">$</span>
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
@@ -1156,6 +1176,69 @@ function App() {
                     </div>
                   </motion.div>
                 )}
+                  {scoringMethod === 'financial-impact' && (
+                    <motion.div
+                      key="financial-impact"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.4, ease: 'easeInOut' }}
+                    >
+                      <div className="bg-muted/30 rounded-lg border border-border overflow-hidden">
+                        <button
+                          onClick={() => setShowFinancialImpactDesc(!showFinancialImpactDesc)}
+                          className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="text-left">
+                            <h3 className="text-lg font-semibold text-foreground">Financial Impact (COI + ROI)</h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {showFinancialImpactDesc
+                                ? 'Click to hide details'
+                                : 'Click to learn how financial impact is derived and edited'}
+                            </p>
+                          </div>
+                          {showFinancialImpactDesc ? (
+                            <CaretUp size={24} className="text-foreground flex-shrink-0" />
+                          ) : (
+                            <CaretDown size={24} className="text-foreground flex-shrink-0" />
+                          )}
+                        </button>
+
+                        <AnimatePresence>
+                          {showFinancialImpactDesc && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="px-6 pb-6 text-sm text-muted-foreground space-y-2">
+                                <p>
+                                  The app auto-derives initial COI/ROI values from discovery outputs (COI estimates, effort estimates, and any captured
+                                  financial analysis evidence). All derived numbers and notes remain fully editable and are used in executive exports.
+                                </p>
+                                <ul className="list-disc ml-5 space-y-1">
+                                  <li>Payback is calculated from implementation cost and annual value.</li>
+                                  <li>3-year ROI is calculated using the current ROI model used throughout the app.</li>
+                                  <li>Notes capture assumptions and the provenance of any derived defaults.</li>
+                                </ul>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      <div className="mt-6">
+                        <FinancialImpactTab
+                          useCases={useCasesList}
+                          selectedId={selectedUseCaseId}
+                          onSelectUseCase={setSelectedUseCaseId}
+                          onUpdateUseCase={handleUpdateUseCase}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
 
                 <Card className="border-2 bg-card">

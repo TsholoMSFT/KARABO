@@ -1,14 +1,14 @@
-import { UseCase } from '@/lib/types'
+import type { UseCase, ScoringMethod } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Sparkle, TrendUp, Lightning, Calculator, CurrencyDollar } from '@phosphor-icons/react'
-import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
+import { calculateFinancialImpactScore, calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { motion } from 'framer-motion'
 import { useMemo } from 'react'
 
 interface TopRecommendationsProps {
   topUseCases: UseCase[]
-  scoringMethod: 'impact-feasibility' | 'rice'
+  scoringMethod: ScoringMethod
   onSelectUseCase: (id: string) => void
 }
 
@@ -70,12 +70,15 @@ export function TopRecommendations({
         </div>
         <div className="space-y-3">
           {topUseCases.map((useCase, index) => {
-            const score =
-              scoringMethod === 'rice'
-                ? calculateRICEScore(useCase)
-                : useCase.impact * useCase.feasibility
+            const score = scoringMethod === 'rice'
+              ? calculateRICEScore(useCase)
+              : scoringMethod === 'impact-feasibility'
+                ? useCase.impact * useCase.feasibility
+                : calculateFinancialImpactScore(useCase)
+
             const quadrant = getQuadrant(useCase.impact, useCase.feasibility)
             const isQuickWin = quadrant === 'Quick Wins'
+            const scoreLabel = scoringMethod === 'rice' ? 'RICE' : scoringMethod === 'impact-feasibility' ? 'Score' : 'Impact'
 
             return (
               <motion.div
@@ -134,7 +137,7 @@ export function TopRecommendations({
                     <div className="flex items-center gap-1">
                       <TrendUp size={14} className="text-muted-foreground" />
                       <span className="text-muted-foreground">
-                        {scoringMethod === 'rice' ? 'RICE' : 'Score'}:
+                        {scoreLabel}:
                       </span>
                       <motion.span
                         key={`top-score-${useCase.id}-${score}-${scoringMethod}`}

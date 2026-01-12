@@ -37,6 +37,9 @@ export interface ExtractedUseCase {
     currentPainPoints: string[]
     expectedImprovement: string
   }
+
+  // Quick Discovery: solution mapping (name/play only)
+  solutionPlays?: string[]
   
   microsoftSolutions?: Array<{
     productFamily: string
@@ -130,7 +133,7 @@ TASK: Extract 4-8 high-value use cases from these notes. For each use case:
 
 1. **Identify the core problem/opportunity** mentioned in the notes
 2. **Extract relevant text** - Quote or reference specific sentences from the notes that informed this use case
-3. **Map to Microsoft solutions** - Recommend appropriate Azure services and reference architectures
+3. **Map to Microsoft solution plays** - Provide a concise list of solution names/plays (e.g., Fabric, Copilot Studio, Playwright, Entra, Defender for Cloud)
 4. **Assess complexity** - Estimate implementation difficulty and risks
 5. **Consider compliance** - Identify relevant AI regulations and security requirements
 
@@ -145,7 +148,7 @@ For each use case, provide:
   - Extract 1-3 key excerpts per use case that show the pain point or opportunity
 - **strategicAlignment**: Link to business priorities mentioned in notes
 - **businessProcess**: Current workflow and pain points
-- **microsoftSolutions**: Recommended Azure services (productFamily, services[], role, justification)
+- **solutionPlays**: Array of Microsoft solution names/plays (strings) — keep it short and actionable
 - **referenceArchitecture**: One of these validated patterns:
   - conversational-ai (chatbots, virtual agents, customer service automation)
   - document-processing (OCR, form recognition, document intelligence)
@@ -203,6 +206,7 @@ Return a JSON object with this structure:
         "currentPainPoints": ["string"],
         "expectedImprovement": "string"
       },
+      "solutionPlays": ["Microsoft Fabric", "Copilot Studio"],
       "microsoftSolutions": [
         {
           "productFamily": "azure-ai | power-platform | microsoft-365 | dynamics-365 | security",
@@ -243,7 +247,7 @@ Return a JSON object with this structure:
 
 CRITICAL:
 - Extract sourceTexts with exact quotes and positions from the notes
-- Be specific about which Microsoft solutions to use and why
+- Provide solutionPlays as names/plays only (no long justifications)
 - Choose the most appropriate reference architecture pattern
 - Consider industry-specific regulations and security requirements
 - Estimate realistic implementation complexity
@@ -270,6 +274,7 @@ Generate 4-8 use cases. Return valid JSON only.`
       sourceTexts: uc.sourceTexts || [],
       strategicAlignment: uc.strategicAlignment,
       businessProcess: uc.businessProcess,
+      solutionPlays: Array.isArray(uc.solutionPlays) ? uc.solutionPlays.filter((s: any) => typeof s === 'string') : [],
       microsoftSolutions: uc.microsoftSolutions || [],
       referenceArchitecture: uc.referenceArchitecture,
       agenticOpportunity: uc.agenticOpportunity,

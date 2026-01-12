@@ -13,6 +13,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { CircleNotch, Sparkle, ArrowRight, CheckCircle } from '@phosphor-icons/react'
+import { calculateRICEScore, getTopUseCases } from '@/lib/scoring'
+import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
+import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 
 type AIAssessmentStep = 'inputs' | 'review'
 
@@ -71,6 +74,8 @@ export function AIAssessmentWorkflow({
     () => useCases.filter((u) => selectedUseCaseIds.includes(u.id)),
     [useCases, selectedUseCaseIds]
   )
+
+  const topScored = useMemo(() => getTopUseCases(selectedUseCases, 'rice', 3), [selectedUseCases])
 
   const toggleUseCase = (id: string) => {
     setSelectedUseCaseIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -436,6 +441,45 @@ RULES
                   </div>
                 </div>
               )}
+
+              <ThreadlightPasteCard
+                industryLabel={session.industry || 'general'}
+                industryValue={session.industry || 'general'}
+                shortName={makeThreadlightShortName(topScored[0]?.title || 'AI Assessment')}
+                topScoredItems={topScored.map((u) => ({
+                  title: u.title,
+                  scoreLabel: 'RICE',
+                  scoreValue: calculateRICEScore(u),
+                }))}
+                processAnalysis={buildThreadlightProcessAnalysis({
+                  customerName: session.customerName,
+                  opportunityName: session.name,
+                  industryLabel: session.industry || 'general',
+                  processCandidates,
+                  processNotes,
+                  constraints,
+                  topItems: topScored.map((u) => ({
+                    title: u.title,
+                    description: u.description,
+                    scoreLabel: 'RICE',
+                    scoreValue: calculateRICEScore(u),
+                  })),
+                })}
+                pasteText={buildThreadlightByopPasteText({
+                  customerName: session.customerName,
+                  opportunityName: session.name,
+                  industryLabel: session.industry || 'general',
+                  processCandidates,
+                  processNotes,
+                  constraints,
+                  topItems: topScored.map((u) => ({
+                    title: u.title,
+                    description: u.description,
+                    scoreLabel: 'RICE',
+                    scoreValue: calculateRICEScore(u),
+                  })),
+                })}
+              />
             </>
           )}
         </CardContent>

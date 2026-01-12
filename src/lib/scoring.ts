@@ -1,4 +1,4 @@
-import { UseCase, RICEScore } from './types'
+import type { UseCase, ScoringMethod } from './types'
 
 export function calculateRICEScore(useCase: UseCase): number {
   const { reach, impact, confidence, effort } = useCase.rice
@@ -6,9 +6,16 @@ export function calculateRICEScore(useCase: UseCase): number {
   return (reach * impact * (confidence / 100)) / Math.max(effort, 0.1)
 }
 
+export function calculateFinancialImpactScore(useCase: UseCase): number {
+  const annualValue = useCase.expectedValue?.totalAnnualValue || 0
+  const annualCOI = useCase.costOfInaction?.totalAnnualCOI || 0
+  // Use the higher of Value vs COI as the primary “financial impact” signal.
+  return Math.max(annualValue, annualCOI)
+}
+
 export function getRankedUseCases(
   useCases: UseCase[],
-  method: 'impact-feasibility' | 'rice'
+  method: ScoringMethod
 ): UseCase[] {
   if (method === 'impact-feasibility') {
     return [...useCases].sort((a, b) => {
@@ -17,19 +24,28 @@ export function getRankedUseCases(
       if (scoreB === scoreA) return a.createdAt - b.createdAt
       return scoreB - scoreA
     })
-  } else {
+  }
+
+  if (method === 'financial-impact') {
     return [...useCases].sort((a, b) => {
-      const scoreA = calculateRICEScore(a)
-      const scoreB = calculateRICEScore(b)
+      const scoreA = calculateFinancialImpactScore(a)
+      const scoreB = calculateFinancialImpactScore(b)
       if (scoreB === scoreA) return a.createdAt - b.createdAt
       return scoreB - scoreA
     })
   }
+
+  return [...useCases].sort((a, b) => {
+    const scoreA = calculateRICEScore(a)
+    const scoreB = calculateRICEScore(b)
+    if (scoreB === scoreA) return a.createdAt - b.createdAt
+    return scoreB - scoreA
+  })
 }
 
 export function getTopUseCases(
   useCases: UseCase[],
-  method: 'impact-feasibility' | 'rice',
+  method: ScoringMethod,
   count: number = 5
 ): UseCase[] {
   return getRankedUseCases(useCases, method).slice(0, count)

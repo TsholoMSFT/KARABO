@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { UseCase, DiscoverySession } from '@/lib/types'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { industryLabels } from '@/lib/discovery-questions'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
+import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
 import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, FlowArrow, TreeStructure } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -21,6 +22,8 @@ import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
 import { ProcessFlowDiagram } from '@/components/ProcessFlowDiagram'
 import { REFERENCE_ARCHITECTURES, PRODUCT_FAMILY_LABELS, COMPLEXITY_INDICATORS, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { fetchFinancialStatements } from '@/lib/earnings-service'
+import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
+import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 
 interface WorkflowUseCase {
   id: string
@@ -52,6 +55,8 @@ interface WorkflowUseCase {
     }
     estimatedAt: number
   }
+  manualCOI?: UseCaseCOI
+  manualExpectedValue?: UseCaseExpectedValue
   rice?: {
     reach: number
     users: number
@@ -76,6 +81,21 @@ interface WorkflowUseCase {
     role: 'primary' | 'supporting' | 'integration'
     justification?: string
   }>
+}
+
+function calculateWorkflowRICEScore(useCase: WorkflowUseCase): number {
+  const rice = useCase.rice
+  if (!rice) return 0
+  const reach = rice.reach || 0
+  const impact = rice.impact || 0
+  const confidence = rice.confidence || 0
+  const effort = rice.effort || 0
+  if (effort <= 0) return 0
+  return (reach * impact * (confidence / 100)) / Math.max(effort, 0.1)
+}
+
+function calculateWorkflowIFScore(useCase: WorkflowUseCase): number {
+  return (useCase.impact || 0) * (useCase.feasibility || 0)
 }
 
 interface EnhancedDiscoveryWorkflowProps {
@@ -137,6 +157,7 @@ export function EnhancedDiscoveryWorkflow({
   const [executiveSummary, setExecutiveSummary] = useState('')
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [annualRevenue, setAnnualRevenue] = useState<number | undefined>(undefined)
+  const [financialTargetUseCaseId, setFinancialTargetUseCaseId] = useState<string | null>(null)
 
   // Pull financial scale forward (optional) so COI estimation can be better grounded.
   useEffect(() => {
@@ -172,6 +193,26 @@ export function EnhancedDiscoveryWorkflow({
   const currentUseCase = step === 'impact-feasibility' || step === 'rice' || step === 'diagrams'
     ? selectedUseCases[currentUseCaseIndex] 
     : null
+
+  const topRankedUseCases = useMemo(() => {
+    const ranked = [...selectedUseCases].sort((a, b) => {
+      const scoreA = calculateWorkflowRICEScore(a) || calculateWorkflowIFScore(a)
+      const scoreB = calculateWorkflowRICEScore(b) || calculateWorkflowIFScore(b)
+      if (scoreB === scoreA) return a.id.localeCompare(b.id)
+      return scoreB - scoreA
+    })
+    return ranked
+  }, [selectedUseCases])
+
+  const topScoredUseCase = topRankedUseCases[0] || null
+
+  useEffect(() => {
+    if (!financialTargetUseCaseId && topScoredUseCase?.id) {
+      setFinancialTargetUseCaseId(topScoredUseCase.id)
+    }
+  }, [financialTargetUseCaseId, topScoredUseCase?.id])
+
+  const financialTargetUseCase = selectedUseCases.find((uc) => uc.id === financialTargetUseCaseId) || topScoredUseCase
 
   // Auto-save progress to session storage
   const saveProgress = useCallback(() => {
@@ -436,6 +477,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
       impact: uc.impact || 5,
       feasibility: uc.feasibility || 5,
       dataSources: uc.dataSources || ['discovery'], // Preserve data sources
+      aiEffortEstimate: uc.aiEffortEstimate,
       rice: uc.rice || {
         reach: 100,
         users: 100,
@@ -445,6 +487,34 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
         effort: 1,
       },
       kpis: [],
+      businessProcesses: uc.businessProcesses?.map((p) => ({
+        process: p.processName,
+        category: 'operational',
+        currentState: (p.currentPainPoints || []).join('; '),
+        painPoints: p.currentPainPoints || [],
+        desiredState: p.proposedImprovement,
+        aiIntervention: '',
+      })),
+      microsoftSolutions: uc.microsoftSolutions,
+      referenceArchitecture: uc.referenceArchitecture,
+      costOfInaction: uc.manualCOI
+        ? { ...uc.manualCOI }
+        : (uc.coiEstimate
+          ? {
+              directCosts: uc.coiEstimate.directCosts,
+              opportunityCosts: uc.coiEstimate.opportunityCosts,
+              riskCosts: uc.coiEstimate.riskCosts,
+              totalAnnualCOI: uc.coiEstimate.totalAnnualCOI,
+              notes: [
+                uc.coiEstimate.reasoning ? `Reasoning: ${uc.coiEstimate.reasoning}` : '',
+                Array.isArray(uc.coiEstimate.assumptions) && uc.coiEstimate.assumptions.length > 0
+                  ? `Assumptions: ${uc.coiEstimate.assumptions.join(' | ')}`
+                  : '',
+              ].filter(Boolean).join('\n'),
+              calculatedAt: uc.coiEstimate.estimatedAt,
+            }
+          : undefined),
+      expectedValue: uc.manualExpectedValue ? { ...uc.manualExpectedValue } : undefined,
     }))
 
     onComplete(finalUseCases, executiveSummary)
@@ -745,7 +815,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                       Scored Use Cases ({selectedUseCases.length})
                     </h3>
                     <div className="space-y-2">
-                      {selectedUseCases.map((uc, idx) => (
+                      {topRankedUseCases.map((uc) => (
                         <Card key={uc.id} className="p-3 bg-muted/30">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -754,6 +824,9 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                             <div className="flex items-center gap-4 text-xs">
                               <Badge variant="outline">Impact: {uc.impact}/10</Badge>
                               <Badge variant="outline">Feasibility: {uc.feasibility}/10</Badge>
+                              <Badge variant="secondary">
+                                RICE: {calculateWorkflowRICEScore(uc).toFixed(2)}
+                              </Badge>
                             </div>
                           </div>
                         </Card>
@@ -763,17 +836,127 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
 
                   <Separator />
 
-                  {/* Quick Financial Quantification */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-3">Financial Quantification (Optional)</h3>
-                    <QuickCOICalculator 
+                  {/* Threadlight BYOP paste output */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground">Threadlight BYOP Output</h3>
+                    <ThreadlightPasteCard
+                      industryLabel={session.industry ? industryLabels[session.industry] : undefined}
+                      industryValue={session.industry ? industryLabels[session.industry] : undefined}
+                      shortName={makeThreadlightShortName(topScoredUseCase?.title || session.name || 'Discovery')}
+                      topScoredItems={topRankedUseCases.slice(0, 3).map((uc) => ({
+                        title: uc.title,
+                        scoreLabel: 'RICE',
+                        scoreValue: calculateWorkflowRICEScore(uc),
+                      }))}
+                      processAnalysis={buildThreadlightProcessAnalysis({
+                        customerName: session.customerName,
+                        opportunityName: session.name,
+                        industryLabel: session.industry ? industryLabels[session.industry] : undefined,
+                        executiveSummary,
+                        topItems: topRankedUseCases.slice(0, 5).map((uc) => ({
+                          title: uc.title,
+                          description: uc.description,
+                          scoreLabel: 'RICE',
+                          scoreValue: calculateWorkflowRICEScore(uc),
+                        })),
+                      })}
+                      pasteText={buildThreadlightByopPasteText({
+                        customerName: session.customerName,
+                        opportunityName: session.name,
+                        industryLabel: session.industry ? industryLabels[session.industry] : undefined,
+                        executiveSummary,
+                        topItems: topRankedUseCases.slice(0, 5).map((uc) => ({
+                          title: uc.title,
+                          description: uc.description,
+                          scoreLabel: 'RICE',
+                          scoreValue: calculateWorkflowRICEScore(uc),
+                        })),
+                        financials: {
+                          annualCOI: (topScoredUseCase?.manualCOI?.totalAnnualCOI) || (topScoredUseCase?.coiEstimate?.totalAnnualCOI),
+                          annualValue: topScoredUseCase?.manualExpectedValue?.totalAnnualValue,
+                          implementationCost: topScoredUseCase?.manualExpectedValue?.implementationCost,
+                          paybackMonths: topScoredUseCase?.manualExpectedValue?.paybackMonths,
+                          roi3YearPercent: topScoredUseCase?.manualExpectedValue?.threeYearROI,
+                        },
+                      })}
+                    />
+                  </div>
+
+                  {/* Financial Quantification (Optional) - COI + ROI for a selected use case */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-foreground">Financial Quantification (Optional)</h3>
+                    <div className="space-y-2">
+                      <Label>Apply COI/ROI to use case</Label>
+                      <Select
+                        value={financialTargetUseCase?.id || ''}
+                        onValueChange={(v) => setFinancialTargetUseCaseId(v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a use case" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {topRankedUseCases.map((uc) => (
+                            <SelectItem key={uc.id} value={uc.id}>
+                              {uc.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Tip: Default is the top-scored use case.
+                      </p>
+                    </div>
+
+                    <QuickCOICalculator
                       variant="compact"
                       customerName={session.customerName}
-                      opportunityTitle={session.name}
+                      opportunityTitle={financialTargetUseCase?.title || session.name}
+                      initialValues={financialTargetUseCase?.manualCOI ? {
+                        directCosts: financialTargetUseCase.manualCOI.directCosts,
+                        opportunityCosts: financialTargetUseCase.manualCOI.opportunityCosts,
+                        riskCosts: financialTargetUseCase.manualCOI.riskCosts,
+                        notes: financialTargetUseCase.manualCOI.notes || '',
+                      } : undefined}
+                      onSave={(values) => {
+                        if (!financialTargetUseCase) return
+                        const next: UseCaseCOI = {
+                          directCosts: values.directCosts,
+                          opportunityCosts: values.opportunityCosts,
+                          riskCosts: values.riskCosts,
+                          totalAnnualCOI: values.totalCOI,
+                          notes: values.notes,
+                          calculatedAt: Date.now(),
+                        }
+
+                        setUseCases((prev) => prev.map((u) => (u.id === financialTargetUseCase.id ? { ...u, manualCOI: next } : u)))
+                      }}
                       autoContext={{
                         industry: session.industry ? industryLabels[session.industry] : undefined,
                         companyName: session.customerName,
                         annualRevenue,
+                      }}
+                    />
+
+                    <QuickROICalculator
+                      currency="USD"
+                      initialValues={financialTargetUseCase?.manualExpectedValue ? {
+                        revenueImpact: financialTargetUseCase.manualExpectedValue.revenueImpact || 0,
+                        costSavings: financialTargetUseCase.manualExpectedValue.costSavings || 0,
+                        riskMitigation: financialTargetUseCase.manualExpectedValue.riskMitigation || 0,
+                        implementationCost: financialTargetUseCase.manualExpectedValue.implementationCost || 0,
+                      } : undefined}
+                      onSave={(inputs: ROIInputs, result: ROIResult) => {
+                        if (!financialTargetUseCase) return
+                        const next: UseCaseExpectedValue = {
+                          revenueImpact: inputs.revenueImpact,
+                          costSavings: inputs.costSavings,
+                          riskMitigation: inputs.riskMitigation,
+                          totalAnnualValue: result.totalAnnualValue,
+                          implementationCost: inputs.implementationCost,
+                          paybackMonths: Number.isFinite(result.paybackMonths) ? result.paybackMonths : undefined,
+                          threeYearROI: Number.isFinite(result.roi3YearPercent) ? result.roi3YearPercent : undefined,
+                        }
+                        setUseCases((prev) => prev.map((u) => (u.id === financialTargetUseCase.id ? { ...u, manualExpectedValue: next } : u)))
                       }}
                     />
                   </div>
@@ -1296,13 +1479,13 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
               <div className="flex items-center gap-2">
                 <Label>Effort (Person-Weeks)</Label>
                 {isEstimating && (
-                  <Badge variant="outline" className="text-xs animate-pulse bg-purple-500/10 text-purple-600 border-purple-500/30">
+                  <Badge variant="outline" className="text-xs animate-pulse bg-primary/10 text-primary border-primary/30">
                     <Sparkle size={12} className="mr-1" weight="fill" />
                     AI Estimating...
                   </Badge>
                 )}
                 {aiEstimate && !isEstimating && !hasOverridden && (
-                  <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/30">
+                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
                     <Sparkle size={12} className="mr-1" weight="fill" />
                     AI Suggested
                   </Badge>
@@ -1327,11 +1510,11 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
               
               {/* AI Reasoning Display */}
               {aiEstimate && (
-                <div className="mt-3 p-3 bg-purple-500/5 rounded-lg border border-purple-500/20">
+                <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
                   <div className="flex items-start gap-2">
-                    <Sparkle size={14} className="text-purple-500 mt-0.5 flex-shrink-0" weight="fill" />
+                    <Sparkle size={14} className="text-primary mt-0.5 flex-shrink-0" weight="fill" />
                     <div>
-                      <p className="text-xs font-medium text-purple-700 dark:text-purple-400 mb-1">
+                      <p className="text-xs font-medium text-primary mb-1">
                         AI Estimate: {aiEstimate.effortWeeks} person-weeks
                       </p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1343,7 +1526,7 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
                             setEffort(aiEstimate.effortWeeks)
                             setHasOverridden(false)
                           }}
-                          className="text-xs text-purple-600 hover:text-purple-700 underline mt-2"
+                          className="text-xs text-primary hover:text-primary/90 underline mt-2"
                         >
                           Use AI suggestion
                         </button>

@@ -145,6 +145,7 @@ export interface UseCaseExpectedValue {
   implementationCost?: number   // One-time implementation cost
   paybackMonths?: number        // Payback period in months
   threeYearROI?: number         // 3-year ROI percentage
+  notes?: string                // Calculation assumptions / derived notes (editable)
 }
 
 export interface UseCase {
@@ -194,6 +195,8 @@ export interface UseCase {
   
   // Microsoft solution recommendations (Solution Envisioning)
   microsoftSolutions?: UseCaseMicrosoftSolution[]
+  // Quick Discovery solution mapping (name/play only)
+  solutionPlays?: string[]
   referenceArchitecture?: string  // Reference architecture pattern ID
   
   // Agentic AI opportunities (Solution Envisioning)
@@ -404,7 +407,7 @@ export interface BusinessEnvisioningData {
   }
 }
 
-export type ScoringMethod = 'impact-feasibility' | 'rice'
+export type ScoringMethod = 'impact-feasibility' | 'rice' | 'financial-impact'
 
 export interface RICEScore {
   score: number
@@ -508,6 +511,7 @@ export interface SuggestedUseCaseData {
   strategicAlignment?: StrategicAlignmentInfo
   businessProcesses?: UseCaseBusinessProcess[]
   microsoftSolutions?: UseCaseMicrosoftSolution[]
+  solutionPlays?: string[]
   referenceArchitecture?: string
   agenticOpportunities?: UseCaseAgenticOpportunity[]
   implementationComplexity?: ImplementationComplexityInfo

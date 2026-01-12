@@ -6,14 +6,11 @@ import { Separator } from '@/components/ui/separator'
 import { 
   Sparkle, 
   RocketLaunch, 
-  Buildings, 
   FolderOpen, 
   Lightbulb,
   ChartBar,
   MagnifyingGlass,
   Briefcase,
-  ChartLine,
-  Calculator,
   Play,
   HardHat,
   ShoppingCart,
@@ -105,8 +102,8 @@ export function LandingPage({
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Quick Discovery Card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Discovery Card */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -116,39 +113,49 @@ export function LandingPage({
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-                    <RocketLaunch size={28} weight="duotone" className="text-primary" />
+                    <MagnifyingGlass size={28} weight="duotone" className="text-primary" />
                   </div>
-                  <Badge variant="outline" className="text-xs">Quick Start</Badge>
+                  <Badge variant="outline" className="text-xs">Choose Track</Badge>
                 </div>
-                <CardTitle className="text-xl">Quick Discovery</CardTitle>
+                <CardTitle className="text-xl">Discovery</CardTitle>
                 <CardDescription className="text-sm">
-                  Rapid use case identification with AI-powered insights
+                  Start with a guided track to identify and assess opportunities
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
-                    <MagnifyingGlass size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
-                    <span>Guided discovery questions</span>
+                    <RocketLaunch size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
+                    <span>Quick Discovery: guided questions + AI use cases</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Sparkle size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
-                    <span>AI-generated use cases</span>
+                    <Briefcase size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
+                    <span>Enterprise Discovery: 5-stage framework + financial modeling</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <ChartBar size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
-                    <span>Impact & RICE scoring</span>
+                    <span>Impact + feasibility scoring to prioritize next steps</span>
                   </li>
                 </ul>
                 <Separator />
-                <Button 
-                  onClick={onStartNew} 
-                  className="w-full gap-2"
-                  size="lg"
-                >
-                  <RocketLaunch size={20} weight="duotone" />
-                  Quick Discovery
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    onClick={onStartNew}
+                    className="w-full gap-2"
+                    size="lg"
+                  >
+                    <RocketLaunch size={20} weight="duotone" />
+                    Quick Discovery
+                  </Button>
+                  <Button
+                    onClick={onStartEnterpriseDiscovery}
+                    className="w-full gap-2 bg-brand-blue hover:bg-brand-blue/90 text-brand-blue-foreground"
+                    size="lg"
+                  >
+                    <Briefcase size={20} weight="duotone" />
+                    Enterprise Discovery
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -203,65 +210,18 @@ export function LandingPage({
             </motion.div>
           )}
 
-          {/* Enterprise Discovery Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.65 }}
-          >
-            <Card className="h-full border-2 border-[#0078D4]/50 hover:shadow-lg transition-all duration-300 hover:border-[#0078D4] bg-gradient-to-br from-[#0078D4]/5 to-transparent">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-[#0078D4]/10">
-                    <Briefcase size={28} weight="duotone" className="text-[#0078D4]" />
-                  </div>
-                  <Badge className="text-xs bg-[#0078D4] hover:bg-[#0078D4]">Recommended</Badge>
-                </div>
-                <CardTitle className="text-xl">Enterprise Discovery</CardTitle>
-                <CardDescription className="text-sm">
-                  Comprehensive 5-stage framework with financial modeling
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <Calculator size={16} weight="duotone" className="mt-0.5 text-[#0078D4] flex-shrink-0" />
-                    <span>COI 4-box quantification</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Buildings size={16} weight="duotone" className="mt-0.5 text-[#0078D4] flex-shrink-0" />
-                    <span>Stakeholder & MEDDPICC</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ChartLine size={16} weight="duotone" className="mt-0.5 text-[#0078D4] flex-shrink-0" />
-                    <span>ROI & executive summary</span>
-                  </li>
-                </ul>
-                <Separator />
-                <Button 
-                  onClick={onStartEnterpriseDiscovery} 
-                  className="w-full gap-2 bg-[#0078D4] hover:bg-[#106EBE]"
-                  size="lg"
-                >
-                  <Briefcase size={20} weight="duotone" />
-                  Enterprise Discovery
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-
           {/* AI Assessment Card */}
           {onStartAIAssessment && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.67 }}
+              transition={{ delay: 0.64 }}
             >
-              <Card className="h-full border-2 border-purple-500/40 hover:shadow-lg transition-all duration-300 hover:border-purple-500 bg-gradient-to-br from-purple-500/5 to-transparent">
+              <Card className="h-full border-2 border-primary/40 hover:shadow-lg transition-all duration-300 hover:border-primary bg-gradient-to-br from-primary/5 to-transparent">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-500/10">
-                      <TreeStructure size={28} weight="duotone" className="text-purple-600" />
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
+                      <TreeStructure size={28} weight="duotone" className="text-primary" />
                     </div>
                     <Badge variant="outline" className="text-xs">Process</Badge>
                   </div>
@@ -273,22 +233,22 @@ export function LandingPage({
                 <CardContent className="space-y-4">
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li className="flex items-start gap-2">
-                      <TreeStructure size={16} weight="duotone" className="mt-0.5 text-purple-600 flex-shrink-0" />
+                      <TreeStructure size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
                       <span>Map workflows, handoffs, and constraints</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-purple-600 flex-shrink-0" />
+                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
                       <span>Generate value + feasibility analysis</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-purple-600 flex-shrink-0" />
+                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
                       <span>Feed the portfolio prioritization matrix</span>
                     </li>
                   </ul>
                   <Separator />
                   <Button
                     onClick={onStartAIAssessment}
-                    className="w-full gap-2 bg-purple-600 hover:bg-purple-700"
+                    className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                     size="lg"
                   >
                     <Sparkle size={20} weight="duotone" />
@@ -303,7 +263,7 @@ export function LandingPage({
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.7 }}
+            transition={{ delay: 0.66 }}
           >
             <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-blue-500/50">
               <CardHeader className="pb-4">
@@ -387,8 +347,8 @@ export function LandingPage({
             <CardContent className="py-6">
               <div className="flex items-center justify-center gap-8 flex-wrap">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">3</div>
-                  <div className="text-sm text-muted-foreground">Discovery Modes</div>
+                  <div className="text-2xl font-bold text-primary">4</div>
+                  <div className="text-sm text-muted-foreground">Entry Modes</div>
                 </div>
                 <Separator orientation="vertical" className="h-12 hidden sm:block" />
                 <div className="text-center">
