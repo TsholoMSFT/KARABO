@@ -770,6 +770,10 @@ function App() {
             setCurrentView('dashboard')
             setCurrentDiscoverySession(null)
             setNotesSession(null)
+
+            // Explicit end-of-mode decision gate (Notes Analysis -> Proceed or Conclude)
+            // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to AI Assessment.
+            setPostQuickDiscoveryGateOpen(true)
           }}
           onCancel={() => {
             setCurrentView('dashboard')
