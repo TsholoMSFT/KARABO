@@ -297,7 +297,7 @@ export function EnterpriseDiscoveryOrchestrator({
       case 1:
         return (
           <Stage1Opportunity
-            initialData={session.stages[1].data}
+            initialData={session.stages[1].data ?? undefined}
             businessEnvisioning={businessEnvisioning}
             onComplete={(data) => handleStageComplete(1, data)}
             onBack={() => handleStageBack(0)}
@@ -307,7 +307,7 @@ export function EnterpriseDiscoveryOrchestrator({
       case 2:
         return (
           <Stage2Resources
-            initialData={session.stages[2].data}
+            initialData={session.stages[2].data ?? undefined}
             onComplete={(data) => handleStageComplete(2, data)}
             onBack={() => handleStageBack(1)}
             isLiveMode={isLiveMode}

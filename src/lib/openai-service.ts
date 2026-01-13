@@ -122,6 +122,7 @@ export type AITask =
   | 'formatting'      // JSON formatting, simple transforms → Phi-4-mini-instruct  
   | 'analysis'        // COI estimation, effort estimation → GPT-4o-mini
   | 'architecture'    // Solution architecture → GPT-4o-mini
+  | 'journey'         // Customer journey generation → GPT-4o-mini
   | 'executive'       // Executive summaries → GPT-4o (premium)
   | 'general'         // Default → Phi-4-mini-instruct
 
@@ -140,6 +141,7 @@ export function getModelForTask(task: AITask): ModelType {
     general: 'phi-4-mini-instruct',
     analysis: 'gpt-4o-mini',
     architecture: 'gpt-4o-mini',
+    journey: 'gpt-4o-mini',
     executive: 'gpt-4o',
   }
   return taskModelMap[task] || 'phi-4-mini-instruct'
@@ -561,6 +563,191 @@ Be concise but specific in reasoning.`
   }
 }
 
+// ============================================================================
+// CUSTOMER JOURNEY GENERATION
+// ============================================================================
+
+export interface GeneratedJourneyMilestone {
+  title: string
+  description: string
+  engagement: 'business-envisioning' | 'solution-envisioning' | 'architecture-design' | 'rapid-prototype'
+  duration: string
+  deliverables: string[]
+  dependencies: string[]
+}
+
+export interface GeneratedJourney {
+  milestones: GeneratedJourneyMilestone[]
+  totalDuration: string
+  reasoning: string
+}
+
+/**
+ * Generate a customer journey / engagement roadmap for a use case
+ * Uses Innovation Hub engagement types to create a structured implementation path
+ */
+export async function generateCustomerJourney(
+  useCase: { id: string; title: string; description: string },
+  context?: {
+    complexity?: 'low' | 'medium' | 'high' | 'very-high'
+    industry?: string
+    existingMicrosoftProducts?: string[]
+    customerName?: string
+  }
+): Promise<GeneratedJourney> {
+  const complexityLevel = context?.complexity || 'medium'
+  
+  const prompt = `You are a Microsoft Innovation Hub expert creating a customer engagement roadmap.
+
+USE CASE:
+Title: ${useCase.title}
+Description: ${useCase.description}
+${context?.industry ? `Industry: ${context.industry}` : ''}
+${context?.customerName ? `Customer: ${context.customerName}` : ''}
+${context?.existingMicrosoftProducts?.length ? `Existing Microsoft Products: ${context.existingMicrosoftProducts.join(', ')}` : ''}
+Complexity Level: ${complexityLevel}
+
+INNOVATION HUB ENGAGEMENT TYPES (use these exactly):
+
+1. "business-envisioning"
+   - Purpose: Discover prioritized use cases through human-centered design thinking
+   - Typical duration: 1-2 weeks
+   - Outcomes: Use case prioritization, stakeholder alignment, opportunity assessment
+
+2. "solution-envisioning"
+   - Purpose: Strategic business and technical discussion to agree on direction
+   - Typical duration: 1-2 weeks
+   - Outcomes: Technical direction document, solution concept, Microsoft capabilities mapping
+
+3. "architecture-design"
+   - Purpose: Synthesize requirements and align to reference architectures
+   - Typical duration: 2-3 weeks
+   - Outcomes: Reference architecture alignment, scope definition, integration requirements
+
+4. "rapid-prototype"
+   - Purpose: Demonstrate key technical capabilities to accelerate decisions
+   - Typical duration: 2-4 weeks
+   - Outcomes: POC demo, technical validation, go/no-go recommendation
+
+TASK: Create a customer journey with milestones for implementing this use case.
+
+GUIDELINES:
+- For LOW complexity: Skip solution-envisioning, go straight from business-envisioning to rapid-prototype
+- For MEDIUM complexity: Include all 4 phases with standard durations
+- For HIGH/VERY-HIGH complexity: Include all 4 phases with extended durations, more detailed deliverables
+- Each milestone should have 3-5 specific deliverables relevant to the use case
+- Dependencies should reference previous milestone titles
+- Durations should be realistic ranges (e.g., "2-3 weeks")
+
+Return a JSON object:
+{
+  "milestones": [
+    {
+      "title": "<specific milestone title for this use case>",
+      "description": "<1-2 sentence description specific to the use case>",
+      "engagement": "<one of: business-envisioning, solution-envisioning, architecture-design, rapid-prototype>",
+      "duration": "<X-Y weeks>",
+      "deliverables": ["<specific deliverable 1>", "<specific deliverable 2>", ...],
+      "dependencies": ["<title of prerequisite milestone>" or empty array for first]
+    }
+  ],
+  "totalDuration": "<X-Y weeks total>",
+  "reasoning": "<1-2 sentences explaining why this journey structure fits the use case>"
+}
+
+Make deliverables specific to the use case, not generic.`
+
+  try {
+    const result = await callAIForTask('journey', prompt, { expectJson: true })
+    const parsed = JSON.parse(result)
+    
+    // Validate and normalize the response
+    const validEngagements = ['business-envisioning', 'solution-envisioning', 'architecture-design', 'rapid-prototype']
+    
+    const milestones: GeneratedJourneyMilestone[] = (parsed.milestones || []).map((m: any) => ({
+      title: String(m.title || 'Milestone'),
+      description: String(m.description || ''),
+      engagement: validEngagements.includes(m.engagement) ? m.engagement : 'business-envisioning',
+      duration: String(m.duration || '1-2 weeks'),
+      deliverables: Array.isArray(m.deliverables) ? m.deliverables.map(String) : [],
+      dependencies: Array.isArray(m.dependencies) ? m.dependencies.map(String) : []
+    }))
+    
+    return {
+      milestones,
+      totalDuration: String(parsed.totalDuration || 'TBD'),
+      reasoning: String(parsed.reasoning || '')
+    }
+  } catch (error) {
+    console.error('Customer journey generation failed:', error)
+    // Return a default journey based on complexity
+    return getDefaultJourney(complexityLevel)
+  }
+}
+
+/**
+ * Get a default journey structure based on complexity
+ */
+function getDefaultJourney(complexity: 'low' | 'medium' | 'high' | 'very-high'): GeneratedJourney {
+  const milestones: GeneratedJourneyMilestone[] = [
+    {
+      title: 'Business Discovery Workshop',
+      description: 'Explore opportunities and define use case priorities through design thinking.',
+      engagement: 'business-envisioning',
+      duration: '1-2 weeks',
+      deliverables: ['Use case prioritization matrix', 'Stakeholder alignment document', 'Opportunity assessment'],
+      dependencies: []
+    }
+  ]
+  
+  if (complexity !== 'low') {
+    milestones.push({
+      title: 'Solution Direction Workshop',
+      description: 'Align on technical approach and Microsoft solution capabilities.',
+      engagement: 'solution-envisioning',
+      duration: '1-2 weeks',
+      deliverables: ['Technical direction document', 'Solution concept diagram', 'Microsoft capabilities mapping'],
+      dependencies: ['Business Discovery Workshop']
+    })
+  }
+  
+  if (complexity === 'high' || complexity === 'very-high') {
+    milestones.push({
+      title: 'Architecture Design Sprint',
+      description: 'Define detailed architecture and integration requirements.',
+      engagement: 'architecture-design',
+      duration: complexity === 'very-high' ? '3-4 weeks' : '2-3 weeks',
+      deliverables: ['Reference architecture alignment', 'Integration specifications', 'Cost estimation', 'Risk assessment'],
+      dependencies: ['Solution Direction Workshop']
+    })
+  }
+  
+  milestones.push({
+    title: 'Rapid Prototype Development',
+    description: 'Build and demonstrate key technical capabilities.',
+    engagement: 'rapid-prototype',
+    duration: complexity === 'very-high' ? '3-6 weeks' : '2-4 weeks',
+    deliverables: ['Proof of concept demo', 'Technical validation report', 'Go/No-Go recommendation'],
+    dependencies: [milestones[milestones.length - 1].title]
+  })
+  
+  // Calculate total duration
+  let minWeeks = 0, maxWeeks = 0
+  for (const m of milestones) {
+    const match = m.duration.match(/(\d+)(?:\s*-\s*(\d+))?\s*week/i)
+    if (match) {
+      minWeeks += parseInt(match[1], 10)
+      maxWeeks += parseInt(match[2] || match[1], 10)
+    }
+  }
+  
+  return {
+    milestones,
+    totalDuration: minWeeks === maxWeeks ? `${minWeeks} weeks` : `${minWeeks}-${maxWeeks} weeks`,
+    reasoning: 'Default journey based on use case complexity assessment.'
+  }
+}
+
 /**
  * Global LLM API - provides window.llm() for AI calls throughout the application
  */
@@ -569,6 +756,7 @@ export const llmAPI = {
   callForTask: callAIForTask,
   estimateEffort,
   estimateCOI,
+  generateCustomerJourney,
   clearCache: clearAICache,
   getCacheStats,
   getModelForTask,

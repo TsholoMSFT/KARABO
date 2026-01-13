@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Sparkle, ArrowLeft, FileText, Microphone, Warning, Info } from '@phosphor-icons/react'
+import { NavigationHeader } from '@/components/NavigationHeader'
+import { Sparkle, FileText, Info } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 
@@ -44,7 +45,7 @@ export function DiscoveryNotesInput({
   const [customerName, setCustomerName] = useState(sessionMetadata?.customerName || '')
   const [industry, setIndustry] = useState<Industry>('general')
   const [location, setLocation] = useState(sessionMetadata?.innovationHubLocation || '')
-  const [stockTicker, setStockTicker] = useState(sessionMetadata?.stockTicker || '')
+  const [stockTicker, setStockTicker] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showExample, setShowExample] = useState(false)
 
@@ -104,6 +105,15 @@ export function DiscoveryNotesInput({
 
   return (
     <div className="min-h-screen bg-background">
+      <NavigationHeader
+        variant="full"
+        onBackToLanding={onBackToLanding}
+        onBack={onCancel}
+        backLabel="Back"
+        title="Notes Analysis"
+        subtitle="AI-powered use case extraction from discovery notes"
+        iconColorClass="text-brand-green"
+      />
       <div className="container mx-auto px-4 md:px-6 py-8 max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -113,8 +123,8 @@ export function DiscoveryNotesInput({
             <CardHeader>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <FileText size={28} weight="duotone" className="text-primary" />
+                  <div className="w-12 h-12 bg-brand-green/10 rounded-lg flex items-center justify-center">
+                    <FileText size={28} weight="duotone" className="text-brand-green" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl">Quick Notes Analysis</CardTitle>
@@ -266,7 +276,7 @@ The AI will analyze these notes and extract high-value use cases with Microsoft 
 
               {/* Info Alert */}
               <Alert>
-                <Sparkle size={16} className="text-primary" />
+                <Sparkle size={16} className="text-brand-green" />
                 <AlertDescription>
                   <strong>What happens next:</strong> The AI will analyze your notes to identify 4-8 high-value use cases, map them to Microsoft solutions and reference architectures, and suggest implementation complexity. You'll then review, score, and prioritize each use case.
                 </AlertDescription>
@@ -275,18 +285,9 @@ The AI will analyze these notes and extract high-value use cases with Microsoft 
               {/* Actions */}
               <div className="flex gap-3 pt-4">
                 <Button
-                  variant="outline"
-                  onClick={onBackToLanding || onCancel}
-                  disabled={isAnalyzing}
-                  className="gap-2"
-                >
-                  <ArrowLeft size={16} />
-                  Back
-                </Button>
-                <Button
                   onClick={handleAnalyze}
                   disabled={!isValid || isAnalyzing}
-                  className="flex-1 gap-2"
+                  className="flex-1 gap-2 bg-brand-green hover:bg-brand-green/90 text-brand-green-foreground"
                   size="lg"
                 >
                   {isAnalyzing ? (

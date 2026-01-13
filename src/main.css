@@ -39,7 +39,7 @@
   --ih-blue-light: #8dc8e8;
   --ih-green: #8de971;
   --ih-teal-deep: #225b62;
-  --ih-orange-light: #ffa38b;
+  --ih-orange-light: #e87a5f;
 
   /* Dark-only semantic tokens (shadcn-style) */
   --radius: 0.625rem;
@@ -137,6 +137,9 @@
   --color-brand-blue-foreground: #ffffff;
   --color-brand-teal: var(--ih-teal-deep);
   --color-brand-green: var(--ih-green);
+  --color-brand-green-foreground: #1a3a1a;
+  --color-brand-orange: var(--ih-orange-light);
+  --color-brand-orange-foreground: #ffffff;
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);

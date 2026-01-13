@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue } from '@/lib/types'
+import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue, CustomerJourney, generateDefaultJourneyMilestones, calculateJourneyDuration, type MicrosoftProductFamily } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
+import { generateCustomerJourney } from '@/lib/openai-service'
 import { industryLabels } from '@/lib/discovery-questions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,12 +16,12 @@ import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
-import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, FlowArrow, TreeStructure } from '@phosphor-icons/react'
+import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, TreeStructure } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
-import { ProcessFlowDiagram } from '@/components/ProcessFlowDiagram'
-import { REFERENCE_ARCHITECTURES, PRODUCT_FAMILY_LABELS, COMPLEXITY_INDICATORS, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
+import { ThreadlightPlaceholder } from '@/components/ThreadlightPlaceholder'
+import { CustomerJourneyView } from '@/components/CustomerJourneyView'
+import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { fetchFinancialStatements } from '@/lib/earnings-service'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
 import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
@@ -81,6 +82,8 @@ interface WorkflowUseCase {
     role: 'primary' | 'supporting' | 'integration'
     justification?: string
   }>
+  // Customer journey / engagement roadmap
+  customerJourney?: CustomerJourney
 }
 
 function calculateWorkflowRICEScore(useCase: WorkflowUseCase): number {
@@ -125,7 +128,7 @@ interface EnhancedDiscoveryWorkflowProps {
   onCancel: () => void
 }
 
-type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'diagrams' | 'summary' | 'save-confirm'
+type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'threadlight' | 'journey' | 'summary' | 'save-confirm'
 
 export function EnhancedDiscoveryWorkflow({
   session,
@@ -153,7 +156,9 @@ export function EnhancedDiscoveryWorkflow({
   const [currentUseCaseIndex, setCurrentUseCaseIndex] = useState(0)
   const [newUseCaseTitle, setNewUseCaseTitle] = useState('')
   const [newUseCaseDescription, setNewUseCaseDescription] = useState('')
-  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
+  const [_isGeneratingSummary, setIsGeneratingSummary] = useState(false)
+  const [isGeneratingJourneys, setIsGeneratingJourneys] = useState(false)
+  const [journeyProgress, setJourneyProgress] = useState(0)
   const [executiveSummary, setExecutiveSummary] = useState('')
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [annualRevenue, setAnnualRevenue] = useState<number | undefined>(undefined)
@@ -190,7 +195,7 @@ export function EnhancedDiscoveryWorkflow({
   }, [session.stockTicker])
 
   const selectedUseCases = useCases.filter(uc => uc.selected)
-  const currentUseCase = step === 'impact-feasibility' || step === 'rice' || step === 'diagrams'
+  const currentUseCase = step === 'impact-feasibility' || step === 'rice' || step === 'threadlight'
     ? selectedUseCases[currentUseCaseIndex] 
     : null
 
@@ -219,7 +224,7 @@ export function EnhancedDiscoveryWorkflow({
     const progressData = useCases.map(uc => ({
       title: uc.title,
       description: uc.description,
-      rationale: uc.rationale,
+      rationale: uc.rationale || '',
       dataSources: uc.dataSources,
       aiEffortEstimate: uc.aiEffortEstimate,
     }))
@@ -320,22 +325,23 @@ export function EnhancedDiscoveryWorkflow({
     if (currentUseCaseIndex < selectedUseCases.length - 1) {
       setCurrentUseCaseIndex(currentUseCaseIndex + 1)
     } else {
-      // Move to diagrams step after all RICE scoring is complete
+      // Move to threadlight step after all RICE scoring is complete
       setCurrentUseCaseIndex(0)
-      handleStepWithSave('diagrams')
+      handleStepWithSave('threadlight')
     }
   }
 
-  const handleDiagramsNext = () => {
+  const handleThreadlightNext = () => {
     if (currentUseCaseIndex < selectedUseCases.length - 1) {
       setCurrentUseCaseIndex(currentUseCaseIndex + 1)
     } else {
-      // All diagrams reviewed, generate summary
-      handleCompleteDiscovery()
+      // All use cases reviewed, proceed to journey generation
+      handleStepWithSave('journey')
+      handleGenerateJourneys()
     }
   }
 
-  const handleDiagramsBack = () => {
+  const handleThreadlightBack = () => {
     if (currentUseCaseIndex > 0) {
       setCurrentUseCaseIndex(currentUseCaseIndex - 1)
     } else {
@@ -345,58 +351,84 @@ export function EnhancedDiscoveryWorkflow({
     }
   }
 
-  const handleRequestDifferentArchitecture = (useCaseId: string, feedback: string) => {
-    console.log(`Architecture feedback for ${useCaseId}:`, feedback)
-    toast.info('Architecture feedback recorded. Will be reviewed during solution design.')
-  }
-
-  const handleRegenerateArchitecture = async (useCaseId: string) => {
-    // Find the use case and try to regenerate its architecture with AI
-    const useCase = selectedUseCases.find(uc => uc.id === useCaseId)
-    if (!useCase) return
-
-    try {
-      const availablePatterns = Object.entries(REFERENCE_ARCHITECTURES)
-        .map(([key, arch]) => `- ${key}: ${arch.label} - ${arch.description}`)
-        .join('\n')
-
-      const prompt = `Analyze this use case and suggest the BEST Microsoft reference architecture pattern from the list.
-
-Use Case: ${useCase.title}
-Description: ${useCase.description}
-Industry: ${session.industry ? industryLabels[session.industry] : 'General'}
-
-Available reference architecture patterns:
-${availablePatterns}
-
-Return ONLY the pattern id (the key before the colon), nothing else.`
-
-  const response = await window.llm(prompt, 'gpt-4o-mini', false)
-
-      const patternMatch = response.trim().match(/[\w-]+/)?.[0] as ReferenceArchitecturePattern | undefined
-      if (patternMatch && REFERENCE_ARCHITECTURES[patternMatch]) {
-        const updatedUseCases = selectedUseCases.map(uc => 
-          uc.id === useCaseId 
-            ? { ...uc, referenceArchitecture: patternMatch }
-            : uc
+  // Generate customer journeys for all selected use cases
+  const handleGenerateJourneys = async () => {
+    setIsGeneratingJourneys(true)
+    setJourneyProgress(0)
+    
+    const updatedUseCases = [...useCases]
+    const selectedIndices = useCases
+      .map((uc, idx) => uc.selected ? idx : -1)
+      .filter(idx => idx >= 0)
+    
+    for (let i = 0; i < selectedIndices.length; i++) {
+      const idx = selectedIndices[i]
+      const uc = updatedUseCases[idx]
+      
+      setJourneyProgress(Math.round(((i + 1) / selectedIndices.length) * 100))
+      
+      try {
+        // Determine complexity from existing data
+        const complexity: 'low' | 'medium' | 'high' | 'very-high' = 
+          (uc.aiEffortEstimate?.effortWeeks || 4) > 16 ? 'very-high' :
+          (uc.aiEffortEstimate?.effortWeeks || 4) > 8 ? 'high' :
+          (uc.aiEffortEstimate?.effortWeeks || 4) > 4 ? 'medium' : 'low'
+        
+        const generated = await generateCustomerJourney(
+          { id: uc.id, title: uc.title, description: uc.description },
+          {
+            complexity,
+            industry: session.industry,
+            customerName: session.customerName
+          }
         )
-        setSelectedUseCases(updatedUseCases)
-        return
+        
+        // Convert to CustomerJourney format
+        const journey: CustomerJourney = {
+          useCaseId: uc.id,
+          milestones: generated.milestones.map((m, mIdx) => ({
+            id: `${uc.id}-m${mIdx + 1}`,
+            order: mIdx + 1,
+            title: m.title,
+            description: m.description,
+            engagement: m.engagement,
+            duration: m.duration,
+            deliverables: m.deliverables,
+            dependencies: m.dependencies,
+            isComplete: false
+          })),
+          totalDuration: generated.totalDuration,
+          createdAt: Date.now(),
+          generatedBy: 'ai',
+          editHistory: []
+        }
+        
+        updatedUseCases[idx] = { ...uc, customerJourney: journey }
+      } catch (error) {
+        console.error(`Failed to generate journey for ${uc.title}:`, error)
+        // Use default journey on error
+        const milestones = generateDefaultJourneyMilestones(uc.id, 'medium')
+        const journey: CustomerJourney = {
+          useCaseId: uc.id,
+          milestones,
+          totalDuration: calculateJourneyDuration(milestones),
+          createdAt: Date.now(),
+          generatedBy: 'ai',
+          editHistory: []
+        }
+        updatedUseCases[idx] = { ...uc, customerJourney: journey }
       }
-      throw new Error('Could not parse architecture response')
-    } catch (error) {
-      console.error('Architecture regeneration failed:', error)
-      throw error // Let the component show manual selector
     }
+    
+    setUseCases(updatedUseCases)
+    setIsGeneratingJourneys(false)
+    toast.success(`Generated customer journeys for ${selectedIndices.length} use cases`)
   }
 
-  const handleManualSelectArchitecture = (useCaseId: string, pattern: ReferenceArchitecturePattern) => {
-    const updatedUseCases = selectedUseCases.map(uc => 
-      uc.id === useCaseId 
-        ? { ...uc, referenceArchitecture: pattern }
-        : uc
-    )
-    setSelectedUseCases(updatedUseCases)
+  const handleJourneyUpdate = (useCaseId: string, journey: CustomerJourney) => {
+    setUseCases(prev => prev.map(uc => 
+      uc.id === useCaseId ? { ...uc, customerJourney: journey } : uc
+    ))
   }
 
   const handleCompleteDiscovery = async () => {
@@ -405,7 +437,6 @@ Return ONLY the pattern id (the key before the colon), nothing else.`
 
     try {
       const useCasesList = selectedUseCases.map((uc, idx) => {
-        const impactFeasibilityScore = ((uc.impact || 5) + (uc.feasibility || 5)) / 2
         const riceScore = uc.rice 
           ? ((uc.rice.reach * uc.rice.impact * (uc.rice.confidence / 100)) / uc.rice.effort).toFixed(1)
           : 'N/A'
@@ -488,15 +519,19 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
       },
       kpis: [],
       businessProcesses: uc.businessProcesses?.map((p) => ({
-        process: p.processName,
-        category: 'operational',
-        currentState: (p.currentPainPoints || []).join('; '),
-        painPoints: p.currentPainPoints || [],
-        desiredState: p.proposedImprovement,
-        aiIntervention: '',
+        processId: p.processId || `bp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        processName: p.processName,
+        affectedSteps: p.affectedSteps || [],
+        currentPainPoints: p.currentPainPoints || [],
+        proposedImprovement: p.proposedImprovement || '',
+        expectedCycleTimeReduction: p.expectedCycleTimeReduction,
       })),
-      microsoftSolutions: uc.microsoftSolutions,
+      microsoftSolutions: uc.microsoftSolutions?.map(ms => ({
+        ...ms,
+        productFamily: ms.productFamily as MicrosoftProductFamily,
+      })),
       referenceArchitecture: uc.referenceArchitecture,
+      customerJourney: uc.customerJourney,
       costOfInaction: uc.manualCOI
         ? { ...uc.manualCOI }
         : (uc.coiEstimate
@@ -719,18 +754,108 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
             />
           )}
 
-          {step === 'diagrams' && currentUseCase && (
-            <DiagramsStep
+          {step === 'threadlight' && currentUseCase && (
+            <ThreadlightPlaceholder
               useCase={currentUseCase}
+              industry={session.industry ? industryLabels[session.industry] : undefined}
               currentIndex={currentUseCaseIndex}
               totalCount={selectedUseCases.length}
-              industry={session.industry}
-              onNext={handleDiagramsNext}
-              onBack={handleDiagramsBack}
-              onRequestDifferentArchitecture={handleRequestDifferentArchitecture}
-              onRegenerateArchitecture={handleRegenerateArchitecture}
-              onManualSelectArchitecture={handleManualSelectArchitecture}
+              onNext={handleThreadlightNext}
+              onBack={handleThreadlightBack}
             />
+          )}
+
+          {step === 'journey' && (
+            <motion.div
+              key="journey"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              {isGeneratingJourneys ? (
+                <Card className="border-2">
+                  <CardHeader className="text-center">
+                    <div className="mx-auto mb-4 w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
+                      <TreeStructure size={40} weight="duotone" className="text-primary animate-pulse" />
+                    </div>
+                    <CardTitle className="text-2xl">Generating Customer Journeys</CardTitle>
+                    <CardDescription>
+                      Creating Innovation Hub engagement roadmaps for each use case
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="text-center py-4">
+                      <div className="w-full bg-muted rounded-full h-2 mb-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${journeyProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Processing use cases... {journeyProgress}%
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-2">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TreeStructure size={24} weight="duotone" className="text-primary" />
+                      Customer Journeys
+                    </CardTitle>
+                    <CardDescription>
+                      Review and customize the Innovation Hub engagement roadmap for each use case
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <ScrollArea className="h-[500px] pr-4">
+                      <div className="space-y-6">
+                        {selectedUseCases.map((uc, idx) => (
+                          <div key={uc.id}>
+                            <h3 className="text-sm font-medium mb-3">
+                              {idx + 1}. {uc.title}
+                            </h3>
+                            {uc.customerJourney ? (
+                              <CustomerJourneyView
+                                journey={uc.customerJourney}
+                                onUpdate={(journey) => handleJourneyUpdate(uc.id, journey)}
+                              />
+                            ) : (
+                              <Card className="border border-dashed">
+                                <CardContent className="py-6 text-center text-muted-foreground">
+                                  No journey generated for this use case
+                                </CardContent>
+                              </Card>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setCurrentUseCaseIndex(selectedUseCases.length - 1)
+                        setStep('threadlight')
+                      }}
+                      className="gap-2"
+                    >
+                      <ArrowLeft size={16} />
+                      Back to Solution Design
+                    </Button>
+                    <Button
+                      onClick={handleCompleteDiscovery}
+                      className="gap-2"
+                    >
+                      Generate Summary
+                      <ArrowRight size={16} />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              )}
+            </motion.div>
           )}
 
           {step === 'summary' && (
@@ -1544,340 +1669,11 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
             Back
           </Button>
           <Button onClick={handleSave} className="gap-2" disabled={isEstimating}>
-            {currentIndex < totalCount - 1 ? 'Next Use Case' : 'Review Diagrams'}
+            {currentIndex < totalCount - 1 ? 'Next Use Case' : 'Solution Design'}
             <ArrowRight size={18} weight="bold" />
           </Button>
         </CardFooter>
       </Card>
     </motion.div>
-  )
-}
-
-// ============================================================================
-// DIAGRAMS STEP - Review Architecture & Process Flow Diagrams
-// ============================================================================
-
-interface DiagramsStepProps {
-  useCase: WorkflowUseCase
-  currentIndex: number
-  totalCount: number
-  industry?: string
-  onNext: () => void
-  onBack: () => void
-  onRequestDifferentArchitecture?: (useCaseId: string, feedback: string) => void
-  onRegenerateArchitecture?: (useCaseId: string) => Promise<void>
-  onManualSelectArchitecture?: (useCaseId: string, pattern: ReferenceArchitecturePattern) => void
-}
-
-function DiagramsStep({ 
-  useCase, 
-  currentIndex, 
-  totalCount,
-  industry,
-  onNext, 
-  onBack,
-  onRequestDifferentArchitecture,
-  onRegenerateArchitecture,
-  onManualSelectArchitecture,
-}: DiagramsStepProps) {
-  const [isRegenerating, setIsRegenerating] = useState(false)
-  const [showManualSelector, setShowManualSelector] = useState(false)
-  const hasArchitecture = useCase.referenceArchitecture
-  const hasProcessFlow = useCase.businessProcesses && useCase.businessProcesses.length > 0
-
-  const handleRegenerate = async () => {
-    if (onRegenerateArchitecture) {
-      setIsRegenerating(true)
-      try {
-        await onRegenerateArchitecture(useCase.id)
-        toast.success('Architecture regenerated!')
-      } catch (error) {
-        console.error('Regeneration failed:', error)
-        toast.error('AI regeneration failed', { description: 'You can select an architecture manually' })
-        setShowManualSelector(true)
-      } finally {
-        setIsRegenerating(false)
-      }
-    }
-  }
-
-  return (
-    <motion.div
-      key={`diagrams-${useCase.id}`}
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-    >
-      <Card className="border-2">
-        <CardHeader>
-          <div className="flex items-center justify-between mb-2">
-            <Badge variant="secondary">
-              Use Case {currentIndex + 1} of {totalCount}
-            </Badge>
-            <TreeStructure size={24} weight="duotone" className="text-primary" />
-          </div>
-          <CardTitle>Solution Architecture & Process Flow</CardTitle>
-          <CardDescription>
-            Review the recommended Microsoft architecture and business process improvements
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          {/* Use Case Context */}
-          <div className="p-4 bg-accent/10 rounded-lg">
-            <h3 className="font-semibold text-foreground mb-2">{useCase.title}</h3>
-            <p className="text-sm text-muted-foreground">{useCase.description}</p>
-          </div>
-
-          {/* Reference Architecture Diagram */}
-          {hasArchitecture ? (
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold flex items-center gap-2">
-                <TreeStructure size={16} weight="duotone" />
-                Recommended Reference Architecture
-              </h4>
-              <ArchitectureDiagram
-                pattern={useCase.referenceArchitecture!}
-                showLearnLink={true}
-                onRequestDifferent={(feedback) => {
-                  onRequestDifferentArchitecture?.(useCase.id, feedback)
-                }}
-              />
-              {/* Regenerate/Change Actions */}
-              <div className="flex gap-2 pt-2">
-                {onRegenerateArchitecture && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleRegenerate}
-                    disabled={isRegenerating}
-                    className="gap-2"
-                  >
-                    {isRegenerating ? (
-                      <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        >
-                          <Sparkle size={14} />
-                        </motion.div>
-                        Regenerating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkle size={14} />
-                        Regenerate with AI
-                      </>
-                    )}
-                  </Button>
-                )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setShowManualSelector(!showManualSelector)}
-                >
-                  {showManualSelector ? 'Hide Options' : 'Change Architecture'}
-                </Button>
-              </div>
-              
-              {/* Inline Manual Selection */}
-              <AnimatePresence>
-                {showManualSelector && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="pt-2"
-                  >
-                    <ManualArchitectureSelectorInline
-                      currentPattern={useCase.referenceArchitecture}
-                      industry={industry}
-                      onSelect={(pattern) => {
-                        onManualSelectArchitecture?.(useCase.id, pattern)
-                        setShowManualSelector(false)
-                        toast.success('Architecture updated!')
-                      }}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <div className="p-6 border-2 border-dashed rounded-lg text-center space-y-4">
-              <TreeStructure size={40} className="mx-auto text-amber-500" />
-              <div>
-                <p className="font-medium text-foreground">No Architecture Assigned</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  AI generation may have failed. Select an architecture manually or try regenerating.
-                </p>
-              </div>
-              <div className="flex gap-3 justify-center">
-                {onRegenerateArchitecture && (
-                  <Button 
-                    variant="outline" 
-                    onClick={handleRegenerate}
-                    disabled={isRegenerating}
-                    className="gap-2"
-                  >
-                    {isRegenerating ? (
-                      <>
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                        >
-                          <Sparkle size={16} />
-                        </motion.div>
-                        Trying AI...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkle size={16} />
-                        Try AI Suggestion
-                      </>
-                    )}
-                  </Button>
-                )}
-                <Button onClick={() => setShowManualSelector(true)}>
-                  Select Manually
-                </Button>
-              </div>
-              
-              {/* Manual Selection for missing architecture */}
-              <AnimatePresence>
-                {showManualSelector && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="pt-4"
-                  >
-                    <ManualArchitectureSelectorInline
-                      industry={industry}
-                      onSelect={(pattern) => {
-                        onManualSelectArchitecture?.(useCase.id, pattern)
-                        setShowManualSelector(false)
-                        toast.success('Architecture assigned!')
-                      }}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
-
-          {/* Process Flow Diagram */}
-          {hasProcessFlow ? (
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold flex items-center gap-2">
-                <FlowArrow size={16} weight="duotone" />
-                Business Process Flow
-              </h4>
-              {useCase.businessProcesses!.map((process, idx) => (
-                <ProcessFlowDiagram 
-                  key={process.processId || idx}
-                  process={process as any}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="p-4 border rounded-lg bg-muted/50 text-center">
-              <FlowArrow size={32} className="mx-auto text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">
-                No business process flow has been mapped for this use case.
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Process flows are generated during discovery analysis.
-              </p>
-            </div>
-          )}
-
-          {/* Microsoft Solutions Summary */}
-          {useCase.microsoftSolutions && useCase.microsoftSolutions.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Microsoft Solutions</h4>
-              <div className="flex flex-wrap gap-2">
-                {useCase.microsoftSolutions.map((solution, idx) => (
-                  <Badge 
-                    key={idx}
-                    variant="outline"
-                    className="text-xs"
-                  >
-                    {solution.productFamily}: {solution.services.join(', ')}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft size={16} className="mr-2" />
-            Back
-          </Button>
-          <Button onClick={onNext}>
-            {currentIndex < totalCount - 1 ? 'Next Use Case' : 'Generate Summary'}
-            <ArrowRight size={16} className="ml-2" />
-          </Button>
-        </CardFooter>
-      </Card>
-    </motion.div>
-  )
-}
-
-// Inline architecture selector component for DiagramsStep
-function ManualArchitectureSelectorInline({ 
-  currentPattern, 
-  industry,
-  onSelect 
-}: { 
-  currentPattern?: ReferenceArchitecturePattern
-  industry?: string
-  onSelect: (pattern: ReferenceArchitecturePattern) => void 
-}) {
-  const allPatterns = Object.keys(REFERENCE_ARCHITECTURES) as ReferenceArchitecturePattern[]
-  const recommendedPatterns = industry 
-    ? allPatterns.filter(p => REFERENCE_ARCHITECTURES[p].industries.includes(industry))
-    : allPatterns
-
-  return (
-    <div className="border rounded-lg p-4 bg-card">
-      <h5 className="font-medium text-sm mb-3">Select Reference Architecture</h5>
-      <ScrollArea className="h-[300px]">
-        <div className="space-y-2 pr-4">
-          {recommendedPatterns.map(pattern => {
-            const arch = REFERENCE_ARCHITECTURES[pattern]
-            const complexity = COMPLEXITY_INDICATORS[arch.complexity]
-            const isSelected = currentPattern === pattern
-            
-            return (
-              <div
-                key={pattern}
-                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                  isSelected ? 'border-primary bg-accent' : 'hover:bg-accent/50'
-                }`}
-                onClick={() => onSelect(pattern)}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">{arch.label}</span>
-                  {isSelected && <CheckCircle size={16} className="text-primary" weight="fill" />}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{arch.description}</p>
-                <div className="flex gap-1 mt-2">
-                  {arch.primaryProducts.slice(0, 2).map((p: string) => (
-                    <Badge key={p} variant="secondary" className="text-xs">
-                      {PRODUCT_FAMILY_LABELS[p]}
-                    </Badge>
-                  ))}
-                  <Badge variant="outline" className={`text-xs ${complexity.color}`}>
-                    {complexity.label}
-                  </Badge>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </ScrollArea>
-    </div>
   )
 }

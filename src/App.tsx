@@ -20,6 +20,7 @@ import { DiscoveryWizard } from '@/components/DiscoveryWizard'
 import { DiscoveryResults } from '@/components/DiscoveryResults'
 import { DiscoveryNotesInput } from '@/components/DiscoveryNotesInput'
 import { AIAssessmentWorkflow } from '@/components/AIAssessmentWorkflow'
+import { EnhancedDiscoveryWorkflow } from '@/components/EnhancedDiscoveryWorkflow'
 import { LiveDiscoveryMode } from '@/components/LiveDiscoveryMode'
 import { LiveDiscoverySetup } from '@/components/LiveDiscoverySetup'
 import { SessionManager } from '@/components/SessionManager'
@@ -30,7 +31,6 @@ import { EnterpriseDiscoveryOrchestrator } from '@/components/enterprise-discove
 import { Disclaimer } from '@/components/Disclaimer'
 import { LandingPage } from '@/components/LandingPage'
 import { NavigationHeader } from '@/components/NavigationHeader'
-import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { 
   DEMO_DISCOVERY_SESSION, 
   DEMO_USE_CASES, 
@@ -44,9 +44,7 @@ import {
 } from '@/lib/demo-data'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar } from '@phosphor-icons/react'
@@ -96,11 +94,6 @@ function App() {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [postQuickDiscoveryGateOpen, setPostQuickDiscoveryGateOpen] = useState(false)
-
-  const filteredSessions = selectedCustomerId 
-    ? discoverySessions?.filter((s) => s.customerId === selectedCustomerId) || []
-    : discoverySessions || []
-
   const selectedSession = discoverySessions?.find((s) => s.id === selectedSessionId) || null
   const filteredUseCases = useCases?.filter((uc) => uc.discoverySessionId === selectedSessionId) || []
   
@@ -507,6 +500,7 @@ function App() {
       id: `direct-${Date.now()}`,
       customerId: '',
       customerName: 'Quick Session',
+      name: 'Quick Session',
       innovationHubSPOC: '',
       primaryStakeholder: '',
       accountTeamRep: '',
@@ -714,12 +708,11 @@ function App() {
             dataSources: ['ai-generated', 'discovery'],
             strategicAlignment: uc.strategicAlignment,
             businessProcesses: uc.businessProcess ? [{
-              process: uc.businessProcess.processName,
-              category: uc.businessProcess.category,
-              currentState: uc.businessProcess.currentPainPoints.join('; '),
-              painPoints: uc.businessProcess.currentPainPoints,
-              desiredState: uc.businessProcess.expectedImprovement,
-              aiIntervention: '',
+              processId: `bp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+              processName: uc.businessProcess.processName,
+              affectedSteps: [],
+              currentPainPoints: uc.businessProcess.currentPainPoints,
+              proposedImprovement: uc.businessProcess.expectedImprovement,
             }] : undefined,
             microsoftSolutions: uc.microsoftSolutions,
             referenceArchitecture: uc.referenceArchitecture,

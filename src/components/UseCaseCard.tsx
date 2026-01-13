@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { UseCase } from '@/lib/types'
+import { UseCase, ScoringMethod } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,21 +9,19 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { UseCaseSourceBadges } from '@/components/ui/use-case-source-badge'
-import { ArchitectureBadge } from '@/components/ArchitectureDiagram'
-import { ReferenceArchitectureMermaid } from '@/components/ReferenceArchitectureMermaid'
+import { REFERENCE_ARCHITECTURES } from '@/lib/microsoft-solutions'
 import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
 import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getServiceLabel, COMPLEXITY_INDICATORS } from '@/lib/microsoft-solutions'
-import { ProcessFlowInline } from './ProcessFlowDiagram'
 
 interface UseCaseCardProps {
   useCase: UseCase
   rank?: number
   isTopPick?: boolean
-  scoringMethod: 'impact-feasibility' | 'rice'
+  scoringMethod: ScoringMethod
   onUpdate: (useCase: UseCase) => void
   onDelete: (id: string) => void
   onEdit: (useCase: UseCase) => void
@@ -637,16 +635,9 @@ export function UseCaseCard({
                         {useCase.referenceArchitecture && (
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-[10px] text-muted-foreground">Reference Architecture:</span>
-                            <ArchitectureBadge pattern={useCase.referenceArchitecture as any} />
-                          </div>
-                        )}
-
-                        {useCase.referenceArchitecture && (
-                          <div className="mt-2">
-                            <ReferenceArchitectureMermaid
-                              pattern={useCase.referenceArchitecture as any}
-                              className="rounded-md border border-border bg-muted/10 p-2"
-                            />
+                            <Badge variant="outline" className="text-xs">
+                              {REFERENCE_ARCHITECTURES[useCase.referenceArchitecture]?.label || useCase.referenceArchitecture}
+                            </Badge>
                           </div>
                         )}
                       </div>

@@ -1,20 +1,21 @@
 import { useMemo, useState } from 'react'
-import type { BusinessEnvisioningData, DiscoverySession, UseCase } from '@/lib/types'
-import { callAIForTask } from '@/lib/openai-service'
+import type { BusinessEnvisioningData, DiscoverySession, UseCase, CustomerJourney } from '@/lib/types'
+import { generateDefaultJourneyMilestones, calculateJourneyDuration } from '@/lib/types'
+import { callAIForTask, generateCustomerJourney } from '@/lib/openai-service'
 import { parseJsonLenient } from '@/lib/lenient-json'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { CircleNotch, Sparkle, ArrowRight, CheckCircle } from '@phosphor-icons/react'
+import { CircleNotch, Sparkle, ArrowRight, CheckCircle, TreeStructure } from '@phosphor-icons/react'
 import { calculateRICEScore, getTopUseCases } from '@/lib/scoring'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
+import { CustomerJourneyView } from '@/components/CustomerJourneyView'
 import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 
 type AIAssessmentStep = 'inputs' | 'review'
@@ -240,7 +241,60 @@ RULES
       })
 
       const merged = [...updatedExisting, ...newUseCases]
-      onUpsertUseCases(merged)
+      
+      // Generate customer journeys for all use cases
+      toast.info('Generating customer journeys...')
+      const mergedWithJourneys = await Promise.all(
+        merged.map(async (uc) => {
+          if (uc.customerJourney) return uc // Already has a journey
+          
+          try {
+            const complexity: 'low' | 'medium' | 'high' | 'very-high' = 
+              uc.implementationComplexity?.level || 'medium'
+            
+            const generated = await generateCustomerJourney(
+              { id: uc.id, title: uc.title, description: uc.description },
+              { complexity, industry: session.industry, customerName: session.customerName }
+            )
+            
+            const journey: CustomerJourney = {
+              useCaseId: uc.id,
+              milestones: generated.milestones.map((m, mIdx) => ({
+                id: `${uc.id}-m${mIdx + 1}`,
+                order: mIdx + 1,
+                title: m.title,
+                description: m.description,
+                engagement: m.engagement,
+                duration: m.duration,
+                deliverables: m.deliverables,
+                dependencies: m.dependencies,
+                isComplete: false
+              })),
+              totalDuration: generated.totalDuration,
+              createdAt: Date.now(),
+              generatedBy: 'ai',
+              editHistory: []
+            }
+            
+            return { ...uc, customerJourney: journey }
+          } catch (error) {
+            console.error(`Failed to generate journey for ${uc.title}:`, error)
+            // Use default journey on error
+            const milestones = generateDefaultJourneyMilestones(uc.id, 'medium')
+            const journey: CustomerJourney = {
+              useCaseId: uc.id,
+              milestones,
+              totalDuration: calculateJourneyDuration(milestones),
+              createdAt: Date.now(),
+              generatedBy: 'ai',
+              editHistory: []
+            }
+            return { ...uc, customerJourney: journey }
+          }
+        })
+      )
+      
+      onUpsertUseCases(mergedWithJourneys)
 
       toast.success('AI Assessment generated', {
         description: businessEnvisioning
@@ -259,10 +313,10 @@ RULES
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <Card className="border-2 border-primary/30">
+      <Card className="border-2 border-brand-orange/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkle size={20} weight="fill" className="text-primary" />
+            <Sparkle size={20} weight="fill" className="text-brand-orange" />
             AI Assessment Discovery
           </CardTitle>
           <CardDescription>
@@ -439,6 +493,35 @@ RULES
                       </CardContent>
                     </Card>
                   </div>
+                </div>
+              )}
+
+              {/* Customer Journeys Section */}
+              {useCases.some(uc => uc.customerJourney) && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <TreeStructure size={20} weight="duotone" className="text-brand-orange" />
+                    <Label className="text-sm font-medium">Customer Journeys</Label>
+                  </div>
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-4 pr-4">
+                      {useCases.filter(uc => uc.customerJourney).map((uc) => (
+                        <div key={uc.id}>
+                          <h4 className="text-sm font-medium mb-2">{uc.title}</h4>
+                          <CustomerJourneyView
+                            journey={uc.customerJourney!}
+                            onUpdate={(journey) => {
+                              const updated = useCases.map(u => 
+                                u.id === uc.id ? { ...u, customerJourney: journey } : u
+                              )
+                              onUpsertUseCases(updated)
+                            }}
+                            colorScheme="orange"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </div>
               )}
 

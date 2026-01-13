@@ -1,11 +1,9 @@
 import { jsPDF } from 'jspdf'
-import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData } from './types'
+import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData, ENGAGEMENT_DEFAULTS } from './types'
 import { calculateRICEScore, getQuadrant } from './scoring'
 import { getKPIById } from './kpis'
 import { DISCLAIMERS, getPolicyById } from './ai-policies'
-import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from './microsoft-solutions'
-import { buildReferenceArchitectureDiagramSpec } from './architecture-diagrams'
-import { diagramSpecToMermaidFlowchart, renderMermaidToPngDataUrl } from './mermaid'
+import { REFERENCE_ARCHITECTURES } from './microsoft-solutions'
 
 export interface ExportOptions {
   effortUnit: 'person-weeks' | 'fte' | 'man-hours'
@@ -15,7 +13,7 @@ export interface ExportOptions {
   includeCOI?: boolean
   includeExpectedValue?: boolean
   includeDataSources?: boolean
-  includeArchitectureDiagrams?: boolean
+  includeCustomerJourney?: boolean
 }
 
 function formatCurrency(value: number): string {
@@ -453,7 +451,6 @@ export async function exportToPDF(
     doc.text('Score = max(Annual Expected Value, Annual Cost of Inaction)', margin, y)
     y += 10
   }
-  }
 
   doc.addPage()
   y = margin
@@ -492,10 +489,9 @@ export async function exportToPDF(
       y += 4
     }
 
-    // Reference architecture diagram (JSON → Mermaid → PNG)
-    if (options.includeArchitectureDiagrams !== false && useCase.referenceArchitecture) {
-      const pattern = useCase.referenceArchitecture as ReferenceArchitecturePattern
-      const arch = REFERENCE_ARCHITECTURES[pattern]
+    // Reference architecture text note (diagrams handled in Threadlight)
+    if (useCase.referenceArchitecture) {
+      const arch = REFERENCE_ARCHITECTURES[useCase.referenceArchitecture]
       if (arch) {
         addPageIfNeeded(10)
         doc.setFont('helvetica', 'bold')
@@ -503,31 +499,93 @@ export async function exportToPDF(
         doc.setTextColor(90, 90, 120)
         doc.text(`Reference Architecture: ${arch.label}`, margin + 5, y)
         y += 4
-
-        try {
-          const spec = buildReferenceArchitectureDiagramSpec({
-            title: arch.label,
-            services: arch.typicalServices,
-            direction: 'LR',
-          })
-          const mermaid = diagramSpecToMermaidFlowchart(spec)
-          const img = await renderMermaidToPngDataUrl(mermaid, { width: 1200, height: 650 })
-
-          const imgWidthMm = pageWidth - 2 * margin - 10
-          const imgHeightMm = (img.height / img.width) * imgWidthMm
-
-          addPageIfNeeded(imgHeightMm + 8)
-          doc.addImage(img.dataUrl, 'PNG', margin + 5, y, imgWidthMm, imgHeightMm)
-          y += imgHeightMm + 6
-        } catch {
-          // Best-effort: skip diagram if rendering fails.
-          doc.setFont('helvetica', 'normal')
-          doc.setFontSize(8)
-          doc.setTextColor(120, 120, 120)
-          doc.text('Diagram rendering unavailable for this export.', margin + 5, y)
-          y += 6
-        }
+        doc.setFont('helvetica', 'italic')
+        doc.setFontSize(7)
+        doc.setTextColor(120, 120, 120)
+        doc.text('See Threadlight for detailed architecture diagrams.', margin + 5, y)
+        y += 6
       }
+    }
+
+    // Customer Journey (Innovation Hub Engagement Roadmap)
+    if (options.includeCustomerJourney !== false && useCase.customerJourney?.milestones?.length) {
+      addPageIfNeeded(30)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.setTextColor(100, 80, 140)
+      doc.text('Customer Journey (Innovation Hub Engagement Roadmap)', margin + 5, y)
+      y += 5
+
+      // Total duration
+      const totalDuration = useCase.customerJourney.milestones.reduce((sum, m) => sum + m.durationWeeks, 0)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(80, 80, 80)
+      doc.text(`Total Duration: ${totalDuration} weeks`, margin + 5, y)
+      y += 5
+
+      // Render each milestone as a timeline item
+      const engagementColors: Record<string, { r: number; g: number; b: number }> = {
+        'Business Envisioning': { r: 59, g: 130, b: 246 },    // Blue
+        'Solution Envisioning': { r: 16, g: 185, b: 129 },    // Green
+        'Architecture Design': { r: 245, g: 158, b: 11 },     // Amber
+        'Rapid Prototype': { r: 139, g: 92, b: 246 }          // Purple
+      }
+
+      useCase.customerJourney.milestones.forEach((milestone, idx) => {
+        addPageIfNeeded(18)
+        
+        const color = engagementColors[milestone.engagementType] || { r: 100, g: 100, b: 100 }
+        
+        // Timeline connector line
+        if (idx < useCase.customerJourney!.milestones.length - 1) {
+          doc.setDrawColor(200, 200, 200)
+          doc.setLineWidth(0.3)
+          doc.line(margin + 8, y + 3, margin + 8, y + 16)
+        }
+        
+        // Milestone dot
+        doc.setFillColor(color.r, color.g, color.b)
+        doc.circle(margin + 8, y + 1, 1.5, 'F')
+        
+        // Engagement type label
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(7)
+        doc.setTextColor(color.r, color.g, color.b)
+        doc.text(`${idx + 1}. ${milestone.engagementType}`, margin + 12, y + 1.5)
+        
+        // Duration
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(120, 120, 120)
+        doc.text(`(${milestone.durationWeeks} weeks)`, margin + 55, y + 1.5)
+        y += 5
+
+        // Deliverables (compact list)
+        if (milestone.deliverables && milestone.deliverables.length > 0) {
+          doc.setFontSize(6)
+          doc.setTextColor(90, 90, 90)
+          const deliverablesText = 'Deliverables: ' + milestone.deliverables.join(', ')
+          const delLines = doc.splitTextToSize(deliverablesText, pageWidth - 2 * margin - 20)
+          delLines.slice(0, 2).forEach((line: string) => {
+            doc.text(line, margin + 12, y)
+            y += 3
+          })
+        }
+
+        // Notes (if any)
+        if (milestone.notes && milestone.notes.trim().length > 0) {
+          doc.setFontSize(6)
+          doc.setTextColor(100, 100, 120)
+          const notesLines = doc.splitTextToSize(`Note: ${milestone.notes}`, pageWidth - 2 * margin - 20)
+          notesLines.slice(0, 1).forEach((line: string) => {
+            doc.text(line, margin + 12, y)
+            y += 3
+          })
+        }
+
+        y += 2
+      })
+      y += 4
     }
 
     // Data Sources
@@ -1097,3 +1155,4 @@ export async function exportToPDF(
   const customerSlug = (options.customerMetadata?.customerName || 'assessment').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 30)
   const fileName = `innovation-hub-${customerSlug}-${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
+}

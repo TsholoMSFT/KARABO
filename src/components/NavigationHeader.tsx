@@ -12,6 +12,7 @@ interface NavigationHeaderProps {
   showLogo?: boolean
   variant?: 'full' | 'minimal'
   className?: string
+  iconColorClass?: string
 }
 
 export function NavigationHeader({
@@ -22,7 +23,8 @@ export function NavigationHeader({
   subtitle,
   showLogo = true,
   variant = 'full',
-  className = ''
+  className = '',
+  iconColorClass = 'text-primary'
 }: NavigationHeaderProps) {
   if (variant === 'minimal') {
     return (
@@ -105,8 +107,8 @@ export function NavigationHeader({
           {/* Center: Logo/Title */}
           {showLogo && (
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Sparkle size={20} weight="duotone" className="text-primary" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconColorClass.replace('text-', 'bg-')}/10`}>
+                <Sparkle size={20} weight="duotone" className={iconColorClass} />
               </div>
               <div className="hidden md:block">
                 <h1 className="text-sm font-semibold text-foreground">

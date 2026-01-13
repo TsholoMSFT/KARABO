@@ -96,8 +96,8 @@ export function LandingPage({
               Smart Recommendations
             </Badge>
             <Badge variant="secondary" className="text-sm">
-              <MagnifyingGlass size={14} className="mr-1" />
-              Earnings Analysis
+              <Briefcase size={14} className="mr-1" />
+              Innovation Hub Methodology
             </Badge>
           </motion.div>
         </div>
@@ -198,8 +198,7 @@ export function LandingPage({
                   <Separator />
                   <Button 
                     onClick={onStartNotesAnalysis} 
-                    variant="outline"
-                    className="w-full gap-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                    className="w-full gap-2 bg-brand-green hover:bg-brand-green/90 text-white"
                     size="lg"
                   >
                     <FileText size={20} weight="duotone" />
@@ -217,11 +216,11 @@ export function LandingPage({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.64 }}
             >
-              <Card className="h-full border-2 border-primary/40 hover:shadow-lg transition-all duration-300 hover:border-primary bg-gradient-to-br from-primary/5 to-transparent">
+              <Card className="h-full border-2 border-brand-orange/40 hover:shadow-lg transition-all duration-300 hover:border-brand-orange bg-gradient-to-br from-brand-orange/5 to-transparent">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
-                      <TreeStructure size={28} weight="duotone" className="text-primary" />
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-brand-orange/10">
+                      <TreeStructure size={28} weight="duotone" className="text-brand-orange" />
                     </div>
                     <Badge variant="outline" className="text-xs">Process</Badge>
                   </div>
@@ -233,22 +232,22 @@ export function LandingPage({
                 <CardContent className="space-y-4">
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li className="flex items-start gap-2">
-                      <TreeStructure size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
+                      <TreeStructure size={16} weight="duotone" className="mt-0.5 text-brand-orange flex-shrink-0" />
                       <span>Map workflows, handoffs, and constraints</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
+                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-brand-orange flex-shrink-0" />
                       <span>Generate value + feasibility analysis</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
+                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-brand-orange flex-shrink-0" />
                       <span>Feed the portfolio prioritization matrix</span>
                     </li>
                   </ul>
                   <Separator />
                   <Button
                     onClick={onStartAIAssessment}
-                    className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+                    className="w-full gap-2 bg-brand-orange hover:bg-brand-orange/90 text-brand-orange-foreground"
                     size="lg"
                   >
                     <Sparkle size={20} weight="duotone" />
@@ -357,8 +356,8 @@ export function LandingPage({
                 </div>
                 <Separator orientation="vertical" className="h-12 hidden sm:block" />
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">Integrated</div>
-                  <div className="text-sm text-muted-foreground">Earnings Analysis</div>
+                  <div className="text-2xl font-bold text-primary">Envisioning</div>
+                  <div className="text-sm text-muted-foreground">Innovation Hub Methodology</div>
                 </div>
               </div>
             </CardContent>

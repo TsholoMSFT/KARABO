@@ -1,9 +1,7 @@
 import { jsPDF } from 'jspdf'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
 import { calculateTotalCOI } from '@/lib/financial-calculations'
-import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
-import { buildReferenceArchitectureDiagramSpec } from '@/lib/architecture-diagrams'
-import { diagramSpecToMermaidFlowchart, renderMermaidToPngDataUrl } from '@/lib/mermaid'
+import { REFERENCE_ARCHITECTURES } from '@/lib/microsoft-solutions'
 
 const INNOVATION_HUB_BLUE = [0, 120, 212] as const // #0078D4
 
@@ -12,14 +10,13 @@ const formatGBP = (value: number) => `£${Math.round(value).toLocaleString(undef
 interface ExportEnterpriseDiscoveryOptions {
   includeFinancials?: boolean
   includeYellowLights?: boolean
-  includeArchitectureDiagrams?: boolean
 }
 
 export async function exportEnterpriseDiscoveryToPDF(
   session: EnterpriseDiscoverySession,
   options: ExportEnterpriseDiscoveryOptions = {}
 ) {
-  const { includeFinancials = true, includeYellowLights = true, includeArchitectureDiagrams = true } = options
+  const { includeFinancials = true, includeYellowLights = true } = options
   
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
@@ -585,65 +582,46 @@ export async function exportEnterpriseDiscoveryToPDF(
     }
   }
 
-  // ============ SOLUTION ARCHITECTURE DIAGRAMS ============
-  if (includeArchitectureDiagrams && stage5Data) {
-    const mappings = (stage5Data as any)?.solutionArchitecture?.useCaseMappings as Array<{
+  // ============ SOLUTION ARCHITECTURE (Text Summary) ============
+  if (stage5Data) {
+    const mappings = (stage5Data as unknown as { solutionArchitecture?: { useCaseMappings?: Array<{
       useCaseId?: string
       referenceArchitecture?: string
-      microsoftSolutions?: any[]
-    }> | undefined
+      microsoftSolutions?: unknown[]
+    }> } })?.solutionArchitecture?.useCaseMappings
 
     const mapped = (mappings ?? []).filter(m => m.referenceArchitecture)
     if (mapped.length > 0) {
-      doc.addPage()
-      y = margin
-
+      addPageIfNeeded(40)
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(18)
+      doc.setFontSize(14)
       doc.setTextColor(...INNOVATION_HUB_BLUE)
-      doc.text('Solution Architecture Diagrams', margin, y)
-      y += 12
-
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(10)
-      doc.setTextColor(60, 60, 60)
-      doc.text('Rendered from curated JSON templates (Mermaid → SVG/PNG).', margin, y)
+      doc.text('Solution Architecture Summary', margin, y)
       y += 10
 
+      doc.setFont('helvetica', 'italic')
+      doc.setFontSize(9)
+      doc.setTextColor(100, 100, 100)
+      doc.text('For detailed architecture diagrams, see Threadlight.', margin, y)
+      y += 8
+
       for (const mapping of mapped) {
-        const pattern = mapping.referenceArchitecture as ReferenceArchitecturePattern
-        const arch = REFERENCE_ARCHITECTURES[pattern]
+        const arch = REFERENCE_ARCHITECTURES[mapping.referenceArchitecture as keyof typeof REFERENCE_ARCHITECTURES]
         if (!arch) continue
 
         addPageIfNeeded(14)
         doc.setFont('helvetica', 'bold')
-        doc.setFontSize(11)
+        doc.setFontSize(10)
         doc.setTextColor(0, 0, 0)
-        doc.text(arch.label, margin, y)
-        y += 6
+        doc.text(`• ${arch.label}`, margin, y)
+        y += 5
 
-        try {
-          const spec = buildReferenceArchitectureDiagramSpec({
-            title: arch.label,
-            services: arch.typicalServices,
-            direction: 'LR',
-          })
-          const mermaid = diagramSpecToMermaidFlowchart(spec)
-          const img = await renderMermaidToPngDataUrl(mermaid, { width: 1200, height: 650 })
-
-          const imgWidthMm = pageWidth - 2 * margin
-          const imgHeightMm = (img.height / img.width) * imgWidthMm
-
-          addPageIfNeeded(imgHeightMm + 10)
-          doc.addImage(img.dataUrl, 'PNG', margin, y, imgWidthMm, imgHeightMm)
-          y += imgHeightMm + 8
-        } catch {
-          doc.setFont('helvetica', 'normal')
-          doc.setFontSize(9)
-          doc.setTextColor(120, 120, 120)
-          doc.text('Diagram rendering unavailable for this item.', margin, y)
-          y += 8
-        }
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        doc.setTextColor(60, 60, 60)
+        const descLines = doc.splitTextToSize(arch.description, pageWidth - margin * 2 - 10)
+        doc.text(descLines, margin + 5, y)
+        y += descLines.length * 4 + 4
       }
     }
   }

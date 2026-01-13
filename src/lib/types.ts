@@ -204,6 +204,211 @@ export interface UseCase {
   
   // Implementation complexity (Solution Envisioning)
   implementationComplexity?: ImplementationComplexityInfo
+
+  // Customer Journey / Engagement Roadmap
+  customerJourney?: CustomerJourney
+}
+
+// ============================================================================
+// CUSTOMER JOURNEY / ENGAGEMENT ROADMAP TYPES (Innovation Hub)
+// ============================================================================
+
+/**
+ * Innovation Hub engagement types representing the structured approach to
+ * moving from discovery to implementation.
+ */
+export type InnovationHubEngagement =
+  | 'business-envisioning'     // Discover prioritized use cases through design thinking
+  | 'solution-envisioning'     // Agree on technical direction and goals alignment
+  | 'architecture-design'      // Synthesize requirements and align to reference architectures
+  | 'rapid-prototype'          // Validate capabilities and accelerate decision making
+
+/**
+ * Default deliverables for each Innovation Hub engagement type
+ */
+export const ENGAGEMENT_DEFAULTS: Record<InnovationHubEngagement, {
+  title: string
+  description: string
+  defaultDuration: string
+  defaultDeliverables: string[]
+}> = {
+  'business-envisioning': {
+    title: 'Business Envisioning',
+    description: 'Discover prioritized use cases through human-centered design thinking. Explore opportunities, challenges, and define next steps.',
+    defaultDuration: '1-2 weeks',
+    defaultDeliverables: [
+      'Use case prioritization matrix',
+      'Stakeholder alignment document',
+      'Design thinking workshop outputs',
+      'Opportunity assessment'
+    ]
+  },
+  'solution-envisioning': {
+    title: 'Solution Envisioning',
+    description: 'A strategic business and technical discussion to understand goals, offer insights, and envision the solution with Microsoft and partner capabilities.',
+    defaultDuration: '1-2 weeks',
+    defaultDeliverables: [
+      'Technical direction document',
+      'Solution concept diagram',
+      'Microsoft capabilities mapping',
+      'Partner ecosystem assessment'
+    ]
+  },
+  'architecture-design': {
+    title: 'Architecture Design',
+    description: 'Synthesize business and technical requirements for initial scope and alignment to reference architectures to drive next steps.',
+    defaultDuration: '2-3 weeks',
+    defaultDeliverables: [
+      'Reference architecture alignment',
+      'Scope definition document',
+      'Integration requirements',
+      'Technical feasibility assessment',
+      'Cost estimation'
+    ]
+  },
+  'rapid-prototype': {
+    title: 'Rapid Prototype',
+    description: 'Demonstrate key technical capabilities of a solution and address challenges to accelerate decision making.',
+    defaultDuration: '2-4 weeks',
+    defaultDeliverables: [
+      'Proof of concept demo',
+      'Technical validation report',
+      'Performance benchmarks',
+      'Risk assessment',
+      'Go/No-Go recommendation'
+    ]
+  }
+}
+
+/**
+ * A single milestone in the customer journey roadmap
+ */
+export interface CustomerJourneyMilestone {
+  id: string
+  order: number
+  title: string
+  description: string
+  engagement: InnovationHubEngagement
+  duration: string                        // e.g., "1-2 weeks"
+  deliverables: string[]
+  dependencies: string[]                  // IDs of prerequisite milestones
+  isComplete: boolean
+  completedAt?: number
+  notes?: string
+}
+
+/**
+ * Edit history entry for undo functionality
+ */
+export interface JourneyEdit {
+  id: string
+  timestamp: number
+  action: 'reorder' | 'duration' | 'deliverables' | 'notes' | 'complete' | 'reset'
+  previousState: CustomerJourneyMilestone[]
+  description: string
+}
+
+/**
+ * Complete customer journey / engagement roadmap for a use case
+ */
+export interface CustomerJourney {
+  useCaseId: string
+  milestones: CustomerJourneyMilestone[]
+  totalDuration: string                   // e.g., "6-11 weeks"
+  createdAt: number
+  updatedAt?: number
+  generatedBy: 'ai' | 'manual'
+  editHistory: JourneyEdit[]              // For undo capability
+}
+
+/**
+ * Helper to calculate total duration from milestones
+ */
+export function calculateJourneyDuration(milestones: CustomerJourneyMilestone[]): string {
+  let minWeeks = 0
+  let maxWeeks = 0
+
+  for (const m of milestones) {
+    const match = m.duration.match(/(\d+)(?:\s*-\s*(\d+))?\s*week/i)
+    if (match) {
+      minWeeks += parseInt(match[1], 10)
+      maxWeeks += parseInt(match[2] || match[1], 10)
+    }
+  }
+
+  if (minWeeks === maxWeeks) {
+    return `${minWeeks} weeks`
+  }
+  return `${minWeeks}-${maxWeeks} weeks`
+}
+
+/**
+ * Generate default journey milestones based on implementation complexity
+ */
+export function generateDefaultJourneyMilestones(
+  useCaseId: string,
+  complexity: 'low' | 'medium' | 'high' | 'very-high' = 'medium'
+): CustomerJourneyMilestone[] {
+  const milestones: CustomerJourneyMilestone[] = []
+  let order = 1
+
+  // All journeys start with Business Envisioning
+  milestones.push({
+    id: `${useCaseId}-m${order}`,
+    order: order++,
+    title: ENGAGEMENT_DEFAULTS['business-envisioning'].title,
+    description: ENGAGEMENT_DEFAULTS['business-envisioning'].description,
+    engagement: 'business-envisioning',
+    duration: ENGAGEMENT_DEFAULTS['business-envisioning'].defaultDuration,
+    deliverables: [...ENGAGEMENT_DEFAULTS['business-envisioning'].defaultDeliverables],
+    dependencies: [],
+    isComplete: false
+  })
+
+  // Solution Envisioning for medium+ complexity
+  if (complexity !== 'low') {
+    milestones.push({
+      id: `${useCaseId}-m${order}`,
+      order: order++,
+      title: ENGAGEMENT_DEFAULTS['solution-envisioning'].title,
+      description: ENGAGEMENT_DEFAULTS['solution-envisioning'].description,
+      engagement: 'solution-envisioning',
+      duration: ENGAGEMENT_DEFAULTS['solution-envisioning'].defaultDuration,
+      deliverables: [...ENGAGEMENT_DEFAULTS['solution-envisioning'].defaultDeliverables],
+      dependencies: [`${useCaseId}-m1`],
+      isComplete: false
+    })
+  }
+
+  // Architecture Design for high+ complexity
+  if (complexity === 'high' || complexity === 'very-high') {
+    milestones.push({
+      id: `${useCaseId}-m${order}`,
+      order: order++,
+      title: ENGAGEMENT_DEFAULTS['architecture-design'].title,
+      description: ENGAGEMENT_DEFAULTS['architecture-design'].description,
+      engagement: 'architecture-design',
+      duration: ENGAGEMENT_DEFAULTS['architecture-design'].defaultDuration,
+      deliverables: [...ENGAGEMENT_DEFAULTS['architecture-design'].defaultDeliverables],
+      dependencies: [milestones[milestones.length - 1].id],
+      isComplete: false
+    })
+  }
+
+  // Rapid Prototype for all
+  milestones.push({
+    id: `${useCaseId}-m${order}`,
+    order: order++,
+    title: ENGAGEMENT_DEFAULTS['rapid-prototype'].title,
+    description: ENGAGEMENT_DEFAULTS['rapid-prototype'].description,
+    engagement: 'rapid-prototype',
+    duration: complexity === 'very-high' ? '3-6 weeks' : ENGAGEMENT_DEFAULTS['rapid-prototype'].defaultDuration,
+    deliverables: [...ENGAGEMENT_DEFAULTS['rapid-prototype'].defaultDeliverables],
+    dependencies: [milestones[milestones.length - 1].id],
+    isComplete: false
+  })
+
+  return milestones
 }
 
 // ============================================================================

@@ -19,8 +19,8 @@ interface DiscoveryLauncherProps {
   onStartLiveDiscovery?: () => void
   onStartEnterpriseDiscovery?: () => void
   onResumeEnterpriseDiscovery?: (session: EnterpriseDiscoverySession) => void
-  onStartDemo?: () => void
-  onStartEnterpriseDemo?: () => void
+  onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
+  onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   customerName?: string
   onOpenSessionComparison?: () => void
   onOpenExport?: () => void
@@ -97,7 +97,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                     </Button>
                   )}
                   {onStartDemo && (
-                    <Button onClick={onStartDemo} size="sm" variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
+                    <Button onClick={() => onStartDemo('mining')} size="sm" variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
                       <Play size={16} weight="fill" />
                       Try Demo (Zava Mining)
                     </Button>
@@ -286,7 +286,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                     </Button>
                   )}
                   {onStartEnterpriseDemo && (
-                    <Button onClick={onStartEnterpriseDemo} size="sm" variant="ghost" className="gap-2 text-white/60 hover:text-white hover:bg-white/10">
+                    <Button onClick={() => onStartEnterpriseDemo('mining')} size="sm" variant="ghost" className="gap-2 text-white/60 hover:text-white hover:bg-white/10">
                       <Play size={16} weight="fill" />
                       Try Demo (Zava Mining)
                     </Button>

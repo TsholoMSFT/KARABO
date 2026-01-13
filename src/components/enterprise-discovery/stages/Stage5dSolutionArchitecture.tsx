@@ -15,9 +15,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
-import { ProcessFlowDiagram } from '@/components/ProcessFlowDiagram'
-import { ManualArchitectureSelector } from '@/components/ManualArchitectureSelector'
+import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
+import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 import {
   REFERENCE_ARCHITECTURES,
   type ReferenceArchitecturePattern,
@@ -378,139 +377,66 @@ Select the BEST matching pattern and respond with ONLY a valid JSON object (no m
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {/* Architecture Display or Selector */}
-            <AnimatePresence mode="wait">
-              {showManualSelector ? (
-                <motion.div 
-                  key="manual" 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  exit={{ opacity: 0 }}
-                >
-                  <ManualArchitectureSelector
-                    industry={industry}
-                    currentPattern={currentMapping.referenceArchitecture}
-                    currentSolutions={currentMapping.microsoftSolutions}
-                    useCaseTitle={currentMapping.useCaseTitle}
-                    useCaseDescription={currentMapping.useCaseDescription}
-                    onSelect={handleManualSelect}
-                    onCancel={() => setShowManualSelector(false)}
-                    showWarning={currentMapping.aiGenerationFailed || !aiAvailable}
-                  />
-                </motion.div>
-              ) : currentMapping.referenceArchitecture ? (
-                <motion.div 
-                  key="diagram" 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  exit={{ opacity: 0 }} 
-                  className="space-y-4"
-                >
-                  <ArchitectureDiagram
-                    pattern={currentMapping.referenceArchitecture}
-                    showLearnLink
-                    onRequestDifferent={() => setShowManualSelector(true)}
-                  />
-                  
-                  {/* Business Process Flow if available */}
-                  {currentMapping.businessProcesses.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-sm">Business Process Improvement</h4>
-                        {currentMapping.businessProcesses.map((process, idx) => (
-                          <ProcessFlowDiagram key={process.processId || `proc-${idx}`} process={process} />
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={generateArchitecture}
-                      disabled={isGenerating || !aiAvailable}
-                      className="gap-2"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          >
-                            <Sparkle size={14} />
-                          </motion.div>
-                          Regenerating...
-                        </>
-                      ) : (
-                        <>
-                          <Lightning size={14} />
-                          Regenerate with AI
-                        </>
-                      )}
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setShowManualSelector(true)}
-                    >
-                      Change Manually
-                    </Button>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  key="empty" 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  exit={{ opacity: 0 }}
-                >
-                  <div className="text-center p-8 border-2 border-dashed rounded-lg">
-                    <Graph size={48} className="mx-auto text-muted-foreground mb-4" />
-                    <h3 className="font-semibold mb-2">No Architecture Assigned</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {aiAvailable 
-                        ? 'Generate an AI suggestion or select manually'
-                        : 'AI is unavailable. Please select an architecture manually.'}
-                    </p>
-                    <div className="flex gap-3 justify-center">
-                      {aiAvailable && (
-                        <Button 
-                          onClick={generateArchitecture} 
-                          disabled={isGenerating}
-                          className="gap-2"
-                        >
-                          {isGenerating ? (
-                            <>
-                              <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                              >
-                                <Sparkle size={16} />
-                              </motion.div>
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <Sparkle size={16} />
-                              AI Suggest
-                            </>
+            {/* Threadlight Integration */}
+            <motion.div 
+              key="threadlight" 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              className="space-y-4"
+            >
+              <ThreadlightPasteCard
+                wizardUrl="https://threadlight.ai/wizard/byop"
+                industryLabel={industry}
+                industryValue={industry}
+                shortName={makeThreadlightShortName(currentMapping.useCaseTitle)}
+                processAnalysis={buildThreadlightProcessAnalysis(
+                  currentMapping.businessProcesses.map(bp => ({
+                    processName: bp.processName,
+                    affectedSteps: [],
+                    currentPainPoints: bp.currentPainPoints || [],
+                    proposedImprovement: bp.proposedImprovement,
+                  }))
+                )}
+                pasteText={buildThreadlightByopPasteText({
+                  title: currentMapping.useCaseTitle,
+                  description: currentMapping.useCaseDescription,
+                  industry: industry,
+                  businessProcesses: currentMapping.businessProcesses.map(bp => ({
+                    processName: bp.processName,
+                    affectedSteps: [],
+                    currentPainPoints: bp.currentPainPoints || [],
+                    proposedImprovement: bp.proposedImprovement,
+                  })),
+                  microsoftSolutions: currentMapping.microsoftSolutions.map(s => ({
+                    productFamily: s.productFamily,
+                    services: s.services,
+                  })),
+                })}
+                title="Export to Threadlight"
+                description="Copy the details below and paste into Threadlight's BYOP wizard for professional architecture diagrams and process flows."
+              />
+              
+              {/* Business Process Summary */}
+              {currentMapping.businessProcesses.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm">Business Processes</h4>
+                    <div className="space-y-2">
+                      {currentMapping.businessProcesses.map((process, idx) => (
+                        <div key={process.processId || `proc-${idx}`} className="p-3 border rounded-lg bg-accent/10">
+                          <p className="font-medium text-sm">{process.processName}</p>
+                          {process.proposedImprovement && (
+                            <p className="text-xs text-muted-foreground mt-1">{process.proposedImprovement}</p>
                           )}
-                        </Button>
-                      )}
-                      <Button 
-                        variant={aiAvailable ? 'outline' : 'default'}
-                        onClick={() => setShowManualSelector(true)}
-                      >
-                        Select Manually
-                      </Button>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </motion.div>
+                </>
               )}
-            </AnimatePresence>
+            </motion.div>
           </CardContent>
 
           <CardFooter className="flex justify-between border-t pt-6">
@@ -524,8 +450,7 @@ Select the BEST matching pattern and respond with ONLY a valid JSON object (no m
             
             {currentIndex < useCases.length - 1 ? (
               <Button 
-                onClick={handleNext} 
-                disabled={!currentMapping.referenceArchitecture}
+                onClick={handleNext}
               >
                 Next Use Case
                 <ArrowRight size={16} className="ml-2" />
