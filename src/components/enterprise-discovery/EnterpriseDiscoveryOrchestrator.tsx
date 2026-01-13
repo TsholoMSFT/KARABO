@@ -22,6 +22,8 @@ import { exportEnterpriseDiscoveryToPDF } from '@/lib/enterprise-pdf-export'
 import { exportEnterpriseDiscoveryToExcel } from '@/lib/enterprise-excel-export'
 import type { EnterpriseDiscoverySession, YellowLight, StageStatus, BusinessEnvisioningData } from '@/lib/types'
 import { toast } from 'sonner'
+import { getDemoDataForIndustry } from '@/lib/demo-data'
+import type { DemoIndustry } from '@/lib/demo-data'
 
 const PAUSED_SESSIONS_KEY = 'karabo-paused-enterprise-sessions'
 const ENTERPRISE_SESSIONS_KEY = 'enterprise-sessions'
@@ -34,6 +36,9 @@ interface EnterpriseDiscoveryOrchestratorProps {
   onComplete: (session: EnterpriseDiscoverySession) => void
   onCancel: () => void
   onPause?: (session: EnterpriseDiscoverySession) => void
+  // Demo mode props
+  isDemoMode?: boolean
+  demoIndustry?: DemoIndustry
 }
 
 export function EnterpriseDiscoveryOrchestrator({
@@ -44,6 +49,8 @@ export function EnterpriseDiscoveryOrchestrator({
   onComplete,
   onCancel,
   onPause,
+  isDemoMode,
+  demoIndustry,
 }: EnterpriseDiscoveryOrchestratorProps) {
   const [session, setSession] = useState<EnterpriseDiscoverySession>(
     initialSession || {
@@ -73,6 +80,23 @@ export function EnterpriseDiscoveryOrchestrator({
   const [lastSaved, setLastSaved] = useState<number | undefined>(session.lastSavedAt)
   const [isLiveMode, setIsLiveMode] = useState(session.isLiveMode || false)
   const [showSettings, setShowSettings] = useState(false)
+
+  // Pre-fill with demo data when demo mode is active and no initial session provided
+  useEffect(() => {
+    if (isDemoMode && demoIndustry && !initialSession) {
+      const demoData = getDemoDataForIndustry(demoIndustry)
+      if (demoData.enterpriseSession) {
+        const demoSession: EnterpriseDiscoverySession = {
+          ...demoData.enterpriseSession,
+          id: `demo-enterprise-${Date.now()}`,
+          createdAt: Date.now(),
+          sessionDate: Date.now(),
+          isDemo: true,
+        }
+        setSession(demoSession)
+      }
+    }
+  }, [isDemoMode, demoIndustry, initialSession])
 
   // Auto-save every 30 seconds
   useEffect(() => {

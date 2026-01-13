@@ -135,7 +135,7 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
     const requestBody: Record<string, unknown> = {
       messages,
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: 8000,
     };
 
     if (expectJson) {

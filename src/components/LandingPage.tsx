@@ -20,6 +20,8 @@ import {
 } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 
+import type { DemoIndustry } from '@/lib/demo-data'
+
 interface LandingPageProps {
   customers: Customer[]
   onStartNew: () => void
@@ -30,6 +32,10 @@ interface LandingPageProps {
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onSkipToUseCases?: () => void
+  // Demo mode props
+  isDemoMode?: boolean
+  demoIndustry?: DemoIndustry
+  onEnterDemoMode?: (industry: DemoIndustry) => void
 }
 
 export function LandingPage({ 
@@ -41,7 +47,10 @@ export function LandingPage({
   onViewExisting,
   onStartDemo,
   onStartEnterpriseDemo,
-  onSkipToUseCases
+  onSkipToUseCases,
+  isDemoMode,
+  demoIndustry,
+  onEnterDemoMode
 }: LandingPageProps) {
   const hasExistingCustomers = customers.length > 0
 
@@ -365,7 +374,7 @@ export function LandingPage({
         </motion.div>
 
         {/* Try Demo Section */}
-        {(onStartDemo || onStartEnterpriseDemo) && (
+        {(onStartDemo || onStartEnterpriseDemo || onEnterDemoMode) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -377,9 +386,9 @@ export function LandingPage({
                 <div className="text-center mb-4">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <Play size={20} weight="fill" className="text-primary" />
-                    <h3 className="font-semibold text-lg">Try a Demo</h3>
+                    <h3 className="font-semibold text-lg">Try Demo Mode</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground">Explore pre-populated sessions with real-world scenarios</p>
+                  <p className="text-sm text-muted-foreground">Enter demo mode with pre-filled forms to explore all features</p>
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
@@ -387,23 +396,17 @@ export function LandingPage({
                   <div className="space-y-2">
                     <Button
                       variant="outline"
-                      className="w-full gap-2 h-auto py-3"
-                      onClick={() => onStartDemo?.('mining')}
+                      className="w-full gap-2 h-auto py-3 hover:border-amber-500/50 hover:bg-amber-500/5"
+                      onClick={() => {
+                        onEnterDemoMode?.('mining')
+                        onStartNew()
+                      }}
                     >
                       <HardHat size={18} weight="duotone" className="text-amber-600" />
                       <div className="text-left">
                         <div className="font-medium text-sm">Zava Mining</div>
-                        <div className="text-[10px] text-muted-foreground">Quick Discovery</div>
+                        <div className="text-[10px] text-muted-foreground">Enter Demo Mode</div>
                       </div>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs gap-1"
-                      onClick={() => onStartEnterpriseDemo?.('mining')}
-                    >
-                      <Briefcase size={12} />
-                      Enterprise
                     </Button>
                   </div>
                   
@@ -411,23 +414,17 @@ export function LandingPage({
                   <div className="space-y-2">
                     <Button
                       variant="outline"
-                      className="w-full gap-2 h-auto py-3"
-                      onClick={() => onStartDemo?.('retail')}
+                      className="w-full gap-2 h-auto py-3 hover:border-green-500/50 hover:bg-green-500/5"
+                      onClick={() => {
+                        onEnterDemoMode?.('retail')
+                        onStartNew()
+                      }}
                     >
                       <ShoppingCart size={18} weight="duotone" className="text-green-600" />
                       <div className="text-left">
                         <div className="font-medium text-sm">MegaMart Retail</div>
-                        <div className="text-[10px] text-muted-foreground">Quick Discovery</div>
+                        <div className="text-[10px] text-muted-foreground">Enter Demo Mode</div>
                       </div>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs gap-1"
-                      onClick={() => onStartEnterpriseDemo?.('retail')}
-                    >
-                      <Briefcase size={12} />
-                      Enterprise
                     </Button>
                   </div>
                   
@@ -435,23 +432,17 @@ export function LandingPage({
                   <div className="space-y-2">
                     <Button
                       variant="outline"
-                      className="w-full gap-2 h-auto py-3"
-                      onClick={() => onStartDemo?.('financial')}
+                      className="w-full gap-2 h-auto py-3 hover:border-blue-500/50 hover:bg-blue-500/5"
+                      onClick={() => {
+                        onEnterDemoMode?.('financial')
+                        onStartNew()
+                      }}
                     >
                       <Bank size={18} weight="duotone" className="text-blue-600" />
                       <div className="text-left">
                         <div className="font-medium text-sm">Apex Financial</div>
-                        <div className="text-[10px] text-muted-foreground">Quick Discovery</div>
+                        <div className="text-[10px] text-muted-foreground">Enter Demo Mode</div>
                       </div>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs gap-1"
-                      onClick={() => onStartEnterpriseDemo?.('financial')}
-                    >
-                      <Briefcase size={12} />
-                      Enterprise
                     </Button>
                   </div>
                 </div>

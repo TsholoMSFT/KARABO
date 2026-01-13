@@ -1,5 +1,5 @@
 /**
- * Demo Data for Zava Mining
+ * Demo Data for Contoso Mining
  * Pre-populated session data for demonstration purposes
  */
 
@@ -37,7 +37,7 @@ export const INDUSTRY_REGULATIONS: Record<Industry, AIRegulationFramework[]> = {
   telecommunications: ['gdpr', 'ccpa', 'popia', 'iso-42001'],
 }
 
-// Mining-specific regulations (for Zava Mining demo)
+// Mining-specific regulations (for Contoso Mining demo)
 export const MINING_REGULATIONS: AIRegulationFramework[] = [
   'msha',       // Mine Safety and Health
   'dmre',       // SA Dept of Mineral Resources
@@ -103,11 +103,11 @@ export function getCombinedRegulations(industry: Industry, jurisdictions: string
 }
 
 // ============================================================================
-// ZAVA MINING DEMO DATA
+// CONTOSO MINING DEMO DATA
 // ============================================================================
 
 export const DEMO_SESSION_METADATA: SessionMetadata = {
-  customerName: 'Zava Mining',
+  customerName: 'Contoso Mining',
   innovationHubSPOC: 'Thabo Molefe',
   primaryStakeholder: 'Lindiwe Nkosi (Chief Operations Officer)',
   accountTeamRep: 'Sarah van der Merwe',
@@ -530,16 +530,16 @@ export const DEMO_USE_CASES: UseCase[] = [
 
 export const DEMO_DISCOVERY_SESSION: DiscoverySession = {
   id: 'demo-session-1',
-  customerId: 'demo-customer-zava',
-  customerName: 'Zava Mining',
+  customerId: 'demo-customer-contoso',
+  customerName: 'Contoso Mining',
   innovationHubSPOC: 'Thabo Molefe',
-  name: 'Zava Mining Innovation Assessment',
+  name: 'Contoso Mining Innovation Assessment',
   industry: 'energy',  // Mining falls under energy sector
   innovationHubLocation: 'Johannesburg',
   solutionEngineer: 'James Ndlovu',
   accountTeamRep: 'Sarah van der Merwe',
   primaryStakeholder: 'Lindiwe Nkosi (Chief Operations Officer)',
-  executiveSummary: `Zava Mining is a leading South African mining company with operations across Limpopo and Mpumalanga provinces. The discovery session revealed significant opportunities for digital transformation across safety, maintenance, and operational efficiency.
+  executiveSummary: `Contoso Mining is a leading South African mining company with operations across Limpopo and Mpumalanga provinces. The discovery session revealed significant opportunities for digital transformation across safety, maintenance, and operational efficiency.
 
 **Key Opportunities Identified:**
 1. **Predictive Maintenance** - R50M annual losses from unplanned downtime can be significantly reduced through IoT and AI-driven predictive analytics
@@ -573,7 +573,7 @@ The mining sector in South Africa requires compliance with MHSA, DMRE regulation
 
 export const DEMO_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
   id: 'demo-enterprise-1',
-  clientName: 'Zava Mining',
+  clientName: 'Contoso Mining',
   attendees: [
     { name: 'Lindiwe Nkosi', role: 'Chief Operations Officer' },
     { name: 'Sipho Mahlangu', role: 'Head of Digital Transformation' },
@@ -606,7 +606,7 @@ export const DEMO_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
           totalAnnual: 50000000,
         },
         scq: {
-          situation: 'Zava Mining operates 5 mine sites with aging equipment fleets averaging 8 years old, generating 500GB of sensor data daily that is currently underutilized.',
+          situation: 'Contoso Mining operates 5 mine sites with aging equipment fleets averaging 8 years old, generating 500GB of sensor data daily that is currently underutilized.',
           complication: 'Despite this data availability, 70% of equipment failures are still detected only after they occur, and maintenance teams spend 60% of their time on reactive repairs rather than planned maintenance.',
           question: 'How can we leverage our existing sensor infrastructure with Azure IoT and AI to predict equipment failures and enable proactive maintenance interventions?',
           status: 'confirmed',
@@ -665,13 +665,13 @@ export const DEMO_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
 }
 
 // ============================================================================
-// RETAIL DEMO DATA (MegaMart)
+// RETAIL DEMO DATA (Zava Retail)
 // ============================================================================
 
 export const DEMO_RETAIL_RESPONSES: DiscoveryResponse[] = [
   {
     questionId: 'current-landscape',
-    answer: 'MegaMart operates 150 stores across Southern Africa with a growing e-commerce platform (12% of revenue). We use SAP S/4HANA for ERP, Oracle for supply chain, and legacy POS systems. Customer data is fragmented across loyalty programs, POS, and e-commerce platforms.',
+    answer: 'Zava Retail operates 150 stores across Southern Africa with a growing e-commerce platform (12% of revenue). We use SAP S/4HANA for ERP, Oracle for supply chain, and legacy POS systems. Customer data is fragmented across loyalty programs, POS, and e-commerce platforms.',
     timestamp: Date.now(),
   },
   {
@@ -920,16 +920,16 @@ export const DEMO_RETAIL_USE_CASES: UseCase[] = [
 
 export const DEMO_RETAIL_SESSION: DiscoverySession = {
   id: 'demo-retail-session-1',
-  customerId: 'demo-customer-megamart',
-  customerName: 'MegaMart Retail',
+  customerId: 'demo-customer-zava',
+  customerName: 'Zava Retail',
   innovationHubSPOC: 'Themba Mokoena',
-  name: 'MegaMart Digital Transformation Assessment',
+  name: 'Zava Retail Digital Transformation Assessment',
   industry: 'retail',
   innovationHubLocation: 'Cape Town',
   solutionEngineer: 'Priya Naidoo',
   accountTeamRep: 'Michael du Plessis',
   primaryStakeholder: 'Naledi Khumalo (Chief Digital Officer)',
-  executiveSummary: `MegaMart Retail is a leading Southern African retailer operating 150 stores with a growing e-commerce presence. The discovery revealed significant opportunities to leverage AI for inventory optimization, loss prevention, and customer experience.
+  executiveSummary: `Zava Retail is a leading Southern African retailer operating 150 stores with a growing e-commerce presence. The discovery revealed significant opportunities to leverage AI for inventory optimization, loss prevention, and customer experience.
 
 **Key Opportunities Identified:**
 1. **Demand Forecasting** - R600M annual lost sales from stockouts can be dramatically reduced with AI-powered forecasting
@@ -960,7 +960,7 @@ Retail AI applications must comply with POPIA for customer data, especially for 
 
 export const DEMO_RETAIL_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
   id: 'demo-retail-enterprise-1',
-  clientName: 'MegaMart Retail',
+  clientName: 'Zava Retail',
   attendees: [
     { name: 'Naledi Khumalo', role: 'Chief Digital Officer' },
     { name: 'David Botha', role: 'Head of Merchandising' },
@@ -1001,13 +1001,13 @@ export const DEMO_RETAIL_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
 }
 
 // ============================================================================
-// FINANCIAL SERVICES DEMO DATA (Apex Financial)
+// FINANCIAL SERVICES DEMO DATA (Blue Yonder Financial)
 // ============================================================================
 
 export const DEMO_FINANCIAL_RESPONSES: DiscoveryResponse[] = [
   {
     questionId: 'current-landscape',
-    answer: 'Apex Financial is a mid-tier bank with 2M retail customers and R80B in assets under management. Core banking on legacy mainframe (30 years old), with modern digital banking layer. Using Azure for some workloads but limited AI adoption.',
+    answer: 'Blue Yonder Financial is a mid-tier bank with 2M retail customers and R80B in assets under management. Core banking on legacy mainframe (30 years old), with modern digital banking layer. Using Azure for some workloads but limited AI adoption.',
     timestamp: Date.now(),
   },
   {
@@ -1177,16 +1177,16 @@ export const DEMO_FINANCIAL_USE_CASES: UseCase[] = [
 
 export const DEMO_FINANCIAL_SESSION: DiscoverySession = {
   id: 'demo-financial-session-1',
-  customerId: 'demo-customer-apex',
-  customerName: 'Apex Financial Services',
+  customerId: 'demo-customer-blueyonder',
+  customerName: 'Blue Yonder Financial',
   innovationHubSPOC: 'Kagiso Mabena',
-  name: 'Apex Financial AI Transformation Assessment',
+  name: 'Blue Yonder Financial AI Transformation Assessment',
   industry: 'financial-services',
   innovationHubLocation: 'Sandton',
   solutionEngineer: 'Reuben Govender',
   accountTeamRep: 'Anele Sithole',
   primaryStakeholder: 'Grace Moyo (Chief Digital & Innovation Officer)',
-  executiveSummary: `Apex Financial Services is a mid-tier South African bank undergoing digital transformation. The discovery revealed significant opportunities to leverage AI for fraud prevention, customer onboarding, and operational efficiency.
+  executiveSummary: `Blue Yonder Financial is a mid-tier South African bank undergoing digital transformation. The discovery revealed significant opportunities to leverage AI for fraud prevention, customer onboarding, and operational efficiency.
 
 **Key Opportunities Identified:**
 1. **Fraud Prevention** - R150M annual fraud losses can be reduced by 70% with AI-powered detection
@@ -1217,7 +1217,7 @@ Financial services AI requires compliance with SARB, NCR, FICA, and POPIA. High-
 
 export const DEMO_FINANCIAL_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
   id: 'demo-financial-enterprise-1',
-  clientName: 'Apex Financial Services',
+  clientName: 'Blue Yonder Financial',
   attendees: [
     { name: 'Grace Moyo', role: 'Chief Digital & Innovation Officer' },
     { name: 'Robert Steenkamp', role: 'Head of Credit Risk' },
@@ -1703,4 +1703,255 @@ export const INDUSTRY_FALLBACK_USE_CASES: Record<Industry, FallbackUseCase[]> = 
  */
 export function getFallbackUseCasesForIndustry(industry: Industry): FallbackUseCase[] {
   return INDUSTRY_FALLBACK_USE_CASES[industry] || INDUSTRY_FALLBACK_USE_CASES.general
+}
+
+// ============================================================================
+// DEMO MODE DATA - For Pre-filling Forms
+// ============================================================================
+
+export type DemoIndustry = 'mining' | 'retail' | 'financial'
+
+/**
+ * Demo notes for the Notes Analysis feature
+ */
+export const DEMO_NOTES: Record<DemoIndustry, string> = {
+  mining: `Contoso Mining is a leading South African mining company operating 5 mine sites across Limpopo and Mpumalanga provinces with approximately 3,500 employees.
+
+Current challenges:
+- Equipment failures cause significant production losses - approximately R50 million annually from unplanned downtime
+- Safety incidents remain a concern despite recent improvements in training programs
+- Legacy systems don't integrate well, creating data silos between operations, maintenance, and safety teams
+- Manual reporting processes take too long (2-3 days for equipment inspection reports) and often have errors
+- Environmental compliance reporting is extremely time-consuming - about 40 hours per month per site
+
+Technology landscape:
+- SAP S/4HANA for ERP
+- SCADA systems for equipment monitoring
+- GIS mapping software
+- Some IoT sensors on critical equipment (partial coverage)
+- Microsoft 365 but not fully leveraged
+- Maintenance uses mix of SAP PM and spreadsheets
+- Safety reporting is still largely paper-based
+
+Strategic goals:
+- Zero fatalities (non-negotiable)
+- 30% reduction in equipment downtime
+- Real-time visibility into all operations
+- Automated compliance reporting
+- 15% improvement in ore extraction efficiency
+- Carbon neutrality by 2030
+- Technology leadership in African mining
+
+Key stakeholders:
+- Lindiwe Nkosi (COO) - Executive sponsor
+- Sipho Mahlangu - Head of Digital Transformation
+- Nomvula Dlamini - Safety Director
+- Johan van Wyk - CTO
+
+Regulatory requirements: Mine Health and Safety Act (MHSA), DMRE regulations, POPIA, environmental impact assessments. Any AI systems must be explainable for safety-critical decisions.`,
+
+  retail: `Zava Retail operates 150 stores across Southern Africa with a growing e-commerce platform (currently 12% of revenue). Annual revenue approximately R6 billion.
+
+Major pain points:
+- Inventory management is our biggest challenge - R200M in shrinkage annually
+- Stockouts causing lost sales estimated at R50M per month
+- Customer experience is inconsistent across channels (in-store vs online vs mobile)
+- Manual pricing and promotions processes take 2 weeks to execute across all stores
+- Call centers handle 2 million calls monthly with poor first-call resolution
+
+Current systems:
+- SAP S/4HANA for ERP
+- Oracle for supply chain management
+- Legacy POS systems across stores (being modernized)
+- Customer data fragmented across loyalty programs, POS, and e-commerce platforms
+- 8 different systems that don't talk to each other well
+
+Recent initiatives:
+- Launched click-and-collect last year
+- Piloting self-checkout in 20 stores
+- Exploring personalized marketing but limited by data silos
+- Board approved R100M for digital transformation over 3 years
+
+Goals:
+- Reduce shrinkage by 35%
+- Increase self-service adoption from 23% to 60%
+- Unified customer data platform for personalized offers
+- Real-time inventory visibility across all stores
+- Improve cost-to-income ratio
+
+Key people:
+- Naledi Khumalo (CDO) - driving digital transformation
+- David Botha - Head of Merchandising
+- Fatima Patel - Supply Chain Director
+- Trevor Moloi - CIO`,
+
+  financial: `Blue Yonder Financial is a mid-tier South African bank with 2 million retail customers and R80 billion in assets under management.
+
+Critical issues:
+- Fraud losses at R150M annually and growing 15% year-over-year
+- Customer onboarding takes 5 days on average - losing prospects to neo-banks like TymeBank and Bank Zero
+- Manual credit decisioning is slow (3-5 days) and inconsistent across branches
+- AML compliance is resource-intensive - 50 analysts spending 70% of time on false positives
+- Relationship managers spend 40% of time on administrative tasks instead of client engagement
+
+Technology status:
+- Core banking on legacy mainframe (30 years old)
+- Modern digital banking layer for mobile and web
+- Using Azure for some workloads but limited AI adoption
+- Multiple disconnected systems for customer data
+- Manual document processing for KYC (FICA compliance)
+
+Digital progress:
+- Launched mobile banking app last year (500K active users now)
+- Exploring AI for credit scoring but concerned about regulatory implications
+- Board wants to reduce cost-to-income ratio from 62% to 55% over 3 years
+
+Regulatory environment:
+- SARB oversight
+- NCR compliance for credit decisions
+- FICA for AML/KYC
+- POPIA for data protection
+- Any AI in credit must be explainable and auditable
+
+Key stakeholders:
+- Grace Moyo (CDIO) - Chief Digital & Innovation Officer
+- Robert Steenkamp - Head of Credit Risk
+- Zanele Dube - Chief Compliance Officer
+- Pieter Jordaan - CTO`
+}
+
+/**
+ * Demo process analysis data for AI Assessment
+ */
+export const DEMO_PROCESS_ANALYSIS: Record<DemoIndustry, {
+  processCandidates: string
+  processNotes: string
+  constraints: string
+}> = {
+  mining: {
+    processCandidates: `Equipment maintenance scheduling and execution
+Safety incident detection and response
+Environmental compliance reporting
+Shift handover and production reporting`,
+    processNotes: `Current maintenance process is largely reactive - equipment fails, then we fix it. Maintenance technicians do scheduled inspections but often miss early warning signs because they rely on visual checks and experience rather than data.
+
+When equipment does fail, it can take 4-8 hours just to diagnose the problem because we lack real-time sensor data integration. Parts availability is another issue - often the right parts aren't at the right site.
+
+Safety monitoring is fragmented. Underground workers have basic tracking devices but no real-time health monitoring. CCTV coverage is about 40% of critical areas. Incident response relies on radio communication which can be unreliable underground.
+
+Shift handovers are done verbally with paper checklists. Critical information sometimes gets lost between shifts, leading to repeated mistakes or safety near-misses.`,
+    constraints: `- All AI decisions affecting safety must have human oversight and be explainable
+- SCADA integration requires secure OPC-UA protocols (air-gapped for critical systems)
+- Underground network connectivity is limited - need offline-capable solutions
+- DMRE and MHSA compliance required for any changes to safety processes
+- POPIA compliance for any employee data (biometrics, location)
+- Union consultation required for significant process changes
+- Some sites have 10+ year old equipment without modern sensors`
+  },
+  retail: {
+    processCandidates: `Inventory replenishment and demand forecasting
+Loss prevention and shrinkage control
+Customer service and contact center operations
+Pricing and promotions management`,
+    processNotes: `Demand forecasting is done weekly using Excel spreadsheets and buyer intuition. Buyers look at last year's sales and adjust based on "gut feel". This leads to frequent stockouts on fast-movers and overstock on slow-movers.
+
+Replenishment orders are generated overnight from SAP but don't account for local events, weather, or social media trends. By the time we react to a viral product on TikTok, it's too late.
+
+Loss prevention relies on CCTV monitoring by security guards who are often distracted. Self-checkout is particularly vulnerable - we estimate 8% scan avoidance rate. Current LP analytics are retrospective (monthly shrinkage reports) not real-time.
+
+Pricing changes require updating 150 store systems individually. A national promotion takes 2 weeks to fully roll out. Competitors can change prices in hours.
+
+Contact center handles billing, order status, and complaints. 60% of calls are "where is my order" that could be self-service.`,
+    constraints: `- POPIA compliance for customer data and video surveillance
+- PCI-DSS for payment processing
+- Cannot use AI for discriminatory pricing based on demographics
+- Must maintain pricing consistency across channels (legal requirement)
+- Legacy POS at 80 stores cannot be easily integrated
+- Union agreement limits certain types of monitoring
+- Multi-tenancy requirements for franchised stores`
+  },
+  financial: {
+    processCandidates: `Fraud detection and transaction monitoring
+Customer onboarding and KYC verification
+Credit application and decisioning
+AML alert investigation and SAR filing`,
+    processNotes: `Fraud detection uses rule-based system from 2015. Rules are static and criminals adapt faster than we can update them. False positive rate is 95% - for every 100 alerts, only 5 are actual fraud. This wastes investigator time and delays legitimate transactions.
+
+Customer onboarding requires physical document submission to a branch. Documents are scanned, emailed to back office, manually verified (often taking 24 hours), then returned. Common issues: poor scan quality, missing documents, incorrect form versions.
+
+Credit decisioning uses traditional scorecard models. We reject many "thin file" customers (young people, immigrants) who are actually creditworthy but don't have enough history. Meanwhile, we approve some who later default because the scorecard doesn't catch certain patterns.
+
+AML investigators spend hours on each alert writing narratives for SARs. The narrative is often copy-paste from previous cases. Some alerts sit in queue for weeks during peak periods.
+
+Relationship managers prepare for client meetings by manually pulling data from 5 different systems into PowerPoint. This takes 2-3 hours per meeting.`,
+    constraints: `- SARB approval needed for AI in credit decisioning
+- All credit decisions must be explainable to customers (NCR requirement)
+- FICA requires specific KYC checks and audit trails
+- Fraud models must not introduce bias (fair lending)
+- Data residency - customer data must stay in South Africa
+- Core banking integration requires careful change management (mainframe)
+- Strict SLAs on transaction processing (cannot add latency)
+- Need to maintain full audit trail for regulatory examination`
+  }
+}
+
+/**
+ * Demo session metadata for each industry
+ */
+export const DEMO_SESSION_METADATA_BY_INDUSTRY: Record<DemoIndustry, SessionMetadata> = {
+  mining: {
+    customerName: 'Contoso Mining',
+    innovationHubSPOC: 'Thabo Molefe',
+    primaryStakeholder: 'Lindiwe Nkosi (Chief Operations Officer)',
+    accountTeamRep: 'Sarah van der Merwe',
+    innovationHubLocation: 'Johannesburg, South Africa',
+    solutionEngineer: 'James Ndlovu',
+    stockTicker: 'CTM.JSE',
+  },
+  retail: {
+    customerName: 'Zava Retail',
+    innovationHubSPOC: 'Themba Mokoena',
+    primaryStakeholder: 'Naledi Khumalo (Chief Digital Officer)',
+    accountTeamRep: 'Michael du Plessis',
+    innovationHubLocation: 'Cape Town, South Africa',
+    solutionEngineer: 'Priya Naidoo',
+    stockTicker: 'ZVR.JSE',
+  },
+  financial: {
+    customerName: 'Blue Yonder Financial',
+    innovationHubSPOC: 'Kagiso Mabena',
+    primaryStakeholder: 'Grace Moyo (Chief Digital & Innovation Officer)',
+    accountTeamRep: 'Anele Sithole',
+    innovationHubLocation: 'Sandton, South Africa',
+    solutionEngineer: 'Reuben Govender',
+    stockTicker: 'BYF.JSE',
+  },
+}
+
+/**
+ * Demo discovery responses by industry for Quick Discovery
+ */
+export const DEMO_DISCOVERY_RESPONSES_BY_INDUSTRY: Record<DemoIndustry, DiscoveryResponse[]> = {
+  mining: DEMO_DISCOVERY_RESPONSES,
+  retail: DEMO_RETAIL_RESPONSES,
+  financial: DEMO_FINANCIAL_RESPONSES,
+}
+
+/**
+ * Helper to get all demo data for a specific industry
+ */
+export function getDemoDataForIndustry(industry: DemoIndustry) {
+  const sessionMap = {
+    mining: { session: DEMO_DISCOVERY_SESSION, useCases: DEMO_USE_CASES, enterpriseSession: DEMO_ENTERPRISE_SESSION },
+    retail: { session: DEMO_RETAIL_SESSION, useCases: DEMO_RETAIL_USE_CASES, enterpriseSession: DEMO_RETAIL_ENTERPRISE_SESSION },
+    financial: { session: DEMO_FINANCIAL_SESSION, useCases: DEMO_FINANCIAL_USE_CASES, enterpriseSession: DEMO_FINANCIAL_ENTERPRISE_SESSION },
+  }
+  
+  return {
+    ...sessionMap[industry],
+    notes: DEMO_NOTES[industry],
+    processAnalysis: DEMO_PROCESS_ANALYSIS[industry],
+    sessionMetadata: DEMO_SESSION_METADATA_BY_INDUSTRY[industry],
+    discoveryResponses: DEMO_DISCOVERY_RESPONSES_BY_INDUSTRY[industry],
+  }
 }

@@ -476,7 +476,35 @@ GUIDELINES:
 ${earningsContext ? '- PRIORITIZE use cases that directly address strategic priorities, pain points, or investment areas from earnings calls' : ''}`
 
       const useCasesResult = await window.llm(useCasesPromptText, 'gpt-4o-mini', true)
-      const parsed = JSON.parse(useCasesResult)
+      
+      // Attempt to parse JSON with repair for truncated responses
+      let parsed: { useCases?: unknown[] }
+      try {
+        parsed = JSON.parse(useCasesResult)
+      } catch (parseError) {
+        console.warn('JSON parse failed, attempting repair...', parseError)
+        // Try to repair truncated JSON by finding the last complete object
+        let repairedJson = useCasesResult
+        // Find the last complete use case object (ends with })
+        const lastCompleteObject = repairedJson.lastIndexOf('},')
+        if (lastCompleteObject > 0) {
+          repairedJson = repairedJson.substring(0, lastCompleteObject + 1) + ']}'
+        } else {
+          // Try to close the array and object
+          const lastBrace = repairedJson.lastIndexOf('}')
+          if (lastBrace > 0) {
+            repairedJson = repairedJson.substring(0, lastBrace + 1) + ']}'
+          }
+        }
+        try {
+          parsed = JSON.parse(repairedJson)
+          console.log('JSON repair successful, recovered use cases')
+        } catch {
+          // Final fallback - extract what we can
+          console.error('JSON repair failed, using fallback')
+          throw parseError
+        }
+      }
 
       // Get default regulations based on industry and jurisdiction for fallback
       const defaultRegulations = session.industry 

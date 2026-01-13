@@ -13,6 +13,8 @@ import { lookupTickerSymbol, TickerLookupResult } from '@/lib/earnings-service'
 import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { DEMO_SESSION_METADATA_BY_INDUSTRY } from '@/lib/demo-data'
+import type { DemoIndustry } from '@/lib/demo-data'
 
 export interface SessionMetadata {
   customerName: string
@@ -29,6 +31,9 @@ interface SessionMetadataFormProps {
   onCancel: () => void
   onBackToLanding?: () => void
   initialMetadata?: Partial<SessionMetadata>
+  // Demo mode props
+  isDemoMode?: boolean
+  demoIndustry?: DemoIndustry
 }
 
 const INNOVATION_HUB_LOCATIONS = [
@@ -70,7 +75,7 @@ const INNOVATION_HUB_LOCATIONS = [
   'Zurich, Switzerland',
 ]
 
-export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initialMetadata }: SessionMetadataFormProps) {
+export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initialMetadata, isDemoMode, demoIndustry }: SessionMetadataFormProps) {
   const { customers, getCustomerById } = useCustomers()
   const [metadata, setMetadata] = useState<SessionMetadata>({
     customerName: initialMetadata?.customerName || '',
@@ -86,6 +91,17 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
   const [isSearchingTicker, setIsSearchingTicker] = useState(false)
   const [showTickerSuggestions, setShowTickerSuggestions] = useState(false)
   const [tickerAutoPopulated, setTickerAutoPopulated] = useState(false)
+
+  // Pre-fill with demo data when demo mode is active
+  useEffect(() => {
+    if (isDemoMode && demoIndustry) {
+      const demoData = DEMO_SESSION_METADATA_BY_INDUSTRY[demoIndustry]
+      if (demoData) {
+        setMetadata(demoData)
+        setTickerAutoPopulated(true)
+      }
+    }
+  }, [isDemoMode, demoIndustry])
 
   // Auto-search ticker when customer name is filled
   const handleTickerSearch = useCallback(async () => {

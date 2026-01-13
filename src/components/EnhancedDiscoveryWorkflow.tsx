@@ -1070,6 +1070,37 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                         riskMitigation: financialTargetUseCase.manualExpectedValue.riskMitigation || 0,
                         implementationCost: financialTargetUseCase.manualExpectedValue.implementationCost || 0,
                       } : undefined}
+                      autoContext={financialTargetUseCase ? {
+                        useCase: {
+                          title: financialTargetUseCase.title,
+                          impact: financialTargetUseCase.impact,
+                          feasibility: financialTargetUseCase.feasibility,
+                          aiEffortEstimate: financialTargetUseCase.aiEffortEstimate,
+                          coiEstimate: financialTargetUseCase.coiEstimate,
+                          manualCOI: financialTargetUseCase.manualCOI,
+                          manualExpectedValue: financialTargetUseCase.manualExpectedValue,
+                          referenceArchitecture: financialTargetUseCase.referenceArchitecture,
+                        },
+                        industry: session.industry,
+                        companyName: session.customerName,
+                        annualRevenue,
+                      } : undefined}
+                      aggregateContext={{
+                        useCases: selectedUseCases.map(uc => ({
+                          title: uc.title,
+                          impact: uc.impact,
+                          feasibility: uc.feasibility,
+                          aiEffortEstimate: uc.aiEffortEstimate,
+                          coiEstimate: uc.coiEstimate,
+                          manualCOI: uc.manualCOI,
+                          manualExpectedValue: uc.manualExpectedValue,
+                          referenceArchitecture: uc.referenceArchitecture,
+                        })),
+                        industry: session.industry,
+                        companyName: session.customerName,
+                        annualRevenue,
+                      }}
+                      showAggregateOption={selectedUseCases.length > 1}
                       onSave={(inputs: ROIInputs, result: ROIResult) => {
                         if (!financialTargetUseCase) return
                         const next: UseCaseExpectedValue = {

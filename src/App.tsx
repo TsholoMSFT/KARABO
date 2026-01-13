@@ -42,6 +42,8 @@ import {
   DEMO_FINANCIAL_USE_CASES,
   DEMO_FINANCIAL_ENTERPRISE_SESSION,
 } from '@/lib/demo-data'
+import type { DemoIndustry } from '@/lib/demo-data'
+import { DemoModeBanner } from '@/components/DemoModeBanner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -73,6 +75,10 @@ function App() {
   const [selectedCustomerId, setSelectedCustomerId] = useLocalStorage<string | null>('selected-customer-id', null)
   const [enterpriseSessions, setEnterpriseSessions] = useLocalStorage<EnterpriseDiscoverySession[]>('enterprise-sessions', [])
   const [currentEnterpriseSession, setCurrentEnterpriseSession] = useState<EnterpriseDiscoverySession | null>(null)
+  
+  // Demo mode state
+  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [demoIndustry, setDemoIndustry] = useState<DemoIndustry>('mining')
   
   const [currentView, setCurrentView] = useState<AppView>('landing')
   const [currentDiscoverySession, setCurrentDiscoverySession] = useState<DiscoverySession | null>(null)
@@ -384,6 +390,31 @@ function App() {
     setSessionState(null)
     setPendingSessionMetadata(null)
     setCurrentEnterpriseSession(null)
+    // Exit demo mode when going back to landing
+    if (isDemoMode) {
+      setIsDemoMode(false)
+    }
+  }
+
+  // Demo mode handlers
+  const handleEnterDemoMode = (industry: DemoIndustry) => {
+    setIsDemoMode(true)
+    setDemoIndustry(industry)
+    toast.success(`Demo Mode activated for ${industry === 'mining' ? 'Zava Mining' : industry === 'retail' ? 'MegaMart Retail' : 'Apex Financial'}`, {
+      description: 'Forms will be pre-filled with sample data. You can edit any values.',
+    })
+  }
+
+  const handleExitDemoMode = () => {
+    setIsDemoMode(false)
+    setCurrentView('landing')
+    setCurrentDiscoverySession(null)
+    setSessionState(null)
+    setPendingSessionMetadata(null)
+    setCurrentEnterpriseSession(null)
+    toast.info('Exited demo mode', {
+      description: 'You can start a fresh session or continue with existing data.',
+    })
   }
   
   const handleSessionMetadataSubmit = (metadata: SessionMetadata) => {
@@ -592,6 +623,17 @@ function App() {
     <>
       <Toaster position="top-right" />
       
+      {/* Demo Mode Banner */}
+      {isDemoMode && (
+        <DemoModeBanner 
+          demoIndustry={demoIndustry} 
+          onExitDemo={handleExitDemoMode} 
+        />
+      )}
+      
+      {/* Main content wrapper with padding when demo mode is active */}
+      <div className={isDemoMode ? 'pt-12' : ''}>
+      
       {currentView === 'landing' && (
         <LandingPage
           customers={customers}
@@ -604,6 +646,9 @@ function App() {
           onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
           onSkipToUseCases={handleSkipToUseCases}
+          isDemoMode={isDemoMode}
+          demoIndustry={demoIndustry}
+          onEnterDemoMode={handleEnterDemoMode}
         />
       )}
 
@@ -625,6 +670,8 @@ function App() {
             onComplete={handleEnterpriseSessionComplete}
             onCancel={handleEnterpriseDiscoveryCancel}
             onPause={handleEnterpriseSessionPause}
+            isDemoMode={isDemoMode}
+            demoIndustry={demoIndustry}
             />
           </div>
         </>
@@ -664,6 +711,8 @@ function App() {
                   setCurrentView('enterprise-discovery')
                 }}
                 onConclude={() => setCurrentView('dashboard')}
+                isDemoMode={isDemoMode}
+                demoIndustry={demoIndustry}
               />
             )}
           </div>
@@ -686,6 +735,8 @@ function App() {
           onCancel={handleDiscoveryCancel}
           onBackToLanding={() => setCurrentView('landing')}
           initialMetadata={selectedCustomerId ? { customerName: customers.find(c => c.id === selectedCustomerId)?.name || '' } : undefined}
+          isDemoMode={isDemoMode}
+          demoIndustry={demoIndustry}
         />
       )}
 
@@ -694,6 +745,8 @@ function App() {
           onAnalyze={handleNotesAnalyze}
           onCancel={handleNotesCancel}
           onBackToLanding={() => setCurrentView('landing')}
+          isDemoMode={isDemoMode}
+          demoIndustry={demoIndustry}
         />
       )}
 
@@ -801,6 +854,8 @@ function App() {
           initialSessionName={sessionState?.sessionName}
           initialIndustry={sessionState?.industry}
           initialResponses={sessionState?.responses}
+          isDemoMode={isDemoMode}
+          demoIndustry={demoIndustry}
         />
       )}
 
@@ -1355,6 +1410,8 @@ function App() {
           />
         </motion.div>
       )}
+
+      </div>{/* End of demo mode wrapper */}
 
       <Dialog open={postQuickDiscoveryGateOpen} onOpenChange={setPostQuickDiscoveryGateOpen}>
         <DialogContent>

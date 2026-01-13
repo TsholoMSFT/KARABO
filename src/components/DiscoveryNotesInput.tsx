@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Industry } from '@/lib/types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { industryLabels } from '@/lib/discovery-questions'
@@ -14,12 +14,17 @@ import { NavigationHeader } from '@/components/NavigationHeader'
 import { Sparkle, FileText, Info } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
+import { DEMO_NOTES, DEMO_SESSION_METADATA_BY_INDUSTRY } from '@/lib/demo-data'
+import type { DemoIndustry } from '@/lib/demo-data'
 
 interface DiscoveryNotesInputProps {
   sessionMetadata?: Partial<SessionMetadata>
   onAnalyze: (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry) => void
   onCancel: () => void
   onBackToLanding?: () => void
+  // Demo mode props
+  isDemoMode?: boolean
+  demoIndustry?: DemoIndustry
 }
 
 const industryOptions: Array<{ value: Industry; label: string }> = [
@@ -38,7 +43,9 @@ export function DiscoveryNotesInput({
   sessionMetadata,
   onAnalyze,
   onCancel,
-  onBackToLanding
+  onBackToLanding,
+  isDemoMode,
+  demoIndustry
 }: DiscoveryNotesInputProps) {
   const [notes, setNotes] = useState('')
   const [sessionName, setSessionName] = useState('')
@@ -48,6 +55,28 @@ export function DiscoveryNotesInput({
   const [stockTicker, setStockTicker] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showExample, setShowExample] = useState(false)
+
+  // Pre-fill with demo data when demo mode is active
+  useEffect(() => {
+    if (isDemoMode && demoIndustry) {
+      const demoNotes = DEMO_NOTES[demoIndustry]
+      const demoMetadata = DEMO_SESSION_METADATA_BY_INDUSTRY[demoIndustry]
+      if (demoNotes && demoMetadata) {
+        setNotes(demoNotes)
+        setCustomerName(demoMetadata.customerName)
+        setSessionName(`${demoMetadata.customerName} Notes Analysis`)
+        setLocation(demoMetadata.innovationHubLocation)
+        setStockTicker(demoMetadata.stockTicker || '')
+        // Set industry based on demo type
+        const industryMap: Record<DemoIndustry, Industry> = {
+          mining: 'energy', // Mining falls under energy sector
+          retail: 'retail',
+          financial: 'financial-services'
+        }
+        setIndustry(industryMap[demoIndustry])
+      }
+    }
+  }, [isDemoMode, demoIndustry])
 
   const isValid = notes.trim().length >= 50 && sessionName.trim() && customerName.trim()
 

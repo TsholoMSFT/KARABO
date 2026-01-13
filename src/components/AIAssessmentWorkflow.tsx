@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import type { BusinessEnvisioningData, DiscoverySession, UseCase, CustomerJourney } from '@/lib/types'
 import { generateDefaultJourneyMilestones, calculateJourneyDuration } from '@/lib/types'
 import { callAIForTask, generateCustomerJourney } from '@/lib/openai-service'
@@ -17,6 +17,8 @@ import { calculateRICEScore, getTopUseCases } from '@/lib/scoring'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
 import { CustomerJourneyView } from '@/components/CustomerJourneyView'
 import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
+import { DEMO_PROCESS_ANALYSIS } from '@/lib/demo-data'
+import type { DemoIndustry } from '@/lib/demo-data'
 
 type AIAssessmentStep = 'inputs' | 'review'
 
@@ -28,6 +30,9 @@ interface AIAssessmentWorkflowProps {
   onProceedToPortfolio: () => void
   onProceedToEnterprise: () => void
   onConclude: () => void
+  // Demo mode props
+  isDemoMode?: boolean
+  demoIndustry?: DemoIndustry
 }
 
 type CurrentStateMaturity = {
@@ -52,6 +57,8 @@ export function AIAssessmentWorkflow({
   onProceedToPortfolio,
   onProceedToEnterprise,
   onConclude,
+  isDemoMode,
+  demoIndustry,
 }: AIAssessmentWorkflowProps) {
   const [step, setStep] = useState<AIAssessmentStep>('inputs')
   const [selectedUseCaseIds, setSelectedUseCaseIds] = useState<string[]>(useCases.map((u) => u.id))
@@ -65,6 +72,18 @@ export function AIAssessmentWorkflow({
     aiUsage: 'experimental',
     aiGovernance: 'unknown',
   })
+
+  // Pre-fill with demo data when demo mode is active
+  useEffect(() => {
+    if (isDemoMode && demoIndustry) {
+      const demoData = DEMO_PROCESS_ANALYSIS[demoIndustry]
+      if (demoData) {
+        setProcessCandidates(demoData.processCandidates)
+        setProcessNotes(demoData.processNotes)
+        setConstraints(demoData.constraints)
+      }
+    }
+  }, [isDemoMode, demoIndustry])
 
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedBusinessEnvisioning, setGeneratedBusinessEnvisioning] = useState<BusinessEnvisioningData | null>(

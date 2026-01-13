@@ -267,3 +267,265 @@ export function formatMonths(months: number): string {
   if (remainingMonths === 0) return `${years} year${years > 1 ? 's' : ''}`
   return `${years}y ${remainingMonths}m`
 }
+
+// ============================================================================
+// ROI AUTO-POPULATION FROM USE CASE & COMPANY DATA
+// ============================================================================
+
+/**
+ * Industry multipliers for value estimation
+ */
+export const INDUSTRY_VALUE_MULTIPLIERS: Record<string, number> = {
+  'financial-services': 1.5,
+  'telecommunications': 1.3,
+  'healthcare': 1.2,
+  'energy': 1.4,
+  'manufacturing': 1.1,
+  'retail': 1.0,
+  'government': 0.9,
+  'education': 0.8,
+  'general': 1.0,
+}
+
+/**
+ * Complexity to effort weeks mapping
+ */
+export const COMPLEXITY_EFFORT_WEEKS: Record<string, number> = {
+  'low': 4,
+  'medium': 8,
+  'high': 16,
+  'very-high': 24,
+}
+
+/**
+ * Default cost per person-week (USD)
+ */
+export const DEFAULT_COST_PER_WEEK_USD = 8000
+
+/**
+ * Context for auto-populating ROI inputs
+ */
+export interface ROIAutoContext {
+  // Use case data
+  useCase?: {
+    title?: string
+    impact?: number
+    feasibility?: number
+    implementationComplexity?: { level: 'low' | 'medium' | 'high' | 'very-high' }
+    aiEffortEstimate?: { effortWeeks: number }
+    coiEstimate?: {
+      directCosts?: number
+      opportunityCosts?: number
+      riskCosts?: number
+      totalAnnualCOI?: number
+    }
+    manualCOI?: {
+      directCosts?: number
+      opportunityCosts?: number
+      riskCosts?: number
+      totalAnnualCOI?: number
+    }
+    manualExpectedValue?: {
+      revenueImpact?: number
+      costSavings?: number
+      riskMitigation?: number
+      implementationCost?: number
+    }
+    referenceArchitecture?: string
+  }
+  // Company data
+  industry?: string
+  companyName?: string
+  annualRevenue?: number
+}
+
+/**
+ * Aggregation context for multiple use cases
+ */
+export interface ROIAggregateContext {
+  useCases: ROIAutoContext['useCase'][]
+  industry?: string
+  companyName?: string
+  annualRevenue?: number
+}
+
+/**
+ * ROI inputs structure
+ */
+export interface InferredROIInputs {
+  revenueImpact: number
+  costSavings: number
+  riskMitigation: number
+  implementationCost: number
+  notes: string
+  confidence: 'high' | 'medium' | 'low'
+  sources: string[]
+}
+
+/**
+ * Infer ROI inputs from a single use case and company context
+ */
+export function inferROIFromContext(context: ROIAutoContext): InferredROIInputs {
+  const { useCase, industry, annualRevenue } = context
+  const sources: string[] = []
+  let confidence: 'high' | 'medium' | 'low' = 'low'
+
+  // 1. Calculate implementation cost
+  let implementationCost = 0
+  if (useCase?.manualExpectedValue?.implementationCost && useCase.manualExpectedValue.implementationCost > 0) {
+    implementationCost = useCase.manualExpectedValue.implementationCost
+    sources.push('Implementation cost from manual input')
+    confidence = 'high'
+  } else if (useCase?.aiEffortEstimate?.effortWeeks && useCase.aiEffortEstimate.effortWeeks > 0) {
+    implementationCost = useCase.aiEffortEstimate.effortWeeks * DEFAULT_COST_PER_WEEK_USD
+    sources.push(`AI effort estimate: ${useCase.aiEffortEstimate.effortWeeks} weeks × $${DEFAULT_COST_PER_WEEK_USD.toLocaleString()}/week`)
+    confidence = 'medium'
+  } else if (useCase?.implementationComplexity?.level) {
+    const weeks = COMPLEXITY_EFFORT_WEEKS[useCase.implementationComplexity.level] || 8
+    implementationCost = weeks * DEFAULT_COST_PER_WEEK_USD
+    sources.push(`Complexity (${useCase.implementationComplexity.level}): ${weeks} weeks × $${DEFAULT_COST_PER_WEEK_USD.toLocaleString()}/week`)
+  } else {
+    // Default medium complexity
+    implementationCost = 8 * DEFAULT_COST_PER_WEEK_USD
+    sources.push('Default estimate (medium complexity)')
+  }
+
+  // 2. Calculate annual value from COI or impact scoring
+  let revenueImpact = 0
+  let costSavings = 0
+  let riskMitigation = 0
+
+  // Priority 1: Use manual expected value if available
+  if (useCase?.manualExpectedValue) {
+    const ev = useCase.manualExpectedValue
+    if ((ev.revenueImpact || 0) + (ev.costSavings || 0) + (ev.riskMitigation || 0) > 0) {
+      revenueImpact = ev.revenueImpact || 0
+      costSavings = ev.costSavings || 0
+      riskMitigation = ev.riskMitigation || 0
+      sources.push('Annual value from manual input')
+      confidence = 'high'
+    }
+  }
+
+  // Priority 2: Use manual COI if no expected value
+  if (revenueImpact + costSavings + riskMitigation === 0 && useCase?.manualCOI) {
+    const coi = useCase.manualCOI
+    if ((coi.directCosts || 0) + (coi.opportunityCosts || 0) + (coi.riskCosts || 0) > 0) {
+      revenueImpact = coi.opportunityCosts || 0
+      costSavings = coi.directCosts || 0
+      riskMitigation = coi.riskCosts || 0
+      sources.push('Annual value derived from Cost of Inaction')
+      confidence = confidence === 'low' ? 'medium' : confidence
+    }
+  }
+
+  // Priority 3: Use AI COI estimate
+  if (revenueImpact + costSavings + riskMitigation === 0 && useCase?.coiEstimate) {
+    const coi = useCase.coiEstimate
+    if ((coi.directCosts || 0) + (coi.opportunityCosts || 0) + (coi.riskCosts || 0) > 0) {
+      revenueImpact = coi.opportunityCosts || 0
+      costSavings = coi.directCosts || 0
+      riskMitigation = coi.riskCosts || 0
+      sources.push('Annual value from AI-estimated Cost of Inaction')
+    }
+  }
+
+  // Priority 4: Estimate from impact score and company data
+  if (revenueImpact + costSavings + riskMitigation === 0) {
+    const impactScore = useCase?.impact || 5
+    const industryMultiplier = INDUSTRY_VALUE_MULTIPLIERS[industry || 'general'] || 1.0
+
+    let baseValue: number
+    if (annualRevenue && annualRevenue > 0) {
+      // Use 0.1% to 1% of revenue based on impact score (1-10)
+      baseValue = annualRevenue * (0.001 * impactScore) * industryMultiplier
+      sources.push(`Revenue-based estimate ($${(annualRevenue / 1e9).toFixed(1)}B × ${(0.1 * impactScore).toFixed(1)}%)`)
+    } else {
+      // Fallback baseline: $500K adjusted by industry and impact
+      baseValue = 500000 * industryMultiplier * (impactScore / 5)
+      sources.push(`Baseline estimate (impact ${impactScore}/10 × ${industryMultiplier}x industry)`)
+    }
+
+    revenueImpact = Math.round(baseValue * 0.4)
+    costSavings = Math.round(baseValue * 0.4)
+    riskMitigation = Math.round(baseValue * 0.2)
+  }
+
+  // Build notes
+  const notes = [
+    `Auto-populated for: ${useCase?.title || 'Use Case'}`,
+    `Industry: ${industry || 'General'} | Confidence: ${confidence}`,
+    '',
+    'Sources:',
+    ...sources.map(s => `• ${s}`),
+    '',
+    '⚠️ Review and adjust values based on stakeholder input.',
+  ].join('\n')
+
+  return {
+    revenueImpact,
+    costSavings,
+    riskMitigation,
+    implementationCost,
+    notes,
+    confidence,
+    sources,
+  }
+}
+
+/**
+ * Aggregate ROI inputs from multiple use cases
+ */
+export function inferAggregateROI(context: ROIAggregateContext): InferredROIInputs {
+  const { useCases, industry, companyName, annualRevenue } = context
+  
+  if (!useCases || useCases.length === 0) {
+    return {
+      revenueImpact: 0,
+      costSavings: 0,
+      riskMitigation: 0,
+      implementationCost: 0,
+      notes: 'No use cases selected for aggregation.',
+      confidence: 'low',
+      sources: [],
+    }
+  }
+
+  // Aggregate all use cases
+  const results = useCases
+    .filter((uc): uc is NonNullable<typeof uc> => uc !== undefined)
+    .map(uc => inferROIFromContext({ useCase: uc, industry, companyName, annualRevenue }))
+
+  const aggregated: InferredROIInputs = {
+    revenueImpact: results.reduce((sum, r) => sum + r.revenueImpact, 0),
+    costSavings: results.reduce((sum, r) => sum + r.costSavings, 0),
+    riskMitigation: results.reduce((sum, r) => sum + r.riskMitigation, 0),
+    implementationCost: results.reduce((sum, r) => sum + r.implementationCost, 0),
+    notes: '',
+    confidence: 'medium',
+    sources: [],
+  }
+
+  // Determine overall confidence
+  const confidenceLevels = results.map(r => r.confidence)
+  if (confidenceLevels.every(c => c === 'high')) {
+    aggregated.confidence = 'high'
+  } else if (confidenceLevels.some(c => c === 'low')) {
+    aggregated.confidence = 'low'
+  }
+
+  // Build notes
+  aggregated.notes = [
+    `📊 Aggregated ROI for ${useCases.length} use cases`,
+    companyName ? `Company: ${companyName}` : '',
+    `Industry: ${industry || 'General'} | Confidence: ${aggregated.confidence}`,
+    '',
+    'Use cases included:',
+    ...useCases.slice(0, 5).map((uc, i) => `${i + 1}. ${uc?.title || 'Unnamed'}`),
+    useCases.length > 5 ? `... and ${useCases.length - 5} more` : '',
+    '',
+    '⚠️ Aggregated values assume sequential implementation.',
+  ].filter(Boolean).join('\n')
+
+  return aggregated
+}
