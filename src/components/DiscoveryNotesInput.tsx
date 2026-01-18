@@ -29,6 +29,7 @@ interface DiscoveryNotesInputProps {
 
 const industryOptions: Array<{ value: Industry; label: string }> = [
   { value: 'general', label: industryLabels['general'] },
+  { value: 'technology-software', label: industryLabels['technology-software'] },
   { value: 'telecommunications', label: industryLabels['telecommunications'] },
   { value: 'financial-services', label: industryLabels['financial-services'] },
   { value: 'healthcare', label: industryLabels['healthcare'] },

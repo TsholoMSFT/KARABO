@@ -12,6 +12,7 @@ export const industryLabels: Record<Industry, string> = {
   education: 'Education & Research',
   energy: 'Energy & Utilities',
   telecommunications: 'Telecommunications & Media',
+  'technology-software': 'Technology & Software',
 }
 
 export const discoveryQuestions: DiscoveryQuestion[] = [

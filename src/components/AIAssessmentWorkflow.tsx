@@ -113,7 +113,7 @@ export function AIAssessmentWorkflow({
         kpis: u.kpis || [],
       }))
 
-      const prompt = `You are facilitating an AI Assessment Discovery workshop.
+      const prompt = `You are facilitating an AI Assessment Lite workshop.
 
 GOAL
 - Turn process analysis inputs into: (1) structured Business Envisioning data, and (2) agent-focused analysis per use case.
@@ -315,7 +315,7 @@ RULES
       
       onUpsertUseCases(mergedWithJourneys)
 
-      toast.success('AI Assessment generated', {
+      toast.success('AI Assessment Lite generated', {
         description: businessEnvisioning
           ? 'Saved process analysis and updated portfolio use cases.'
           : 'Updated portfolio use cases.',
@@ -323,8 +323,8 @@ RULES
 
       setStep('review')
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate AI Assessment'
-      toast.error('AI Assessment failed', { description: message })
+      const message = err instanceof Error ? err.message : 'Failed to generate AI Assessment Lite'
+      toast.error('AI Assessment Lite failed', { description: message })
     } finally {
       setIsGenerating(false)
     }
@@ -336,7 +336,7 @@ RULES
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkle size={20} weight="fill" className="text-brand-orange" />
-            AI Assessment Discovery
+            AI Assessment Lite
           </CardTitle>
           <CardDescription>
             Run a structured process analysis to refine agent opportunities, then decide whether to proceed to Portfolio or Enterprise.
@@ -349,7 +349,7 @@ RULES
                 <Label className="text-sm font-medium">Use cases in scope</Label>
                 {useCases.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No portfolio use cases exist for this session yet. You can still run AI Assessment and generate new use cases from process analysis.
+                    No portfolio use cases exist for this session yet. You can still run AI Assessment Lite and generate new use cases from process analysis.
                   </p>
                 ) : (
                   <ScrollArea className="h-[200px] rounded-md border p-3">
@@ -484,7 +484,7 @@ RULES
               <div className="flex items-start gap-3 p-4 rounded-lg border bg-accent/10">
                 <CheckCircle size={22} className="text-accent" />
                 <div>
-                  <p className="font-medium">AI Assessment complete</p>
+                  <p className="font-medium">AI Assessment Lite complete</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Your process analysis is saved to this session and your portfolio use cases were updated.
                   </p>
@@ -547,7 +547,7 @@ RULES
               <ThreadlightPasteCard
                 industryLabel={session.industry || 'general'}
                 industryValue={session.industry || 'general'}
-                shortName={makeThreadlightShortName(topScored[0]?.title || 'AI Assessment')}
+                shortName={makeThreadlightShortName(topScored[0]?.title || 'AI Assessment Lite')}
                 topScoredItems={topScored.map((u) => ({
                   title: u.title,
                   scoreLabel: 'RICE',
@@ -594,7 +594,7 @@ RULES
               </Button>
               <Button type="button" onClick={handleGenerate} disabled={isGenerating} className="gap-2">
                 {isGenerating ? <CircleNotch size={18} className="animate-spin" /> : <Sparkle size={18} weight="fill" />}
-                Generate AI Assessment
+                Generate AI Assessment Lite
               </Button>
             </>
           ) : (

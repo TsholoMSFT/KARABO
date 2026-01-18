@@ -46,6 +46,7 @@ const industryIcons: Record<Industry, React.ReactNode> = {
   education: <GraduationCap size={32} weight="duotone" />,
   energy: <Lightning size={32} weight="duotone" />,
   telecommunications: <Broadcast size={32} weight="duotone" />,
+  'technology-software': <Lightbulb size={32} weight="duotone" />,
 }
 
 export function DiscoveryWizard({ 
@@ -697,7 +698,7 @@ Keep questions conversational, specific to their answer, and focused on discover
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-foreground text-base">AI Assessment</h3>
+                        <h3 className="font-semibold text-foreground text-base">AI Assessment Lite</h3>
                         {discoveryTrack === 'ai-assessment' && (
                           <Badge className="text-xs">Selected</Badge>
                         )}

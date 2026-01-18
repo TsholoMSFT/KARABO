@@ -153,6 +153,9 @@ export interface UseCase {
   discoverySessionId?: string
   title: string
   description: string
+  // Ownership / accountability
+  customerAccountable?: string
+  microsoftAccountable?: string
   impact: number
   feasibility: number
   rice: {
@@ -639,6 +642,14 @@ export type Industry =
   | 'education'
   | 'energy'
   | 'telecommunications'
+  | 'technology-software'
+
+export type DiscoverySessionCreationSource =
+  | 'discovery'
+  | 'skip-to-use-cases'
+  | 'notes-analysis'
+  | 'ai-assessment'
+  | 'demo'
 
 export interface DiscoveryQuestion {
   id: string
@@ -674,6 +685,7 @@ export interface DiscoverySession {
   primaryStakeholder: string
   stockTicker?: string // For public companies - enables earnings/financial analysis
   executiveSummary?: string
+  creationSource?: DiscoverySessionCreationSource
   responses: DiscoveryResponse[]
   suggestedUseCases?: SuggestedUseCaseData[]
   earningsInsights?: EarningsInsight[] // AI-extracted insights from earnings calls

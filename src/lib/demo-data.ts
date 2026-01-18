@@ -35,6 +35,7 @@ export const INDUSTRY_REGULATIONS: Record<Industry, AIRegulationFramework[]> = {
   education: ['ferpa', 'gdpr', 'popia', 'iso-42001'],
   energy: ['nerc-cip', 'epa', 'osha', 'iso-42001'],
   telecommunications: ['gdpr', 'ccpa', 'popia', 'iso-42001'],
+  'technology-software': ['gdpr', 'ccpa', 'iso-42001', 'ms-responsible-ai', 'ms-copilot-governance'],
 }
 
 // Mining-specific regulations (for Contoso Mining demo)
@@ -66,6 +67,7 @@ export const INDUSTRY_SECURITY_REQUIREMENTS: Record<Industry, SecurityRequiremen
   education: ['encryption-at-rest', 'access-control', 'audit-logging', 'data-masking'],
   energy: ['encryption-at-rest', 'access-control', 'audit-logging', 'scada-protection', 'air-gapped', 'iso27001'],
   telecommunications: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'soc2-compliance'],
+  'technology-software': ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'mfa-required', 'vulnerability-scanning', 'penetration-testing', 'soc2-compliance', 'zero-trust'],
 }
 
 // Mining-specific security requirements
@@ -1696,6 +1698,43 @@ export const INDUSTRY_FALLBACK_USE_CASES: Record<Industry, FallbackUseCase[]> = 
       cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'mfa-required'], dataClassification: 'pii' }
     },
   ],
+  'technology-software': [
+    {
+      title: 'Developer Productivity Copilot',
+      description: 'Deploy Microsoft 365 Copilot and developer copilots to accelerate code authoring, documentation, and knowledge transfer across engineering teams, improving throughput by 15-30%.',
+      rationale: 'Engineering teams spend significant time on repetitive work and context switching; copilots improve velocity and quality.',
+      aiRegulations: { applicableFrameworks: ['ms-copilot-governance', 'ms-responsible-ai', 'gdpr', 'iso-42001'], riskClassification: 'limited', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['access-control', 'mfa-required', 'audit-logging', 'encryption-in-transit'], dataClassification: 'internal' }
+    },
+    {
+      title: 'AI Incident Triage & Root Cause Assistant',
+      description: 'Use Azure OpenAI to summarize incidents from logs, tickets, and alerts; propose likely root causes and recommended remediation steps to reduce MTTR by 20-40%.',
+      rationale: 'Fast, consistent triage reduces outage duration and improves customer experience.',
+      aiRegulations: { applicableFrameworks: ['iso-42001', 'gdpr'], riskClassification: 'limited', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging'], dataClassification: 'confidential' }
+    },
+    {
+      title: 'Customer Support Knowledge Bot',
+      description: 'Implement an AI support assistant that answers common questions from product docs and ticket history, reducing human handoffs and improving first-contact resolution.',
+      rationale: 'Support organizations can deflect repetitive inquiries and respond faster with consistent answers.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'ccpa', 'iso-42001'], riskClassification: 'limited', jurisdictions: ['European Union', 'United States'] },
+      cybersecurity: { securityRequirements: ['encryption-in-transit', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'Intelligent Code Review & Compliance Checks',
+      description: 'Use AI to summarize pull requests, identify risky changes, enforce secure coding patterns, and generate evidence for compliance workflows without slowing delivery.',
+      rationale: 'Shifts security left and reduces review bottlenecks while improving auditability.',
+      aiRegulations: { applicableFrameworks: ['ms-responsible-ai', 'iso-42001'], riskClassification: 'minimal', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['access-control', 'audit-logging', 'vulnerability-scanning', 'mfa-required'], dataClassification: 'internal' }
+    },
+    {
+      title: 'SaaS Usage Analytics & Churn Prediction',
+      description: 'Build predictive models to identify accounts at risk of churn based on product usage and engagement data, enabling proactive retention outreach.',
+      rationale: 'Retention is cheaper than acquisition; early warning signals improve renewal outcomes.',
+      aiRegulations: { applicableFrameworks: ['gdpr', 'ccpa', 'iso-42001'], riskClassification: 'minimal', jurisdictions: ['European Union', 'United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+  ],
 }
 
 /**
@@ -1821,7 +1860,7 @@ Key stakeholders:
 }
 
 /**
- * Demo process analysis data for AI Assessment
+ * Demo process analysis data for AI Assessment Lite
  */
 export const DEMO_PROCESS_ANALYSIS: Record<DemoIndustry, {
   processCandidates: string

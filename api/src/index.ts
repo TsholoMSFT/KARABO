@@ -4,3 +4,4 @@
 import "./functions/chat";
 import "./functions/earnings";
 import "./functions/rss-feeds";
+import "./functions/ocr";

@@ -43,7 +43,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
               </TabsTrigger>
               <TabsTrigger value="ai-assessment" className="gap-2">
                 <Sparkle size={16} weight="fill" />
-                AI Assessment
+                AI Assessment Lite
               </TabsTrigger>
               <TabsTrigger value="enterprise" className="gap-2">
                 <Briefcase size={16} />
@@ -145,7 +145,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
           </Card>
         )}
 
-        {/* AI Assessment Card */}
+        {/* AI Assessment Lite Card */}
         {mode === 'ai-assessment' && (
           <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-secondary/5">
             <CardHeader>
@@ -153,7 +153,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                 <div className="space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
                     <Sparkle size={28} weight="fill" className="text-primary" />
-                    AI Assessment Discovery
+                    AI Assessment Lite
                   </CardTitle>
                   <CardDescription className="text-base">
                     Structured process analysis to identify and refine agent opportunities, then feed your portfolio and enterprise discovery.
@@ -177,7 +177,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                   <Button
                     onClick={() => {
                       if (!onStartAIAssessment) {
-                        toast.info('AI Assessment is not available in this context')
+                        toast.info('AI Assessment Lite is not available in this context')
                         return
                       }
                       onStartAIAssessment()
@@ -186,7 +186,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                     className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     <Sparkle size={20} weight="fill" />
-                    Start AI Assessment
+                    Start AI Assessment Lite
                   </Button>
                 </div>
               </div>

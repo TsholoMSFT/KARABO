@@ -15,6 +15,7 @@ import { TopRecommendations } from '@/components/TopRecommendations'
 import { EmptyState } from '@/components/EmptyState'
 import { CustomerMetadata as CustomerMetadataComponent } from '@/components/CustomerMetadata'
 import { ExecutiveSummary } from '@/components/ExecutiveSummary'
+import { ExecutiveSummaryGeneratorDialog } from '@/components/ExecutiveSummaryGeneratorDialog'
 import { DiscoveryLauncher } from '@/components/DiscoveryLauncher'
 import { DiscoveryWizard } from '@/components/DiscoveryWizard'
 import { DiscoveryResults } from '@/components/DiscoveryResults'
@@ -102,6 +103,7 @@ function App() {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [postQuickDiscoveryGateOpen, setPostQuickDiscoveryGateOpen] = useState(false)
+  const [execSummaryGeneratorOpen, setExecSummaryGeneratorOpen] = useState(false)
   const selectedSession = discoverySessions?.find((s) => s.id === selectedSessionId) || null
   const filteredUseCases = useCases?.filter((uc) => uc.discoverySessionId === selectedSessionId) || []
   
@@ -119,6 +121,11 @@ function App() {
     executiveSummary: selectedSession.executiveSummary,
   } : null
 
+  const shouldOfferExecutiveSummaryGeneration =
+    !!selectedSession &&
+    selectedSession.creationSource === 'skip-to-use-cases' &&
+    !(customerMetadata?.executiveSummary || '').trim()
+
   useEffect(() => {
     if (useCasesList.length === 1 && !showConfetti) {
       setShowConfetti(true)
@@ -133,22 +140,37 @@ function App() {
       toast.error('Please select a discovery session first')
       return
     }
+    const defaultRice = {
+      reach: 100,
+      users: 100,
+      period: 'quarter' as const,
+      impact: 1,
+      confidence: 50,
+      effort: 1,
+    }
     const newUseCase: UseCase = {
       id: `uc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       discoverySessionId: selectedSessionId,
       title: data.title || '',
       description: data.description || '',
-      impact: 5,
-      feasibility: 5,
-      rice: {
-        reach: 100,
-        users: 100,
-        period: 'quarter',
-        impact: 1,
-        confidence: 50,
-        effort: 1,
-      },
+      impact: data.impact ?? 5,
+      feasibility: data.feasibility ?? 5,
+      rice: data.rice ?? defaultRice,
       kpis: data.kpis || [],
+      customerAccountable: data.customerAccountable,
+      microsoftAccountable: data.microsoftAccountable,
+      aiRegulations: data.aiRegulations,
+      cybersecurity: data.cybersecurity,
+      dataSources: data.dataSources,
+      aiEffortEstimate: data.aiEffortEstimate,
+      costOfInaction: data.costOfInaction,
+      expectedValue: data.expectedValue,
+      strategicAlignment: data.strategicAlignment,
+      businessProcesses: data.businessProcesses,
+      microsoftSolutions: data.microsoftSolutions,
+      referenceArchitecture: data.referenceArchitecture,
+      earningsContext: data.earningsContext,
+      industryContext: data.industryContext,
       createdAt: Date.now(),
     }
     setUseCases((current) => [...(current || []), newUseCase])
@@ -168,8 +190,9 @@ function App() {
 
   const handleSaveEdit = (data: Partial<UseCase>) => {
     if (editingUseCase) {
-      const updated = {
+      const updated: UseCase = {
         ...editingUseCase,
+        ...data,
         title: data.title || editingUseCase.title,
         description: data.description || editingUseCase.description,
         kpis: data.kpis || editingUseCase.kpis || [],
@@ -203,8 +226,18 @@ function App() {
         effort: 1,
       },
       kpis: data.kpis || [],
+      customerAccountable: data.customerAccountable,
+      microsoftAccountable: data.microsoftAccountable,
       dataSources: data.dataSources || ['manual'],
+      aiRegulations: data.aiRegulations,
+      cybersecurity: data.cybersecurity,
+      aiEffortEstimate: data.aiEffortEstimate,
       costOfInaction: data.costOfInaction,
+      expectedValue: data.expectedValue,
+      strategicAlignment: data.strategicAlignment,
+      businessProcesses: data.businessProcesses,
+      microsoftSolutions: data.microsoftSolutions,
+      referenceArchitecture: data.referenceArchitecture,
       earningsContext: data.earningsContext,
       industryContext: data.industryContext,
       createdAt: Date.now(),
@@ -433,7 +466,7 @@ function App() {
         innovationHubLocation: metadata.innovationHubLocation,
         solutionEngineer: metadata.solutionEngineer,
         stockTicker: metadata.stockTicker,
-        name: `AI Assessment - ${metadata.customerName}`,
+        name: `AI Assessment Lite - ${metadata.customerName}`,
         industry: 'general',
         responses: [],
         suggestedUseCases: [],
@@ -545,6 +578,7 @@ function App() {
       industry: 'general',
       responses: [],
       suggestedUseCases: [],
+      creationSource: 'skip-to-use-cases',
       createdAt: Date.now(),
       completedAt: Date.now(),
     }
@@ -610,7 +644,7 @@ function App() {
     toast.success(`Session saved! Added ${createdUseCases.length} use case${createdUseCases.length !== 1 ? 's' : ''} successfully!`)
 
     // Explicit end-of-mode decision gate (Quick Discovery -> Proceed or Conclude)
-    // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to AI Assessment.
+    // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to AI Assessment Lite.
     setPostQuickDiscoveryGateOpen(true)
   }
 
@@ -687,7 +721,7 @@ function App() {
             onBackToLanding={handleBackToLanding}
             onBack={() => setCurrentView('dashboard')}
             backLabel="Back"
-            title="AI Assessment"
+            title="AI Assessment Lite"
             subtitle="Process analysis and agent opportunity refinement"
           />
           <div className="container mx-auto px-4 md:px-6 py-8 max-w-5xl">
@@ -696,7 +730,7 @@ function App() {
                 <CardHeader>
                   <CardTitle>No active session selected</CardTitle>
                   <CardDescription>
-                    Create or select a discovery session before running an AI Assessment.
+                    Create or select a discovery session before running an AI Assessment Lite.
                   </CardDescription>
                 </CardHeader>
                 <CardFooter className="flex justify-end">
@@ -837,7 +871,7 @@ function App() {
             setNotesSession(null)
 
             // Explicit end-of-mode decision gate (Notes Analysis -> Proceed or Conclude)
-            // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to AI Assessment.
+            // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to AI Assessment Lite.
             setPostQuickDiscoveryGateOpen(true)
           }}
           onCancel={() => {
@@ -1008,9 +1042,23 @@ function App() {
                   }}
                 />
 
-                <ExecutiveSummary
-                  summary={customerMetadata?.executiveSummary || ''}
-                />
+                {(customerMetadata?.executiveSummary || '').trim() ? (
+                  <ExecutiveSummary summary={customerMetadata?.executiveSummary || ''} />
+                ) : shouldOfferExecutiveSummaryGeneration ? (
+                  <Card className="border-2 bg-card mb-6">
+                    <CardHeader className="pb-3">
+                      <CardTitle>Executive Summary</CardTitle>
+                      <CardDescription>
+                        This session was created by skipping discovery. Generate an executive-ready summary from notes and attachments.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardFooter className="flex justify-end">
+                      <Button onClick={() => setExecSummaryGeneratorOpen(true)} className="gap-2">
+                        Generate Executive Summary
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ) : null}
 
                 <Disclaimer variant="compact" className="mb-6" />
 
@@ -1413,6 +1461,19 @@ function App() {
             onImport={handleImportUseCases}
             discoverySessionId={selectedSessionId || undefined}
           />
+
+          {selectedSession && (
+            <ExecutiveSummaryGeneratorDialog
+              open={execSummaryGeneratorOpen}
+              onOpenChange={setExecSummaryGeneratorOpen}
+              session={selectedSession}
+              useCases={filteredUseCases}
+              onSaveSummary={(summary) => {
+                if (!selectedSessionId) return
+                updateSession(selectedSessionId, { executiveSummary: summary })
+              }}
+            />
+          )}
         </motion.div>
       )}
 
@@ -1423,7 +1484,7 @@ function App() {
           <DialogHeader>
             <DialogTitle>Quick Discovery complete</DialogTitle>
             <DialogDescription>
-              Decide whether to proceed to AI Assessment (recommended) or conclude here.
+              Decide whether to proceed to AI Assessment Lite (recommended) or conclude here.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2">
@@ -1433,7 +1494,7 @@ function App() {
                 handleStartAIAssessment()
               }}
             >
-              Proceed to AI Assessment
+              Proceed to AI Assessment Lite
             </Button>
             <Button
               variant="outline"

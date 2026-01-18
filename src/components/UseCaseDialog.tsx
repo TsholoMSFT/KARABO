@@ -31,6 +31,9 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
   const [title, setTitle] = useState(editingUseCase?.title || '')
   const [description, setDescription] = useState(editingUseCase?.description || '')
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(editingUseCase?.kpis || [])
+
+  const [customerAccountable, setCustomerAccountable] = useState(editingUseCase?.customerAccountable || '')
+  const [microsoftAccountable, setMicrosoftAccountable] = useState(editingUseCase?.microsoftAccountable || '')
   
   // Compliance & Security state
   const [complianceOpen, setComplianceOpen] = useState(false)
@@ -62,6 +65,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
       setTitle(editingUseCase.title)
       setDescription(editingUseCase.description)
       setSelectedKPIs(editingUseCase.kpis || [])
+      setCustomerAccountable(editingUseCase.customerAccountable || '')
+      setMicrosoftAccountable(editingUseCase.microsoftAccountable || '')
       setSelectedFrameworks(editingUseCase.aiRegulations?.applicableFrameworks || [])
       setRiskLevel(editingUseCase.aiRegulations?.riskClassification || '')
       setJurisdictions(editingUseCase.aiRegulations?.jurisdictions || [])
@@ -73,6 +78,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
       setTitle('')
       setDescription('')
       setSelectedKPIs([])
+      setCustomerAccountable('')
+      setMicrosoftAccountable('')
       setSelectedFrameworks([])
       setRiskLevel('')
       setJurisdictions([])
@@ -94,6 +101,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
       title: title.trim(),
       description: description.trim(),
       kpis: selectedKPIs,
+      customerAccountable: customerAccountable.trim() || undefined,
+      microsoftAccountable: microsoftAccountable.trim() || undefined,
       aiRegulations: hasAiRegulations ? {
         applicableFrameworks: selectedFrameworks,
         riskClassification: riskLevel || undefined,
@@ -111,6 +120,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
     setTitle('')
     setDescription('')
     setSelectedKPIs([])
+    setCustomerAccountable('')
+    setMicrosoftAccountable('')
     setSelectedFrameworks([])
     setRiskLevel('')
     setJurisdictions([])
@@ -126,6 +137,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
       setTitle('')
       setDescription('')
       setSelectedKPIs([])
+      setCustomerAccountable('')
+      setMicrosoftAccountable('')
       setSelectedFrameworks([])
       setRiskLevel('')
       setJurisdictions([])
@@ -198,6 +211,27 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
                 placeholder="Describe the use case, its benefits, and context..."
                 rows={4}
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="customer-accountable">Customer Accountable (Optional)</Label>
+                <Input
+                  id="customer-accountable"
+                  value={customerAccountable}
+                  onChange={(e) => setCustomerAccountable(e.target.value)}
+                  placeholder="e.g., Head of Operations"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="microsoft-accountable">Microsoft Accountable (Optional)</Label>
+                <Input
+                  id="microsoft-accountable"
+                  value={microsoftAccountable}
+                  onChange={(e) => setMicrosoftAccountable(e.target.value)}
+                  placeholder="e.g., Account Team / Solution Engineer"
+                />
+              </div>
             </div>
           </div>
 

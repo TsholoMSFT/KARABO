@@ -111,8 +111,8 @@ export function LandingPage({
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Discovery Card */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Quick Discovery Card */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -124,101 +124,110 @@ export function LandingPage({
                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
                     <MagnifyingGlass size={28} weight="duotone" className="text-primary" />
                   </div>
-                  <Badge variant="outline" className="text-xs">Choose Track</Badge>
+                  <Badge variant="outline" className="text-xs">Use Cases</Badge>
                 </div>
-                <CardTitle className="text-xl">Discovery</CardTitle>
+                <CardTitle className="text-xl">Quick Discovery</CardTitle>
                 <CardDescription className="text-sm">
-                  Start with a guided track to identify and assess opportunities
+                  Guided questions + AI suggestions to rapidly identify use cases
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <RocketLaunch size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
-                    <span>Quick Discovery: guided questions + AI use cases</span>
+                    <span>Answer guided questions (industry-aware)</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Briefcase size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
-                    <span>Enterprise Discovery: 5-stage framework + financial modeling</span>
+                    <Sparkle size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
+                    <span>Generate and refine AI-powered use case suggestions</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <ChartBar size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
-                    <span>Impact + feasibility scoring to prioritize next steps</span>
+                    <span>Prioritize with impact + feasibility scoring</span>
                   </li>
                 </ul>
                 <Separator />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Button
-                    onClick={onStartNew}
-                    className="w-full gap-2"
-                    size="lg"
-                  >
+                <div className="space-y-3">
+                  <Button onClick={onStartNew} className="w-full gap-2" size="lg">
                     <RocketLaunch size={20} weight="duotone" />
-                    Quick Discovery
+                    Start Quick Discovery
                   </Button>
-                  <Button
-                    onClick={onStartEnterpriseDiscovery}
-                    className="w-full gap-2 bg-brand-blue hover:bg-brand-blue/90 text-brand-blue-foreground"
-                    size="lg"
-                  >
-                    <Briefcase size={20} weight="duotone" />
-                    Enterprise Discovery
-                  </Button>
+
+                  <div className="flex flex-col gap-2">
+                    {onStartNotesAnalysis && (
+                      <Button
+                        onClick={onStartNotesAnalysis}
+                        variant="outline"
+                        className="w-full gap-2"
+                      >
+                        <FileText size={18} weight="duotone" />
+                        Analyze Notes (Optional)
+                      </Button>
+                    )}
+                    {onSkipToUseCases && (
+                      <Button
+                        onClick={onSkipToUseCases}
+                        variant="ghost"
+                        className="w-full gap-2 text-muted-foreground hover:text-foreground"
+                      >
+                        <Lightbulb size={18} weight="duotone" />
+                        Skip to Use Case Entry
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Quick Notes Analysis Card */}
-          {onStartNotesAnalysis && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.62 }}
-            >
-              <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-green-500/50">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/10">
-                      <FileText size={28} weight="duotone" className="text-green-600" />
-                    </div>
-                    <Badge variant="outline" className="text-xs">Instant</Badge>
+          {/* Enterprise Discovery Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.62 }}
+          >
+            <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-brand-blue/50">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-brand-blue/10">
+                    <Briefcase size={28} weight="duotone" className="text-brand-blue" />
                   </div>
-                  <CardTitle className="text-xl">Notes Analysis</CardTitle>
-                  <CardDescription className="text-sm">
-                    Paste notes and extract use cases instantly
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <FileText size={16} weight="duotone" className="mt-0.5 text-green-600 flex-shrink-0" />
-                      <span>Paste discovery notes</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-green-600 flex-shrink-0" />
-                      <span>AI extracts use cases</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-green-600 flex-shrink-0" />
-                      <span>Source highlighting</span>
-                    </li>
-                  </ul>
-                  <Separator />
-                  <Button 
-                    onClick={onStartNotesAnalysis} 
-                    className="w-full gap-2 bg-brand-green hover:bg-brand-green/90 text-white"
-                    size="lg"
-                  >
-                    <FileText size={20} weight="duotone" />
-                    Analyze Notes
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                  <Badge variant="outline" className="text-xs">Framework</Badge>
+                </div>
+                <CardTitle className="text-xl">Enterprise Discovery</CardTitle>
+                <CardDescription className="text-sm">
+                  5-stage framework with financial impact and prioritization outputs
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <Briefcase size={16} weight="duotone" className="mt-0.5 text-brand-blue flex-shrink-0" />
+                    <span>Business envisioning + problem framing</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ChartBar size={16} weight="duotone" className="mt-0.5 text-brand-blue flex-shrink-0" />
+                    <span>Financial impact modeling and prioritization</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Sparkle size={16} weight="duotone" className="mt-0.5 text-brand-blue flex-shrink-0" />
+                    <span>Outputs ready for stakeholder alignment</span>
+                  </li>
+                </ul>
+                <Separator />
+                <Button
+                  onClick={onStartEnterpriseDiscovery}
+                  className="w-full gap-2 bg-brand-blue hover:bg-brand-blue/90 text-brand-blue-foreground"
+                  size="lg"
+                >
+                  <Briefcase size={20} weight="duotone" />
+                  Start Enterprise Discovery
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          {/* AI Assessment Card */}
+          {/* AI Assessment Lite Card */}
           {onStartAIAssessment && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -233,7 +242,7 @@ export function LandingPage({
                     </div>
                     <Badge variant="outline" className="text-xs">Process</Badge>
                   </div>
-                  <CardTitle className="text-xl">AI Assessment</CardTitle>
+                  <CardTitle className="text-xl">AI Assessment Lite</CardTitle>
                   <CardDescription className="text-sm">
                     Structured process analysis to refine agent opportunities
                   </CardDescription>
@@ -260,118 +269,35 @@ export function LandingPage({
                     size="lg"
                   >
                     <Sparkle size={20} weight="duotone" />
-                    AI Assessment
+                    AI Assessment Lite
                   </Button>
                 </CardContent>
               </Card>
             </motion.div>
           )}
 
-          {/* Continue Existing Card */}
+          {/* Continue Existing (secondary action) */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.66 }}
+            className="md:col-span-3"
           >
-            <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-blue-500/50">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-blue-500/10">
-                    <FolderOpen size={28} weight="duotone" className="text-blue-600" />
-                  </div>
-                  {hasExistingCustomers && (
-                    <Badge variant="secondary" className="text-xs">
-                      {customers.length} session{customers.length !== 1 ? 's' : ''}
-                    </Badge>
-                  )}
-                </div>
-                <CardTitle className="text-xl">Continue Existing</CardTitle>
-                <CardDescription className="text-sm">
-                  {hasExistingCustomers 
-                    ? 'View and manage saved sessions'
-                    : 'No saved sessions yet'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {hasExistingCustomers ? (
-                  <>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li className="flex items-start gap-2">
-                        <FolderOpen size={16} weight="duotone" className="mt-0.5 text-blue-600 flex-shrink-0" />
-                        <span>View past sessions</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <ChartBar size={16} weight="duotone" className="mt-0.5 text-blue-600 flex-shrink-0" />
-                        <span>Compare side-by-side</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Lightbulb size={16} weight="duotone" className="mt-0.5 text-blue-600 flex-shrink-0" />
-                        <span>Review recommendations</span>
-                      </li>
-                    </ul>
-                    <Separator />
-                    <Button 
-                      onClick={onViewExisting}
-                      variant="outline"
-                      className="w-full gap-2"
-                      size="lg"
-                    >
-                      <FolderOpen size={20} weight="duotone" />
-                      View Sessions
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="py-6 text-center">
-                      <FolderOpen size={40} weight="duotone" className="mx-auto text-muted-foreground mb-2" />
-                      <p className="text-xs text-muted-foreground">
-                        Start a discovery to see it here
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={onViewExisting}
-                      variant="outline"
-                      className="w-full gap-2"
-                      size="lg"
-                      disabled
-                    >
-                      <FolderOpen size={20} weight="duotone" />
-                      No Sessions
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <Button
+                onClick={onViewExisting}
+                variant={hasExistingCustomers ? 'outline' : 'ghost'}
+                className="gap-2"
+              >
+                <FolderOpen size={18} weight="duotone" />
+                {hasExistingCustomers
+                  ? `Continue Existing (${customers.length} session${customers.length !== 1 ? 's' : ''})`
+                  : 'Continue Existing'}
+              </Button>
+            </div>
           </motion.div>
-        </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="mt-8 text-center"
-        >
-          <Card className="bg-muted/30 border-muted">
-            <CardContent className="py-6">
-              <div className="flex items-center justify-center gap-8 flex-wrap">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">4</div>
-                  <div className="text-sm text-muted-foreground">Entry Modes</div>
-                </div>
-                <Separator orientation="vertical" className="h-12 hidden sm:block" />
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">AI-Powered</div>
-                  <div className="text-sm text-muted-foreground">Use Case Generation</div>
-                </div>
-                <Separator orientation="vertical" className="h-12 hidden sm:block" />
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">Envisioning</div>
-                  <div className="text-sm text-muted-foreground">Innovation Hub Methodology</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        </div>
 
         {/* Try Demo Section */}
         {(onStartDemo || onStartEnterpriseDemo || onEnterDemoMode) && (
@@ -460,23 +386,6 @@ export function LandingPage({
           Powered by Microsoft Azure OpenAI
         </motion.p>
         
-        {onSkipToUseCases && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.95 }}
-            className="text-center mt-4"
-          >
-            <Button
-              variant="link"
-              onClick={onSkipToUseCases}
-              className="text-xs text-muted-foreground hover:text-foreground gap-1"
-            >
-              <Lightbulb size={14} />
-              Skip directly to use case entry →
-            </Button>
-          </motion.div>
-        )}
       </motion.div>
     </div>
   )
