@@ -29,6 +29,7 @@ interface DiscoveryWizardProps {
   initialSessionName?: string
   initialIndustry?: Industry
   initialResponses?: DiscoveryResponse[]
+  initialDiscoveryTrack?: DiscoveryTrack
   isDemoMode?: boolean
   demoIndustry?: DemoIndustry
 }
@@ -56,6 +57,7 @@ export function DiscoveryWizard({
   initialSessionName,
   initialIndustry,
   initialResponses,
+  initialDiscoveryTrack,
   isDemoMode,
   demoIndustry
 }: DiscoveryWizardProps) {
@@ -65,7 +67,7 @@ export function DiscoveryWizard({
   )
   const [sessionName, setSessionName] = useState(initialSessionName || '')
   const [selectedIndustry, setSelectedIndustry] = useState<Industry | null>(initialIndustry || null)
-  const [discoveryTrack, setDiscoveryTrack] = useState<DiscoveryTrack>('use-case')
+  const [discoveryTrack, setDiscoveryTrack] = useState<DiscoveryTrack>(initialDiscoveryTrack || 'use-case')
   const [currentStep, setCurrentStep] = useState(0)
   const [responses, setResponses] = useState<DiscoveryResponse[]>(initialResponses || [])
   const [currentAnswer, setCurrentAnswer] = useState('')
@@ -303,6 +305,15 @@ Keep questions conversational, specific to their answer, and focused on discover
 
   const handleIndustrySelect = (industry: Industry) => {
     setSelectedIndustry(industry)
+
+    // If the user already chose a track before entering the wizard (e.g., Landing Page),
+    // don't ask them to select it again.
+    if (initialDiscoveryTrack) {
+      setDiscoveryTrack(initialDiscoveryTrack)
+      setWizardStep('research')
+      return
+    }
+
     setWizardStep('track')
   }
 
@@ -439,7 +450,7 @@ Keep questions conversational, specific to their answer, and focused on discover
       setResponses([])
       setCurrentAnswer('')
     } else if (wizardStep === 'research') {
-      setWizardStep('track')
+      setWizardStep(initialDiscoveryTrack ? 'industry' : 'track')
     } else if (wizardStep === 'track') {
       setWizardStep('industry')
     } else if (wizardStep === 'industry') {

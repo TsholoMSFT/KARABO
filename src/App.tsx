@@ -56,6 +56,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Footer } from '@/components/ui/footer'
 import { ImportUseCasesDialog } from '@/components/ImportUseCasesDialog'
 import type { ExtractedUseCase } from '@/lib/use-case-extraction'
+import type { DiscoveryTrack } from '@/lib/discovery-questions'
 
 type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'ai-assessment' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
 
@@ -85,6 +86,7 @@ function App() {
   const [comparingSessions, setComparingSessions] = useState<DiscoverySession[]>([])
   const [sessionState, setSessionState] = useState<SessionState | null>(null)
   const [pendingSessionMetadata, setPendingSessionMetadata] = useState<SessionMetadata | null>(null)
+  const [pendingDiscoveryTrack, setPendingDiscoveryTrack] = useState<DiscoveryTrack | null>(null)
   const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live' | 'ai-assessment'>('standard')
   const [notesSession, setNotesSession] = useState<{ metadata: SessionMetadata; notes: string; extractedUseCases: ExtractedUseCase[] } | null>(null)
   const [scoringMethod, setScoringMethod] = useState<ScoringMethod>('impact-feasibility')
@@ -240,10 +242,16 @@ function App() {
     setTableExportOpen(true)
   }
 
-  const handleStartDiscovery = () => {
+  const resetPendingDiscoveryDraft = () => {
     setSessionState(null)
     setPendingSessionMetadata(null)
+    setPendingDiscoveryTrack(null)
+  }
+
+  const handleStartDiscovery = () => {
+    resetPendingDiscoveryDraft()
     setDiscoveryMode('standard')
+    setPendingDiscoveryTrack('use-case')
     setCurrentView('session-metadata')
   }
 
@@ -253,22 +261,20 @@ function App() {
       return
     }
 
-    setSessionState(null)
-    setPendingSessionMetadata(null)
+    resetPendingDiscoveryDraft()
     setDiscoveryMode('ai-assessment')
     setCurrentView('session-metadata')
   }
 
   const handleStartLiveDiscovery = () => {
-    setSessionState(null)
-    setPendingSessionMetadata(null)
+    resetPendingDiscoveryDraft()
     setDiscoveryMode('live')
+    setPendingDiscoveryTrack('use-case')
     setCurrentView('session-metadata')
   }
 
   const handleStartNotesAnalysis = () => {
-    setSessionState(null)
-    setPendingSessionMetadata(null)
+    resetPendingDiscoveryDraft()
     setNotesSession(null)
     setCurrentView('notes-input')
   }
@@ -387,8 +393,7 @@ function App() {
   const handleBackToLanding = () => {
     setCurrentView('landing')
     setCurrentDiscoverySession(null)
-    setSessionState(null)
-    setPendingSessionMetadata(null)
+    resetPendingDiscoveryDraft()
     setCurrentEnterpriseSession(null)
     // Exit demo mode when going back to landing
     if (isDemoMode) {
@@ -409,8 +414,7 @@ function App() {
     setIsDemoMode(false)
     setCurrentView('landing')
     setCurrentDiscoverySession(null)
-    setSessionState(null)
-    setPendingSessionMetadata(null)
+    resetPendingDiscoveryDraft()
     setCurrentEnterpriseSession(null)
     toast.info('Exited demo mode', {
       description: 'You can start a fresh session or continue with existing data.',
@@ -473,14 +477,15 @@ function App() {
     }
     addSession(sessionWithCustomer)
     setCurrentDiscoverySession(sessionWithCustomer)
+    setPendingSessionMetadata(null)
+    setPendingDiscoveryTrack(null)
     setCurrentView('discovery-results')
   }
 
   const handleDiscoveryCancel = () => {
     setCurrentView('dashboard')
     setCurrentDiscoverySession(null)
-    setSessionState(null)
-    setPendingSessionMetadata(null)
+    resetPendingDiscoveryDraft()
   }
 
   const handleNotesAnalyze = (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry) => {
@@ -638,8 +643,7 @@ function App() {
         <LandingPage
           customers={customers}
           onStartNew={() => {
-            setDiscoveryMode('standard')
-            setCurrentView('session-metadata')
+            handleStartDiscovery()
           }}
           onStartAIAssessment={handleStartAIAssessment}
           onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
@@ -733,7 +737,7 @@ function App() {
         <SessionMetadataForm
           onSubmit={handleSessionMetadataSubmit}
           onCancel={handleDiscoveryCancel}
-          onBackToLanding={() => setCurrentView('landing')}
+          onBackToLanding={handleBackToLanding}
           initialMetadata={selectedCustomerId ? { customerName: customers.find(c => c.id === selectedCustomerId)?.name || '' } : undefined}
           isDemoMode={isDemoMode}
           demoIndustry={demoIndustry}
@@ -744,7 +748,7 @@ function App() {
         <DiscoveryNotesInput
           onAnalyze={handleNotesAnalyze}
           onCancel={handleNotesCancel}
-          onBackToLanding={() => setCurrentView('landing')}
+          onBackToLanding={handleBackToLanding}
           isDemoMode={isDemoMode}
           demoIndustry={demoIndustry}
         />
@@ -849,11 +853,12 @@ function App() {
           sessionMetadata={pendingSessionMetadata}
           onComplete={handleDiscoveryComplete} 
           onCancel={handleDiscoveryCancel}
-          onBackToLanding={() => setCurrentView('landing')}
+          onBackToLanding={handleBackToLanding}
           onSwitchToLive={handleSwitchToLive}
           initialSessionName={sessionState?.sessionName}
           initialIndustry={sessionState?.industry}
           initialResponses={sessionState?.responses}
+          initialDiscoveryTrack={pendingDiscoveryTrack || undefined}
           isDemoMode={isDemoMode}
           demoIndustry={demoIndustry}
         />
