@@ -168,6 +168,12 @@ export function CompanyResearch({
     try {
       const rssText = rssItemsToText(rssItems, 10)
       const newInsights = await extractInsightsFromText(rssText, companyName, 'RSS News Feed')
+
+      if (newInsights.length === 0) {
+        toast.info('No insights extracted from RSS items', {
+          description: 'RSS data loaded successfully, but the AI extraction returned no insights. Check that /api/chat is configured and returning valid JSON for extraction tasks.',
+        })
+      }
       
       const source: CompanySource = {
         id: crypto.randomUUID(),

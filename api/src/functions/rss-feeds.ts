@@ -6,7 +6,11 @@ import { BlobServiceClient } from "@azure/storage-blob";
  * RSS data is stored by the karabo-rss-monitor Logic App
  */
 
-const STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
+function getStorageConnectionString(): string | undefined {
+  // Prefer explicit connection string for this function, but fall back to
+  // the standard Azure Functions storage setting to avoid surprising empty RSS.
+  return (process.env.AZURE_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage)?.trim();
+}
 const CONTAINER_NAME = "rss-feeds";
 
 const corsHeaders = {
@@ -31,21 +35,24 @@ async function rssFeedsHandler(
     return { status: 204, headers: corsHeaders };
   }
 
+  const storageConnectionString = getStorageConnectionString();
+
   // Check if storage is configured
-  if (!STORAGE_CONNECTION_STRING) {
+  if (!storageConnectionString) {
     context.warn("Azure Storage not configured - returning empty RSS");
     return {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       jsonBody: { 
         items: [], 
-        message: "RSS storage not configured. Add AZURE_STORAGE_CONNECTION_STRING to environment." 
+        message:
+          "RSS storage not configured. Add AZURE_STORAGE_CONNECTION_STRING (preferred) or AzureWebJobsStorage to the environment.",
       },
     };
   }
 
   try {
-    const blobServiceClient = BlobServiceClient.fromConnectionString(STORAGE_CONNECTION_STRING);
+    const blobServiceClient = BlobServiceClient.fromConnectionString(storageConnectionString);
     const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
 
     // Check if container exists
@@ -136,20 +143,62 @@ async function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
  */
 function parseRSSItems(xml: string): RSSItem[] {
   const items: RSSItem[] = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-  let match;
 
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const itemXml = match[1];
+  // RSS 2.0 (<item>) and Atom (<entry>) support.
+  // We intentionally keep parsing lightweight (regex-based) because the input
+  // is trusted internal blob content and we want to avoid heavy XML deps.
+  const blocks: Array<{ kind: "rss" | "atom"; xml: string }> = [];
+  const rssItemRegex = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
+  const atomEntryRegex = /<entry\b[^>]*>([\s\S]*?)<\/entry>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = rssItemRegex.exec(xml)) !== null) {
+    blocks.push({ kind: "rss", xml: match[1] });
+  }
+
+  while ((match = atomEntryRegex.exec(xml)) !== null) {
+    blocks.push({ kind: "atom", xml: match[1] });
+  }
+
+  for (const block of blocks) {
+    const title = extractTag(block.xml, "title") || "Untitled";
+
+    const descriptionRaw =
+      extractTag(block.xml, "description") ||
+      extractTag(block.xml, "summary") ||
+      extractTag(block.xml, "content:encoded") ||
+      extractTag(block.xml, "content");
+
+    const link =
+      extractTag(block.xml, "link") ||
+      extractLinkHref(block.xml) ||
+      "";
+
+    const pubDate =
+      extractTag(block.xml, "pubDate") ||
+      extractTag(block.xml, "published") ||
+      extractTag(block.xml, "updated") ||
+      extractTag(block.xml, "dc:date") ||
+      new Date().toISOString();
+
     items.push({
-      title: extractTag(itemXml, "title"),
-      description: stripHtml(extractTag(itemXml, "description")),
-      link: extractTag(itemXml, "link"),
-      pubDate: extractTag(itemXml, "pubDate"),
+      title,
+      description: stripHtml(descriptionRaw),
+      link,
+      pubDate,
     });
   }
 
   return items;
+}
+
+/**
+ * Atom feeds often use: <link href="https://..." rel="alternate" />
+ */
+function extractLinkHref(xml: string): string {
+  const linkTagRegex = /<link\b[^>]*href=["']([^"']+)["'][^>]*\/?>(?:<\/link>)?/i;
+  const match = xml.match(linkTagRegex);
+  return match ? match[1].trim() : "";
 }
 
 /**

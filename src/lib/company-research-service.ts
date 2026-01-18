@@ -7,6 +7,7 @@
  */
 
 import { callAIForTask } from './openai-service'
+import { parseJsonLenient } from './lenient-json'
 
 // ============================================================================
 // TYPES
@@ -72,11 +73,39 @@ export async function extractInsightsFromText(
     return []
   }
 
+  const clipForPrompt = (text: string, maxChars: number): string => {
+    const trimmed = text.trim()
+    if (trimmed.length <= maxChars) return trimmed
+
+    // Keep both the start and end to preserve context (especially for long RSS dumps).
+    const head = trimmed.slice(0, Math.floor(maxChars * 0.7))
+    const tail = trimmed.slice(-Math.floor(maxChars * 0.3))
+    return `${head}\n\n[...truncated...]\n\n${tail}`
+  }
+
+  const getInsightsArray = (parsed: any): any[] | undefined => {
+    if (Array.isArray(parsed)) return parsed
+    if (!parsed || typeof parsed !== 'object') return undefined
+
+    const directCandidates = [parsed.insights, parsed.Insights, parsed.items, parsed.results]
+    for (const candidate of directCandidates) {
+      if (Array.isArray(candidate)) return candidate
+      if (candidate && typeof candidate === 'object') {
+        const nestedCandidates = [candidate.insights, candidate.items, candidate.results, candidate.data]
+        for (const nested of nestedCandidates) {
+          if (Array.isArray(nested)) return nested
+        }
+      }
+    }
+
+    return undefined
+  }
+
   const prompt = `You are a business analyst preparing for an AI discovery session with ${companyName}.
 
 CONTENT TO ANALYZE:
 """
-${content.substring(0, 8000)}
+${clipForPrompt(content, 12000)}
 """
 
 SOURCE: ${sourceTitle}
@@ -105,27 +134,46 @@ Return a JSON object:
   ]
 }
 
-Extract 3-8 insights. Focus on actionable business intelligence. Return valid JSON only.`
+Extraction rules:
+- Extract 3-8 insights when there is sufficient signal (e.g., multiple headlines, clear themes, initiatives, risks).
+- Do NOT return an empty insights list unless the content genuinely contains no business-relevant information.
+- If the content is mostly headlines, infer themes and summarize them as "news" or "strategy" insights.
+
+Return valid JSON only.`
 
   try {
-    const result = await callAIForTask('extraction', prompt, { expectJson: true })
-    const parsed = JSON.parse(result)
-    
-    if (!parsed.insights || !Array.isArray(parsed.insights)) {
+    const raw = await callAIForTask('extraction', prompt, {
+      expectJson: true,
+      systemPrompt: 'Return only strict JSON. No markdown. No prose outside JSON.',
+    })
+
+    const parsed = parseJsonLenient<any>(raw)
+
+    const insightsRaw = getInsightsArray(parsed)
+
+    if (!insightsRaw) {
       return []
     }
 
-    return parsed.insights.map((insight: any) => ({
+    return insightsRaw.map((insight: any) => {
+      const potentialUseCases = Array.isArray(insight?.potentialUseCases)
+        ? insight.potentialUseCases
+        : typeof insight?.potentialUseCases === 'string'
+          ? [insight.potentialUseCases]
+          : []
+
+      return {
       id: crypto.randomUUID(),
       category: insight.category || 'news',
-      title: insight.title || 'Untitled Insight',
-      summary: insight.summary || '',
-      relevanceToAI: insight.relevanceToAI || '',
-      potentialUseCases: insight.potentialUseCases || [],
+      title: (insight.title || 'Untitled Insight').toString().trim(),
+      summary: (insight.summary || '').toString().trim(),
+      relevanceToAI: (insight.relevanceToAI || '').toString().trim(),
+      potentialUseCases,
       source: sourceTitle,
       confidence: insight.confidence || 'medium',
       extractedDate: new Date().toISOString(),
-    }))
+      }
+    })
   } catch (error) {
     console.error('Failed to extract insights:', error)
     throw new Error(`Failed to extract insights: ${error instanceof Error ? error.message : 'Unknown error'}`)

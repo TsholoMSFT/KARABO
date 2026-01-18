@@ -41,9 +41,9 @@ const responseCache = new Map<string, CacheEntry>()
 /**
  * Generate a cache key from prompt and model
  */
-function getCacheKey(prompt: string, model: string, expectJson: boolean): string {
+function getCacheKey(prompt: string, model: string, expectJson: boolean, systemPrompt?: string): string {
   // Simple hash function for cache key
-  const input = `${model}:${expectJson}:${prompt}`
+  const input = `${model}:${expectJson}:${systemPrompt || ''}:${prompt}`
   let hash = 0
   for (let i = 0; i < input.length; i++) {
     const char = input.charCodeAt(i)
@@ -346,7 +346,7 @@ export async function callOpenAI(
   systemPrompt?: string
 ): Promise<string> {
   // Check cache first
-  const cacheKey = getCacheKey(prompt, model, expectJson)
+  const cacheKey = getCacheKey(prompt, model, expectJson, systemPrompt)
   const cached = getFromCache(cacheKey)
   if (cached) {
     cacheHits++
