@@ -111,8 +111,8 @@ export function LandingPage({
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Quick Discovery Card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Discovery Card */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -124,35 +124,45 @@ export function LandingPage({
                   <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10">
                     <MagnifyingGlass size={28} weight="duotone" className="text-primary" />
                   </div>
-                  <Badge variant="outline" className="text-xs">Use Cases</Badge>
+                  <Badge variant="outline" className="text-xs">Choose Track</Badge>
                 </div>
-                <CardTitle className="text-xl">Quick Discovery</CardTitle>
+                <CardTitle className="text-xl">Discovery</CardTitle>
                 <CardDescription className="text-sm">
-                  Guided questions + AI suggestions to rapidly identify use cases
+                  Start with a guided track to identify and assess opportunities
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-start gap-2">
                     <RocketLaunch size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
-                    <span>Answer guided questions (industry-aware)</span>
+                    <span>Quick Discovery: guided questions + AI use cases</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Sparkle size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
-                    <span>Generate and refine AI-powered use case suggestions</span>
+                    <Briefcase size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
+                    <span>Enterprise Discovery: 5-stage framework + financial modeling</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <ChartBar size={16} weight="duotone" className="mt-0.5 text-primary flex-shrink-0" />
-                    <span>Prioritize with impact + feasibility scoring</span>
+                    <span>Impact + feasibility scoring to prioritize next steps</span>
                   </li>
                 </ul>
                 <Separator />
-                <div className="space-y-3">
-                  <Button onClick={onStartNew} className="w-full gap-2" size="lg">
+                <div className="flex gap-3">
+                  <Button onClick={onStartNew} className="flex-1 gap-2" size="lg">
                     <RocketLaunch size={20} weight="duotone" />
-                    Start Quick Discovery
+                    Quick Discovery
                   </Button>
+                  <Button
+                    onClick={onStartEnterpriseDiscovery}
+                    className="flex-1 gap-2 bg-brand-blue hover:bg-brand-blue/90 text-brand-blue-foreground"
+                    size="lg"
+                  >
+                    <Briefcase size={20} weight="duotone" />
+                    Enterprise Discovery
+                  </Button>
+                </div>
 
+                {(onStartNotesAnalysis || onSkipToUseCases) && (
                   <div className="flex flex-col gap-2">
                     {onStartNotesAnalysis && (
                       <Button
@@ -175,57 +185,55 @@ export function LandingPage({
                       </Button>
                     )}
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Enterprise Discovery Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.62 }}
-          >
-            <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-brand-blue/50">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-brand-blue/10">
-                    <Briefcase size={28} weight="duotone" className="text-brand-blue" />
+          {/* Notes Analysis Card */}
+          {onStartNotesAnalysis && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.62 }}
+            >
+              <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-green-500/40">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/10">
+                      <FileText size={28} weight="duotone" className="text-green-600" />
+                    </div>
+                    <Badge variant="outline" className="text-xs">Instant</Badge>
                   </div>
-                  <Badge variant="outline" className="text-xs">Framework</Badge>
-                </div>
-                <CardTitle className="text-xl">Enterprise Discovery</CardTitle>
-                <CardDescription className="text-sm">
-                  5-stage framework with financial impact and prioritization outputs
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <Briefcase size={16} weight="duotone" className="mt-0.5 text-brand-blue flex-shrink-0" />
-                    <span>Business envisioning + problem framing</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ChartBar size={16} weight="duotone" className="mt-0.5 text-brand-blue flex-shrink-0" />
-                    <span>Financial impact modeling and prioritization</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Sparkle size={16} weight="duotone" className="mt-0.5 text-brand-blue flex-shrink-0" />
-                    <span>Outputs ready for stakeholder alignment</span>
-                  </li>
-                </ul>
-                <Separator />
-                <Button
-                  onClick={onStartEnterpriseDiscovery}
-                  className="w-full gap-2 bg-brand-blue hover:bg-brand-blue/90 text-brand-blue-foreground"
-                  size="lg"
-                >
-                  <Briefcase size={20} weight="duotone" />
-                  Start Enterprise Discovery
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
+                  <CardTitle className="text-xl">Notes Analysis</CardTitle>
+                  <CardDescription className="text-sm">
+                    Paste notes and extract use cases instantly
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <FileText size={16} weight="duotone" className="mt-0.5 text-green-600 flex-shrink-0" />
+                      <span>Paste discovery notes</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-green-600 flex-shrink-0" />
+                      <span>AI extracts use cases</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-green-600 flex-shrink-0" />
+                      <span>Source highlighting</span>
+                    </li>
+                  </ul>
+                  <Separator />
+                  <Button onClick={onStartNotesAnalysis} className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white" size="lg">
+                    <FileText size={20} weight="duotone" />
+                    Analyze Notes
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* AI Assessment Lite Card */}
           {onStartAIAssessment && (
@@ -276,27 +284,55 @@ export function LandingPage({
             </motion.div>
           )}
 
-          {/* Continue Existing (secondary action) */}
+          {/* Continue Existing Card */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.66 }}
-            className="md:col-span-3"
           >
-            <div className="flex items-center justify-center gap-3 flex-wrap">
-              <Button
-                onClick={onViewExisting}
-                variant={hasExistingCustomers ? 'outline' : 'ghost'}
-                className="gap-2"
-              >
-                <FolderOpen size={18} weight="duotone" />
-                {hasExistingCustomers
-                  ? `Continue Existing (${customers.length} session${customers.length !== 1 ? 's' : ''})`
-                  : 'Continue Existing'}
-              </Button>
-            </div>
+            <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-muted-foreground/30">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-muted/40">
+                    <FolderOpen size={28} weight="duotone" className="text-foreground" />
+                  </div>
+                  {hasExistingCustomers && (
+                    <Badge variant="outline" className="text-xs">{customers.length} sessions</Badge>
+                  )}
+                </div>
+                <CardTitle className="text-xl">Continue Existing</CardTitle>
+                <CardDescription className="text-sm">
+                  View and manage saved sessions
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <FolderOpen size={16} weight="duotone" className="mt-0.5 text-foreground flex-shrink-0" />
+                    <span>View past sessions</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ChartBar size={16} weight="duotone" className="mt-0.5 text-foreground flex-shrink-0" />
+                    <span>Compare side-by-side</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Lightbulb size={16} weight="duotone" className="mt-0.5 text-foreground flex-shrink-0" />
+                    <span>Review recommendations</span>
+                  </li>
+                </ul>
+                <Separator />
+                <Button
+                  onClick={onViewExisting}
+                  variant={hasExistingCustomers ? 'outline' : 'secondary'}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  <FolderOpen size={20} weight="duotone" />
+                  View Sessions
+                </Button>
+              </CardContent>
+            </Card>
           </motion.div>
-
         </div>
 
         {/* Try Demo Section */}
