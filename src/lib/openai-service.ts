@@ -136,15 +136,15 @@ export type AITask =
  */
 export function getModelForTask(task: AITask): ModelType {
   const taskModelMap: Record<AITask, ModelType> = {
-    extraction: 'phi-4-mini-instruct',
-    formatting: 'phi-4-mini-instruct',
-    general: 'phi-4-mini-instruct',
+    extraction: 'gpt-4o-mini',
+    formatting: 'gpt-4o-mini',
+    general: 'gpt-4o-mini',
     analysis: 'gpt-4o-mini',
     architecture: 'gpt-4o-mini',
     journey: 'gpt-4o-mini',
     executive: 'gpt-4o',
   }
-  return taskModelMap[task] || 'phi-4-mini-instruct'
+  return taskModelMap[task] || 'gpt-4o-mini'
 }
 
 /**

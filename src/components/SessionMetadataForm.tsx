@@ -131,25 +131,6 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
     }
   }, [metadata.customerName])
 
-  // Auto-populate from existing customer when customer name changes
-  useEffect(() => {
-    const customerName = metadata.customerName.trim().toLowerCase()
-    if (!customerName || tickerAutoPopulated) return
-
-    const existingCustomer = customers.find(
-      (c) => c.name.toLowerCase().trim() === customerName
-    )
-
-    if (existingCustomer && existingCustomer.stockTicker) {
-      setMetadata((current) => ({
-        ...current,
-        stockTicker: existingCustomer.stockTicker || '',
-      }))
-      setTickerAutoPopulated(true)
-      toast.success(`Ticker ${existingCustomer.stockTicker} loaded from previous session`)
-    }
-  }, [metadata.customerName, customers, tickerAutoPopulated])
-
   // Auto-search ticker when customer name has 3+ characters
   useEffect(() => {
     const timer = setTimeout(() => {
