@@ -23,6 +23,7 @@ import {
   CompanyInsight, 
   CompanySource,
   RSSFeedItem,
+  FetchRSSFromBlobStorageResult,
   extractInsightsFromText, 
   extractTextFromFile,
   generateResearchSummary,
@@ -136,13 +137,34 @@ export function CompanyResearch({
   }
 
   const handleFetchRSS = async () => {
+    if (!companyName.trim()) {
+      toast.error('Please enter a company name first')
+      return
+    }
+
     setIsLoadingRSS(true)
     try {
-      const items = await fetchRSSFromBlobStorage()
+      const result: FetchRSSFromBlobStorageResult = await fetchRSSFromBlobStorage('/api', companyName)
+      const items = result.items
+
       setRssItems(items)
-      
+
       if (items.length === 0) {
-        toast.info('No RSS items found. Make sure the Logic App has run.')
+        const descriptionParts: string[] = []
+        if (result.blobName) {
+          descriptionParts.push(
+            `Latest blob: ${result.blobName}${result.lastModified ? ` (${result.lastModified})` : ''}`
+          )
+        }
+        if (result.diagnostics?.itemTagCount !== undefined || result.diagnostics?.entryTagCount !== undefined) {
+          descriptionParts.push(
+            `Detected tags: item=${result.diagnostics?.itemTagCount ?? 0}, entry=${result.diagnostics?.entryTagCount ?? 0}`
+          )
+        }
+
+        toast.info(result.message || 'No RSS items found.', {
+          description: descriptionParts.length ? descriptionParts.join(' • ') : undefined,
+        })
       } else {
         toast.success(`Loaded ${items.length} news items`)
       }

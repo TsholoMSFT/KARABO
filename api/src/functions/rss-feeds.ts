@@ -35,6 +35,13 @@ async function rssFeedsHandler(
     return { status: 204, headers: corsHeaders };
   }
 
+  // Get company filter from query parameter
+  const companyParam = req.query.get("company") || "";
+  const companyPrefix = companyParam
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "");
+
   const storageConnectionString = getStorageConnectionString();
 
   // Check if storage is configured
@@ -65,9 +72,13 @@ async function rssFeedsHandler(
       };
     }
 
-    // Get all blobs and find the most recent
+    // Get all blobs, optionally filtered by company prefix
     const blobs: Array<{ name: string; lastModified: Date }> = [];
     for await (const blob of containerClient.listBlobsFlat()) {
+      // Filter by company prefix if provided
+      if (companyPrefix && !blob.name.toLowerCase().startsWith(companyPrefix + "-news-")) {
+        continue;
+      }
       blobs.push({
         name: blob.name,
         lastModified: blob.properties.lastModified || new Date(0),
@@ -75,10 +86,13 @@ async function rssFeedsHandler(
     }
 
     if (blobs.length === 0) {
+      const message = companyPrefix
+        ? `No RSS feeds found for "${companyParam}". The Logic App may not have fetched this company yet. Try running it manually or wait for the next scheduled run.`
+        : "No RSS feeds found. Run the Logic App first.";
       return {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        jsonBody: { items: [], message: "No RSS feeds found. Run the Logic App first." },
+        jsonBody: { items: [], message, company: companyParam || null },
       };
     }
 
@@ -98,19 +112,38 @@ async function rssFeedsHandler(
 
     const xmlContent = await streamToString(downloadResponse.readableStreamBody);
 
+    const diagnostics = {
+      sizeBytes: Buffer.byteLength(xmlContent, "utf8"),
+      hasRss: /<rss\b/i.test(xmlContent),
+      hasChannel: /<channel\b/i.test(xmlContent),
+      hasAtomFeed: /<feed\b/i.test(xmlContent),
+      itemTagCount: (xmlContent.match(/<item\b/gi) || []).length,
+      entryTagCount: (xmlContent.match(/<entry\b/gi) || []).length,
+    };
+
     // Parse RSS XML
     const items = parseRSSItems(xmlContent);
 
     context.log(`Parsed ${items.length} RSS items from ${latestBlob.name}`);
+
+    const message =
+      items.length > 0
+        ? undefined
+        : diagnostics.hasRss || diagnostics.hasAtomFeed
+          ? "RSS blob downloaded but contained no parsable items. Verify the Logic App is writing raw RSS/Atom XML (with <item> or <entry>) into the 'rss-feeds' container."
+          : "Latest blob does not appear to be RSS/Atom XML. Verify the Logic App is writing the RSS XML body to Blob Storage (not JSON, HTML, or a status payload).";
 
     return {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       jsonBody: {
         items,
+        message,
+        company: companyParam || null,
         blobName: latestBlob.name,
         lastModified: latestBlob.lastModified.toISOString(),
         totalBlobs: blobs.length,
+        diagnostics,
       },
     };
   } catch (error: any) {

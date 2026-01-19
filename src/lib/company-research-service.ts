@@ -51,6 +51,22 @@ export interface RSSFeedItem {
   pubDate: string
 }
 
+export interface FetchRSSFromBlobStorageResult {
+  items: RSSFeedItem[]
+  message?: string
+  blobName?: string
+  lastModified?: string
+  totalBlobs?: number
+  diagnostics?: {
+    sizeBytes?: number
+    hasRss?: boolean
+    hasChannel?: boolean
+    hasAtomFeed?: boolean
+    itemTagCount?: number
+    entryTagCount?: number
+  }
+}
+
 export interface RSSFeedConfig {
   name: string
   urlTemplate: string
@@ -271,22 +287,43 @@ Write in a professional, actionable tone. Focus on insights relevant to Microsof
 /**
  * Fetch RSS feed items from Azure Blob Storage
  * (Logic App stores fetched RSS as XML in blob storage)
+ * @param apiEndpoint - Base API URL (default: '/api')
+ * @param companyName - Optional company name to filter RSS feeds
  */
 export async function fetchRSSFromBlobStorage(
-  apiEndpoint: string = '/api'
-): Promise<RSSFeedItem[]> {
+  apiEndpoint: string = '/api',
+  companyName?: string
+): Promise<FetchRSSFromBlobStorageResult> {
   try {
-    const response = await fetch(`${apiEndpoint}/rss-feeds`)
+    const url = new URL(`${apiEndpoint}/rss-feeds`, window.location.origin);
+    if (companyName) {
+      url.searchParams.set('company', companyName);
+    }
+    
+    const response = await fetch(url.toString())
     
     if (!response.ok) {
       throw new Error(`Failed to fetch RSS: ${response.status}`)
     }
 
-    const data = await response.json()
-    return data.items || []
+    const data = await response.json().catch(() => ({} as any))
+
+    const items = Array.isArray(data?.items) ? (data.items as RSSFeedItem[]) : []
+
+    return {
+      items,
+      message: typeof data?.message === 'string' ? data.message : undefined,
+      blobName: typeof data?.blobName === 'string' ? data.blobName : undefined,
+      lastModified: typeof data?.lastModified === 'string' ? data.lastModified : undefined,
+      totalBlobs: typeof data?.totalBlobs === 'number' ? data.totalBlobs : undefined,
+      diagnostics: data?.diagnostics && typeof data.diagnostics === 'object' ? data.diagnostics : undefined,
+    }
   } catch (error) {
     console.error('Failed to fetch RSS from blob storage:', error)
-    return []
+    return {
+      items: [],
+      message: error instanceof Error ? error.message : 'Failed to fetch RSS from blob storage',
+    }
   }
 }
 
