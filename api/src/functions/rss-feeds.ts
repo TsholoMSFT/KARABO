@@ -26,6 +26,38 @@ interface RSSItem {
   pubDate: string;
 }
 
+/**
+ * Fetch live RSS from Google News when no cached data exists
+ */
+async function fetchLiveRSS(companyName: string, context: InvocationContext): Promise<RSSItem[]> {
+  const query = encodeURIComponent(companyName);
+  const url = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
+  
+  context.log(`Fetching live RSS for "${companyName}" from: ${url}`);
+  
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; KARABO/1.0; +https://karabo.app)",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const xmlContent = await response.text();
+    const items = parseRSSItems(xmlContent);
+    
+    context.log(`Fetched ${items.length} live RSS items for "${companyName}"`);
+    return items;
+  } catch (error: any) {
+    context.error(`Failed to fetch live RSS for "${companyName}":`, error);
+    throw error;
+  }
+}
+
 async function rssFeedsHandler(
   req: HttpRequest,
   context: InvocationContext
@@ -86,13 +118,41 @@ async function rssFeedsHandler(
     }
 
     if (blobs.length === 0) {
-      const message = companyPrefix
-        ? `No RSS feeds found for "${companyParam}". The Logic App may not have fetched this company yet. Try running it manually or wait for the next scheduled run.`
-        : "No RSS feeds found. Run the Logic App first.";
+      // No cached blobs found - try live RSS fetch if company specified
+      if (companyParam) {
+        context.log(`No cached RSS for "${companyParam}", fetching live...`);
+        try {
+          const liveItems = await fetchLiveRSS(companyParam, context);
+          return {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            jsonBody: {
+              items: liveItems,
+              message: `Live RSS fetched for "${companyParam}" (not cached yet)`,
+              company: companyParam,
+              source: "live",
+              totalBlobs: 0,
+            },
+          };
+        } catch (liveError: any) {
+          context.error(`Live RSS fetch failed for "${companyParam}":`, liveError);
+          return {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            jsonBody: {
+              items: [],
+              message: `No cached RSS for "${companyParam}" and live fetch failed: ${liveError.message}`,
+              company: companyParam,
+              source: "none",
+            },
+          };
+        }
+      }
+      
       return {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        jsonBody: { items: [], message, company: companyParam || null },
+        jsonBody: { items: [], message: "No RSS feeds found. Specify a company or run the Logic App first.", company: null },
       };
     }
 
@@ -140,6 +200,7 @@ async function rssFeedsHandler(
         items,
         message,
         company: companyParam || null,
+        source: "cache",
         blobName: latestBlob.name,
         lastModified: latestBlob.lastModified.toISOString(),
         totalBlobs: blobs.length,
