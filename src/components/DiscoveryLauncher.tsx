@@ -96,12 +96,6 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                       Live Discovery
                     </Button>
                   )}
-                  {onStartDemo && (
-                    <Button onClick={() => onStartDemo('mining')} size="sm" variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground">
-                      <Play size={16} weight="fill" />
-                      Try Demo (Zava Mining)
-                    </Button>
-                  )}
                 </div>
               </div>
             </CardHeader>
@@ -283,12 +277,6 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                     >
                       <Microphone size={20} weight="fill" />
                       Live Enterprise Discovery
-                    </Button>
-                  )}
-                  {onStartEnterpriseDemo && (
-                    <Button onClick={() => onStartEnterpriseDemo('mining')} size="sm" variant="ghost" className="gap-2 text-white/60 hover:text-white hover:bg-white/10">
-                      <Play size={16} weight="fill" />
-                      Try Demo (Zava Mining)
                     </Button>
                   )}
                 </div>
