@@ -234,6 +234,9 @@ export const ENGAGEMENT_DEFAULTS: Record<InnovationHubEngagement, {
   description: string
   defaultDuration: string
   defaultDeliverables: string[]
+  insightPrompts: string[]
+  keyQuestions: string[]
+  successMetrics: string[]
 }> = {
   'business-envisioning': {
     title: 'Business Envisioning',
@@ -244,6 +247,21 @@ export const ENGAGEMENT_DEFAULTS: Record<InnovationHubEngagement, {
       'Stakeholder alignment document',
       'Design thinking workshop outputs',
       'Opportunity assessment'
+    ],
+    insightPrompts: [
+      'What pain points were identified during discovery?',
+      'Which stakeholders need to be involved?',
+      'What are the primary business drivers?'
+    ],
+    keyQuestions: [
+      'Who are the key decision makers and influencers?',
+      'What does success look like for this initiative?',
+      'What constraints or blockers exist?'
+    ],
+    successMetrics: [
+      'Stakeholder alignment achieved',
+      'Use cases prioritized with clear rationale',
+      'Next steps agreed upon'
     ]
   },
   'solution-envisioning': {
@@ -255,6 +273,21 @@ export const ENGAGEMENT_DEFAULTS: Record<InnovationHubEngagement, {
       'Solution concept diagram',
       'Microsoft capabilities mapping',
       'Partner ecosystem assessment'
+    ],
+    insightPrompts: [
+      'What current systems need to integrate?',
+      'What technical debt or constraints exist?',
+      'What is the current technology maturity level?'
+    ],
+    keyQuestions: [
+      'What Microsoft technologies are already in use?',
+      'Are there specific compliance or security requirements?',
+      'What is the timeline expectation?'
+    ],
+    successMetrics: [
+      'Technical feasibility validated',
+      'Solution architecture agreed',
+      'Microsoft capabilities mapped to requirements'
     ]
   },
   'architecture-design': {
@@ -267,6 +300,21 @@ export const ENGAGEMENT_DEFAULTS: Record<InnovationHubEngagement, {
       'Integration requirements',
       'Technical feasibility assessment',
       'Cost estimation'
+    ],
+    insightPrompts: [
+      'What are the integration points identified?',
+      'What data flows need to be considered?',
+      'What are the scalability requirements?'
+    ],
+    keyQuestions: [
+      'What reference architectures apply?',
+      'What is the expected load/scale?',
+      'What are the DR/HA requirements?'
+    ],
+    successMetrics: [
+      'Architecture aligned to reference patterns',
+      'Scope clearly defined and agreed',
+      'Cost estimation provided'
     ]
   },
   'rapid-prototype': {
@@ -279,6 +327,21 @@ export const ENGAGEMENT_DEFAULTS: Record<InnovationHubEngagement, {
       'Performance benchmarks',
       'Risk assessment',
       'Go/No-Go recommendation'
+    ],
+    insightPrompts: [
+      'What are the highest risk technical unknowns?',
+      'What needs to be proven to stakeholders?',
+      'What integration challenges were flagged?'
+    ],
+    keyQuestions: [
+      'What are the POC success criteria?',
+      'Who needs to see the demo?',
+      'What is the go/no-go decision framework?'
+    ],
+    successMetrics: [
+      'Technical capabilities validated',
+      'Stakeholder demo completed',
+      'Go/No-Go decision made'
     ]
   }
 }
@@ -298,6 +361,19 @@ export interface CustomerJourneyMilestone {
   isComplete: boolean
   completedAt?: number
   notes?: string
+  discoveryContext?: string               // Context from discovery insights
+}
+
+/**
+ * A next step action item for the journey
+ */
+export interface JourneyNextStep {
+  id: string
+  action: string
+  owner?: string                          // Optional assignee
+  targetDate?: string                     // Optional target date (ISO string)
+  isComplete: boolean
+  completedAt?: number
 }
 
 /**
@@ -306,8 +382,9 @@ export interface CustomerJourneyMilestone {
 export interface JourneyEdit {
   id: string
   timestamp: number
-  action: 'reorder' | 'duration' | 'deliverables' | 'notes' | 'complete' | 'reset'
+  action: 'reorder' | 'duration' | 'deliverables' | 'notes' | 'complete' | 'reset' | 'title' | 'journeyNotes' | 'nextSteps'
   previousState: CustomerJourneyMilestone[]
+  previousJourneyState?: Partial<CustomerJourney>  // For title/notes/nextSteps undo
   description: string
 }
 
@@ -316,12 +393,21 @@ export interface JourneyEdit {
  */
 export interface CustomerJourney {
   useCaseId: string
+  title?: string                          // Journey title
+  journeyNotes?: string                   // Overall journey notes/context
+  nextSteps?: JourneyNextStep[]           // Action items with optional owner/date
   milestones: CustomerJourneyMilestone[]
   totalDuration: string                   // e.g., "6-11 weeks"
   createdAt: number
   updatedAt?: number
   generatedBy: 'ai' | 'manual'
   editHistory: JourneyEdit[]              // For undo capability
+  discoveryInsights?: {                   // Context from discovery session
+    painPoints?: string[]
+    stakeholders?: string[]
+    constraints?: string[]
+    opportunities?: string[]
+  }
 }
 
 /**

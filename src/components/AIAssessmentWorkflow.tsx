@@ -278,6 +278,8 @@ RULES
             
             const journey: CustomerJourney = {
               useCaseId: uc.id,
+              title: generated.title,
+              journeyNotes: generated.journeyNotes,
               milestones: generated.milestones.map((m, mIdx) => ({
                 id: `${uc.id}-m${mIdx + 1}`,
                 order: mIdx + 1,
@@ -287,12 +289,21 @@ RULES
                 duration: m.duration,
                 deliverables: m.deliverables,
                 dependencies: m.dependencies,
+                isComplete: false,
+                discoveryContext: m.discoveryContext
+              })),
+              nextSteps: generated.nextSteps?.map((s, sIdx) => ({
+                id: `${uc.id}-step${sIdx + 1}`,
+                action: s.action,
+                owner: s.owner,
+                targetDate: s.targetDate,
                 isComplete: false
               })),
               totalDuration: generated.totalDuration,
               createdAt: Date.now(),
               generatedBy: 'ai',
-              editHistory: []
+              editHistory: [],
+              discoveryInsights: generated.discoveryInsights
             }
             
             return { ...uc, customerJourney: journey }
@@ -302,6 +313,7 @@ RULES
             const milestones = generateDefaultJourneyMilestones(uc.id, 'medium')
             const journey: CustomerJourney = {
               useCaseId: uc.id,
+              title: `${uc.title} Implementation Journey`,
               milestones,
               totalDuration: calculateJourneyDuration(milestones),
               createdAt: Date.now(),

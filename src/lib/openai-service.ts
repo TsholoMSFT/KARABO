@@ -574,12 +574,28 @@ export interface GeneratedJourneyMilestone {
   duration: string
   deliverables: string[]
   dependencies: string[]
+  discoveryContext?: string  // Context from discovery insights
+}
+
+export interface GeneratedJourneyNextStep {
+  action: string
+  owner?: string
+  targetDate?: string
 }
 
 export interface GeneratedJourney {
+  title: string
+  journeyNotes: string
   milestones: GeneratedJourneyMilestone[]
+  nextSteps: GeneratedJourneyNextStep[]
   totalDuration: string
   reasoning: string
+  discoveryInsights?: {
+    painPoints?: string[]
+    stakeholders?: string[]
+    constraints?: string[]
+    opportunities?: string[]
+  }
 }
 
 /**
@@ -593,6 +609,10 @@ export async function generateCustomerJourney(
     industry?: string
     existingMicrosoftProducts?: string[]
     customerName?: string
+    discoveryNotes?: string
+    painPoints?: string[]
+    stakeholders?: string[]
+    constraints?: string[]
   }
 ): Promise<GeneratedJourney> {
   const complexityLevel = context?.complexity || 'medium'
@@ -606,6 +626,10 @@ ${context?.industry ? `Industry: ${context.industry}` : ''}
 ${context?.customerName ? `Customer: ${context.customerName}` : ''}
 ${context?.existingMicrosoftProducts?.length ? `Existing Microsoft Products: ${context.existingMicrosoftProducts.join(', ')}` : ''}
 Complexity Level: ${complexityLevel}
+${context?.discoveryNotes ? `\nDISCOVERY NOTES:\n${context.discoveryNotes}` : ''}
+${context?.painPoints?.length ? `\nIDENTIFIED PAIN POINTS:\n${context.painPoints.map(p => `- ${p}`).join('\n')}` : ''}
+${context?.stakeholders?.length ? `\nKEY STAKEHOLDERS:\n${context.stakeholders.map(s => `- ${s}`).join('\n')}` : ''}
+${context?.constraints?.length ? `\nCONSTRAINTS:\n${context.constraints.map(c => `- ${c}`).join('\n')}` : ''}
 
 INNOVATION HUB ENGAGEMENT TYPES (use these exactly):
 
@@ -638,9 +662,13 @@ GUIDELINES:
 - Each milestone should have 3-5 specific deliverables relevant to the use case
 - Dependencies should reference previous milestone titles
 - Durations should be realistic ranges (e.g., "2-3 weeks")
+- Use any discovery insights provided to tailor the journey
+- Include 3-5 actionable next steps
 
 Return a JSON object:
 {
+  "title": "<Descriptive journey title for this use case, e.g., 'AI-Powered Customer Service Transformation Journey'>",
+  "journeyNotes": "<2-3 sentences providing overall context, key considerations, and strategic approach based on discovery insights>",
   "milestones": [
     {
       "title": "<specific milestone title for this use case>",
@@ -648,9 +676,23 @@ Return a JSON object:
       "engagement": "<one of: business-envisioning, solution-envisioning, architecture-design, rapid-prototype>",
       "duration": "<X-Y weeks>",
       "deliverables": ["<specific deliverable 1>", "<specific deliverable 2>", ...],
-      "dependencies": ["<title of prerequisite milestone>" or empty array for first]
+      "dependencies": ["<title of prerequisite milestone>" or empty array for first],
+      "discoveryContext": "<optional: specific insight from discovery that applies to this milestone>"
     }
   ],
+  "nextSteps": [
+    {
+      "action": "<specific action item, e.g., 'Schedule stakeholder alignment meeting'>",
+      "owner": "<optional: suggested role, e.g., 'Project Sponsor'>",
+      "targetDate": "<optional: relative timing, e.g., 'Within 1 week'>"
+    }
+  ],
+  "discoveryInsights": {
+    "painPoints": ["<pain point extracted from discovery>"],
+    "stakeholders": ["<key stakeholder role>"],
+    "constraints": ["<identified constraint>"],
+    "opportunities": ["<identified opportunity>"]
+  },
   "totalDuration": "<X-Y weeks total>",
   "reasoning": "<1-2 sentences explaining why this journey structure fits the use case>"
 }
@@ -670,25 +712,45 @@ Make deliverables specific to the use case, not generic.`
       engagement: validEngagements.includes(m.engagement) ? m.engagement : 'business-envisioning',
       duration: String(m.duration || '1-2 weeks'),
       deliverables: Array.isArray(m.deliverables) ? m.deliverables.map(String) : [],
-      dependencies: Array.isArray(m.dependencies) ? m.dependencies.map(String) : []
+      dependencies: Array.isArray(m.dependencies) ? m.dependencies.map(String) : [],
+      discoveryContext: m.discoveryContext ? String(m.discoveryContext) : undefined
     }))
     
+    // Parse next steps
+    const nextSteps: GeneratedJourneyNextStep[] = (parsed.nextSteps || []).map((s: any) => ({
+      action: String(s.action || ''),
+      owner: s.owner ? String(s.owner) : undefined,
+      targetDate: s.targetDate ? String(s.targetDate) : undefined
+    })).filter((s: GeneratedJourneyNextStep) => s.action)
+    
+    // Parse discovery insights
+    const discoveryInsights = parsed.discoveryInsights ? {
+      painPoints: Array.isArray(parsed.discoveryInsights.painPoints) ? parsed.discoveryInsights.painPoints.map(String) : undefined,
+      stakeholders: Array.isArray(parsed.discoveryInsights.stakeholders) ? parsed.discoveryInsights.stakeholders.map(String) : undefined,
+      constraints: Array.isArray(parsed.discoveryInsights.constraints) ? parsed.discoveryInsights.constraints.map(String) : undefined,
+      opportunities: Array.isArray(parsed.discoveryInsights.opportunities) ? parsed.discoveryInsights.opportunities.map(String) : undefined
+    } : undefined
+    
     return {
+      title: String(parsed.title || `${useCase.title} Implementation Journey`),
+      journeyNotes: String(parsed.journeyNotes || ''),
       milestones,
+      nextSteps,
       totalDuration: String(parsed.totalDuration || 'TBD'),
-      reasoning: String(parsed.reasoning || '')
+      reasoning: String(parsed.reasoning || ''),
+      discoveryInsights
     }
   } catch (error) {
     console.error('Customer journey generation failed:', error)
     // Return a default journey based on complexity
-    return getDefaultJourney(complexityLevel)
+    return getDefaultJourney(complexityLevel, useCase.title)
   }
 }
 
 /**
  * Get a default journey structure based on complexity
  */
-function getDefaultJourney(complexity: 'low' | 'medium' | 'high' | 'very-high'): GeneratedJourney {
+function getDefaultJourney(complexity: 'low' | 'medium' | 'high' | 'very-high', useCaseTitle?: string): GeneratedJourney {
   const milestones: GeneratedJourneyMilestone[] = [
     {
       title: 'Business Discovery Workshop',
@@ -741,8 +803,18 @@ function getDefaultJourney(complexity: 'low' | 'medium' | 'high' | 'very-high'):
     }
   }
   
+  // Default next steps
+  const nextSteps: GeneratedJourneyNextStep[] = [
+    { action: 'Schedule kickoff meeting with key stakeholders', owner: 'Project Lead' },
+    { action: 'Identify and confirm project sponsor', owner: 'Account Team' },
+    { action: 'Gather existing documentation and system access', owner: 'Customer IT' }
+  ]
+  
   return {
+    title: useCaseTitle ? `${useCaseTitle} Implementation Journey` : 'Customer Implementation Journey',
+    journeyNotes: 'This journey follows the standard Innovation Hub engagement model. Adjust durations and deliverables based on specific customer context and constraints.',
     milestones,
+    nextSteps,
     totalDuration: minWeeks === maxWeeks ? `${minWeeks} weeks` : `${minWeeks}-${maxWeeks} weeks`,
     reasoning: 'Default journey based on use case complexity assessment.'
   }

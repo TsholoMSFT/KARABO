@@ -3,6 +3,7 @@ import {
   CustomerJourney,
   CustomerJourneyMilestone,
   JourneyEdit,
+  JourneyNextStep,
   ENGAGEMENT_DEFAULTS,
   calculateJourneyDuration,
   InnovationHubEngagement
@@ -13,12 +14,20 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import {
   ArrowCounterClockwise,
   CheckCircle,
@@ -31,7 +40,16 @@ import {
   ArrowsDownUp,
   Clock,
   Package,
-  TreeStructure
+  TreeStructure,
+  NotePencil,
+  ListChecks,
+  Plus,
+  Trash,
+  User,
+  CalendarBlank,
+  Target,
+  Question,
+  ChartLineUp
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -65,18 +83,20 @@ export function CustomerJourneyView({
 }: CustomerJourneyViewProps) {
   const [isEditMode, setIsEditMode] = useState(false)
   const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null)
+  const [newNextStepText, setNewNextStepText] = useState('')
 
   // Calculate total duration dynamically
   const totalDuration = useMemo(() => calculateJourneyDuration(journey.milestones), [journey.milestones])
 
   // Save edit to history for undo
   const saveToHistory = useCallback(
-    (action: JourneyEdit['action'], description: string, previousMilestones: CustomerJourneyMilestone[]) => {
+    (action: JourneyEdit['action'], description: string, previousMilestones: CustomerJourneyMilestone[], previousJourneyState?: Partial<CustomerJourney>) => {
       const edit: JourneyEdit = {
         id: `edit-${Date.now()}`,
         timestamp: Date.now(),
         action,
         previousState: previousMilestones.map(m => ({ ...m })),
+        previousJourneyState,
         description
       }
       const newHistory = [...journey.editHistory, edit].slice(-20) // Keep last 20 edits
@@ -90,13 +110,101 @@ export function CustomerJourneyView({
     if (journey.editHistory.length === 0) return
 
     const lastEdit = journey.editHistory[journey.editHistory.length - 1]
-    onUpdate({
-      ...journey,
+    const updates: Partial<CustomerJourney> = {
       milestones: lastEdit.previousState,
       editHistory: journey.editHistory.slice(0, -1),
       updatedAt: Date.now()
-    })
+    }
+    
+    // Restore journey-level state if available
+    if (lastEdit.previousJourneyState) {
+      if (lastEdit.previousJourneyState.title !== undefined) updates.title = lastEdit.previousJourneyState.title
+      if (lastEdit.previousJourneyState.journeyNotes !== undefined) updates.journeyNotes = lastEdit.previousJourneyState.journeyNotes
+      if (lastEdit.previousJourneyState.nextSteps !== undefined) updates.nextSteps = lastEdit.previousJourneyState.nextSteps
+    }
+    
+    onUpdate({ ...journey, ...updates })
   }, [journey, onUpdate])
+
+  // Update journey title
+  const handleUpdateTitle = useCallback(
+    (title: string) => {
+      const previousMilestones = journey.milestones.map(m => ({ ...m }))
+      onUpdate({
+        ...journey,
+        title,
+        editHistory: saveToHistory('title', 'Updated journey title', previousMilestones, { title: journey.title }),
+        updatedAt: Date.now()
+      })
+    },
+    [journey, onUpdate, saveToHistory]
+  )
+
+  // Update journey notes
+  const handleUpdateJourneyNotes = useCallback(
+    (journeyNotes: string) => {
+      const previousMilestones = journey.milestones.map(m => ({ ...m }))
+      onUpdate({
+        ...journey,
+        journeyNotes,
+        editHistory: saveToHistory('journeyNotes', 'Updated journey notes', previousMilestones, { journeyNotes: journey.journeyNotes }),
+        updatedAt: Date.now()
+      })
+    },
+    [journey, onUpdate, saveToHistory]
+  )
+
+  // Add next step
+  const handleAddNextStep = useCallback(
+    (action: string) => {
+      if (!action.trim()) return
+      const previousMilestones = journey.milestones.map(m => ({ ...m }))
+      const newStep: JourneyNextStep = {
+        id: `step-${Date.now()}`,
+        action: action.trim(),
+        isComplete: false
+      }
+      onUpdate({
+        ...journey,
+        nextSteps: [...(journey.nextSteps || []), newStep],
+        editHistory: saveToHistory('nextSteps', 'Added next step', previousMilestones, { nextSteps: journey.nextSteps }),
+        updatedAt: Date.now()
+      })
+      setNewNextStepText('')
+    },
+    [journey, onUpdate, saveToHistory]
+  )
+
+  // Update next step
+  const handleUpdateNextStep = useCallback(
+    (stepId: string, updates: Partial<JourneyNextStep>) => {
+      const previousMilestones = journey.milestones.map(m => ({ ...m }))
+      const updatedSteps = (journey.nextSteps || []).map(s =>
+        s.id === stepId ? { ...s, ...updates, completedAt: updates.isComplete && !s.isComplete ? Date.now() : s.completedAt } : s
+      )
+      onUpdate({
+        ...journey,
+        nextSteps: updatedSteps,
+        editHistory: saveToHistory('nextSteps', 'Updated next step', previousMilestones, { nextSteps: journey.nextSteps }),
+        updatedAt: Date.now()
+      })
+    },
+    [journey, onUpdate, saveToHistory]
+  )
+
+  // Remove next step
+  const handleRemoveNextStep = useCallback(
+    (stepId: string) => {
+      const previousMilestones = journey.milestones.map(m => ({ ...m }))
+      onUpdate({
+        ...journey,
+        nextSteps: (journey.nextSteps || []).filter(s => s.id !== stepId),
+        editHistory: saveToHistory('nextSteps', 'Removed next step', previousMilestones, { nextSteps: journey.nextSteps }),
+        updatedAt: Date.now()
+      })
+    },
+    [journey, onUpdate, saveToHistory]
+  )
 
   // Toggle milestone completion
   const handleToggleComplete = useCallback(
@@ -206,6 +314,7 @@ export function CustomerJourneyView({
 
   const schemeClasses = getSchemeClasses()
   const completedCount = journey.milestones.filter(m => m.isComplete).length
+  const nextStepsCompletedCount = (journey.nextSteps || []).filter(s => s.isComplete).length
 
   return (
     <Card className={cn(`border-2 ${schemeClasses.border}`, className)}>
@@ -215,8 +324,19 @@ export function CustomerJourneyView({
             <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', schemeClasses.bg)}>
               <ArrowsDownUp size={20} weight="duotone" className={schemeClasses.accent} />
             </div>
-            <div>
-              <CardTitle className="text-lg">Customer Journey</CardTitle>
+            <div className="flex-1">
+              {isEditMode ? (
+                <Input
+                  value={journey.title || ''}
+                  onChange={(e) => handleUpdateTitle(e.target.value)}
+                  placeholder="Enter journey title..."
+                  className="text-lg font-semibold h-8 mb-1"
+                />
+              ) : (
+                <CardTitle className="text-lg">
+                  {journey.title || 'Customer Journey'}
+                </CardTitle>
+              )}
               <CardDescription>
                 Innovation Hub engagement roadmap • {totalDuration}
               </CardDescription>
@@ -273,6 +393,109 @@ export function CustomerJourneyView({
             </Button>
           </div>
         </div>
+
+        {/* Journey Notes Section */}
+        <AnimatePresence>
+          {(isEditMode || journey.journeyNotes) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4 pt-4 border-t"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <NotePencil size={16} className="text-muted-foreground" />
+                <Label className="text-sm font-medium">Journey Notes</Label>
+              </div>
+              {isEditMode ? (
+                <Textarea
+                  value={journey.journeyNotes || ''}
+                  onChange={(e) => handleUpdateJourneyNotes(e.target.value)}
+                  placeholder="Add overall journey context, key findings from discovery, or important considerations..."
+                  className="text-sm min-h-[80px]"
+                />
+              ) : (
+                journey.journeyNotes && (
+                  <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                    {journey.journeyNotes}
+                  </p>
+                )
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Discovery Insights (if available) */}
+        {journey.discoveryInsights && (
+          <div className="mt-4 pt-4 border-t">
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="insights" className="border-none">
+                <AccordionTrigger className="text-sm font-medium py-2 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Lightbulb size={16} className="text-amber-500" />
+                    Discovery Insights
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {journey.discoveryInsights.painPoints && journey.discoveryInsights.painPoints.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-red-600">Pain Points</span>
+                        <ul className="space-y-1">
+                          {journey.discoveryInsights.painPoints.map((p, i) => (
+                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                              <Circle size={6} weight="fill" className="mt-1.5 flex-shrink-0 text-red-400" />
+                              {p}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {journey.discoveryInsights.opportunities && journey.discoveryInsights.opportunities.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-green-600">Opportunities</span>
+                        <ul className="space-y-1">
+                          {journey.discoveryInsights.opportunities.map((o, i) => (
+                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                              <Circle size={6} weight="fill" className="mt-1.5 flex-shrink-0 text-green-400" />
+                              {o}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {journey.discoveryInsights.stakeholders && journey.discoveryInsights.stakeholders.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-blue-600">Key Stakeholders</span>
+                        <ul className="space-y-1">
+                          {journey.discoveryInsights.stakeholders.map((s, i) => (
+                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                              <User size={10} className="mt-1 flex-shrink-0 text-blue-400" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {journey.discoveryInsights.constraints && journey.discoveryInsights.constraints.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-orange-600">Constraints</span>
+                        <ul className="space-y-1">
+                          {journey.discoveryInsights.constraints.map((c, i) => (
+                            <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                              <Circle size={6} weight="fill" className="mt-1.5 flex-shrink-0 text-orange-400" />
+                              {c}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent>
@@ -320,6 +543,131 @@ export function CustomerJourneyView({
               ))}
             </div>
           )}
+        </div>
+
+        {/* Next Steps Section */}
+        <Separator className="my-6" />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ListChecks size={18} className="text-primary" />
+              <Label className="text-sm font-semibold">Next Steps</Label>
+              {(journey.nextSteps || []).length > 0 && (
+                <Badge variant="outline" className="text-xs gap-1">
+                  {nextStepsCompletedCount}/{(journey.nextSteps || []).length}
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Next Steps List */}
+          <div className="space-y-2">
+            {(journey.nextSteps || []).map((step) => (
+              <motion.div
+                key={step.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className={cn(
+                  'flex items-start gap-3 p-3 rounded-lg border bg-card',
+                  step.isComplete && 'opacity-60 bg-muted/30'
+                )}
+              >
+                <Checkbox
+                  checked={step.isComplete}
+                  onCheckedChange={(checked) => handleUpdateNextStep(step.id, { isComplete: !!checked })}
+                  className="mt-0.5"
+                />
+                <div className="flex-1 min-w-0">
+                  {isEditMode ? (
+                    <Input
+                      value={step.action}
+                      onChange={(e) => handleUpdateNextStep(step.id, { action: e.target.value })}
+                      className={cn('text-sm h-7', step.isComplete && 'line-through')}
+                    />
+                  ) : (
+                    <p className={cn('text-sm', step.isComplete && 'line-through text-muted-foreground')}>
+                      {step.action}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-4 mt-1">
+                    {isEditMode ? (
+                      <>
+                        <div className="flex items-center gap-1">
+                          <User size={12} className="text-muted-foreground" />
+                          <Input
+                            value={step.owner || ''}
+                            onChange={(e) => handleUpdateNextStep(step.id, { owner: e.target.value })}
+                            placeholder="Owner"
+                            className="h-6 text-xs w-24"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <CalendarBlank size={12} className="text-muted-foreground" />
+                          <Input
+                            type="date"
+                            value={step.targetDate || ''}
+                            onChange={(e) => handleUpdateNextStep(step.id, { targetDate: e.target.value })}
+                            className="h-6 text-xs w-32"
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {step.owner && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <User size={12} />
+                            {step.owner}
+                          </span>
+                        )}
+                        {step.targetDate && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CalendarBlank size={12} />
+                            {new Date(step.targetDate).toLocaleDateString()}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+                {isEditMode && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-destructive hover:text-destructive"
+                    onClick={() => handleRemoveNextStep(step.id)}
+                  >
+                    <Trash size={14} />
+                  </Button>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Add New Next Step */}
+          <div className="flex items-center gap-2">
+            <Input
+              value={newNextStepText}
+              onChange={(e) => setNewNextStepText(e.target.value)}
+              placeholder="Add a next step..."
+              className="flex-1 text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newNextStepText.trim()) {
+                  handleAddNextStep(newNextStepText)
+                }
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleAddNextStep(newNextStepText)}
+              disabled={!newNextStepText.trim()}
+              className="gap-1"
+            >
+              <Plus size={14} />
+              Add
+            </Button>
+          </div>
         </div>
 
         {/* Generation info */}
@@ -489,6 +837,79 @@ function MilestoneCard({
               </ul>
             )}
           </div>
+
+          {/* Enriched Engagement Details */}
+          <Accordion type="single" collapsible className="mt-3">
+            <AccordionItem value="engagement-details" className="border-none">
+              <AccordionTrigger className="text-xs py-2 hover:no-underline">
+                <span className={cn('flex items-center gap-1.5', colors.text)}>
+                  <Target size={12} />
+                  Engagement Details
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-3 pt-2">
+                  {/* Key Questions */}
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium flex items-center gap-1 text-blue-600">
+                      <Question size={12} />
+                      Key Questions
+                    </span>
+                    <ul className="space-y-1 pl-4">
+                      {engagementInfo.keyQuestions.map((q, i) => (
+                        <li key={i} className="text-xs text-muted-foreground list-disc">
+                          {q}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Insight Prompts */}
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium flex items-center gap-1 text-amber-600">
+                      <Lightbulb size={12} />
+                      Discovery Insight Prompts
+                    </span>
+                    <ul className="space-y-1 pl-4">
+                      {engagementInfo.insightPrompts.map((p, i) => (
+                        <li key={i} className="text-xs text-muted-foreground list-disc">
+                          {p}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Success Metrics */}
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium flex items-center gap-1 text-green-600">
+                      <ChartLineUp size={12} />
+                      Success Metrics
+                    </span>
+                    <ul className="space-y-1 pl-4">
+                      {engagementInfo.successMetrics.map((m, i) => (
+                        <li key={i} className="text-xs text-muted-foreground list-disc">
+                          {m}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          {/* Discovery Context (if available) */}
+          {milestone.discoveryContext && (
+            <div className="mt-3 pt-3 border-t">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Lightbulb size={12} className="text-amber-500" />
+                <span className="text-xs font-medium">Discovery Context</span>
+              </div>
+              <p className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-950/30 p-2 rounded">
+                {milestone.discoveryContext}
+              </p>
+            </div>
+          )}
 
           {/* Notes (editable) */}
           <AnimatePresence>
