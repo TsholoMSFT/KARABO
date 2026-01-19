@@ -188,6 +188,11 @@ IMPORTANT: Use these company research insights to inform your use case suggestio
 
         toast.success(`Using ${session.companyInsights.length} company research insights`)
       }
+
+      // Add research summary if available
+      if (session.companyResearchSummary) {
+        companyResearchContext += `\n\nCOMPANY RESEARCH SUMMARY (AI-generated overview):\n${session.companyResearchSummary}`
+      }
       
       if (session.stockTicker) {
         setGenerationPhase('fetching-earnings')

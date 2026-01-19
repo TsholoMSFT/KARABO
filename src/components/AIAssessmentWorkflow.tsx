@@ -580,6 +580,13 @@ RULES
                     scoreLabel: 'RICE',
                     scoreValue: calculateRICEScore(u),
                   })),
+                  financials: {
+                    annualCOI: topScored[0]?.manualCOI?.totalAnnualCOI || topScored[0]?.coiEstimate?.totalAnnualCOI,
+                    annualValue: topScored[0]?.manualExpectedValue?.totalAnnualValue,
+                    implementationCost: topScored[0]?.manualExpectedValue?.implementationCost,
+                    paybackMonths: topScored[0]?.manualExpectedValue?.paybackMonths,
+                    roi3YearPercent: topScored[0]?.manualExpectedValue?.threeYearROI,
+                  },
                 })}
               />
             </>

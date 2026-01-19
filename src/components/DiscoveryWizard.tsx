@@ -79,11 +79,16 @@ export function DiscoveryWizard({
   const [isGeneratingFollowUp, setIsGeneratingFollowUp] = useState(false)
   const [showFollowUpPrompt, setShowFollowUpPrompt] = useState(false)
   const [companyInsights, setCompanyInsights] = useState<CompanyInsight[]>([])
+  const [companyResearchSummary, setCompanyResearchSummary] = useState('')
   const [currentRanking, setCurrentRanking] = useState<Record<string, number | null>>({})
   const [currentComment, setCurrentComment] = useState('')
 
   const handleCompanyInsightsChange = useCallback((insights: CompanyInsight[]) => {
     setCompanyInsights(insights)
+  }, [])
+
+  const handleCompanyResearchSummaryChange = useCallback((summary: string) => {
+    setCompanyResearchSummary(summary)
   }, [])
 
   // Pre-fill demo data when demo mode is active
@@ -376,6 +381,7 @@ Keep questions conversational, specific to their answer, and focused on discover
         stockTicker: sessionMetadata.stockTicker || undefined,
         responses: updatedResponses,
         companyInsights: companyInsights.length > 0 ? companyInsights : undefined,
+        companyResearchSummary: companyResearchSummary || undefined,
         createdAt: Date.now(),
         completedAt: Date.now(),
       }
@@ -432,6 +438,7 @@ Keep questions conversational, specific to their answer, and focused on discover
         stockTicker: sessionMetadata.stockTicker || undefined,
         responses: responses,
         companyInsights: companyInsights.length > 0 ? companyInsights : undefined,
+        companyResearchSummary: companyResearchSummary || undefined,
         createdAt: Date.now(),
         completedAt: Date.now(),
       }
@@ -769,7 +776,9 @@ Keep questions conversational, specific to their answer, and focused on discover
               <CompanyResearch
                 companyName={sessionMetadata.customerName}
                 onInsightsChange={handleCompanyInsightsChange}
+                onSummaryChange={handleCompanyResearchSummaryChange}
                 initialInsights={companyInsights}
+                initialSummary={companyResearchSummary}
               />
             </CardContent>
 

@@ -386,7 +386,7 @@ Select the BEST matching pattern and respond with ONLY a valid JSON object (no m
               className="space-y-4"
             >
               <ThreadlightPasteCard
-                wizardUrl="https://threadlight.ai/wizard/byop"
+                wizardUrl="https://aka.ms/threadlight"
                 industryLabel={industry}
                 industryValue={industry}
                 shortName={makeThreadlightShortName(currentMapping.useCaseTitle)}

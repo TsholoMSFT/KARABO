@@ -23,7 +23,7 @@ interface ThreadlightPasteCardProps {
 }
 
 export function ThreadlightPasteCard({
-  wizardUrl = 'https://threadlight.ai/wizard/byop',
+  wizardUrl = 'https://aka.ms/threadlight',
   industryLabel,
   industryValue,
   shortName,

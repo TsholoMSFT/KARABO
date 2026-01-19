@@ -18,7 +18,7 @@ import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
 import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 
 // Configurable Threadlight URL - can be overridden via props or environment
-const DEFAULT_THREADLIGHT_URL = 'https://threadlight.ai/wizard/byop'
+const DEFAULT_THREADLIGHT_URL = 'https://aka.ms/threadlight'
 
 interface ThreadlightPlaceholderProps {
   useCase: {
@@ -36,7 +36,25 @@ interface ThreadlightPlaceholderProps {
       productFamily: string
       services: string[]
     }>
+    // Financial data
+    manualCOI?: {
+      directCosts: number
+      opportunityCosts: number
+      riskCosts: number
+      totalAnnualCOI: number
+      notes?: string
+    }
+    manualExpectedValue?: {
+      totalAnnualValue: number
+      implementationCost?: number
+      paybackMonths?: number
+      threeYearROI?: number
+    }
+    coiEstimate?: {
+      totalAnnualCOI: number
+    }
   }
+  customerName?: string
   industry?: string
   currentIndex: number
   totalCount: number
@@ -48,6 +66,7 @@ interface ThreadlightPlaceholderProps {
 
 export function ThreadlightPlaceholder({
   useCase,
+  customerName,
   industry,
   currentIndex,
   totalCount,
@@ -100,13 +119,21 @@ export function ThreadlightPlaceholder({
     ].filter(Boolean).join('\n\n')
 
     return buildThreadlightByopPasteText({
+      customerName,
       industryLabel: industry,
       opportunityName: useCase.title,
       processCandidates,
       processNotes,
       executiveSummary,
+      financials: {
+        annualCOI: useCase.manualCOI?.totalAnnualCOI || useCase.coiEstimate?.totalAnnualCOI,
+        annualValue: useCase.manualExpectedValue?.totalAnnualValue,
+        implementationCost: useCase.manualExpectedValue?.implementationCost,
+        paybackMonths: useCase.manualExpectedValue?.paybackMonths,
+        roi3YearPercent: useCase.manualExpectedValue?.threeYearROI,
+      },
     })
-  }, [useCase, industry])
+  }, [useCase, industry, customerName])
 
   const colorClasses = {
     primary: { icon: 'text-primary', card: 'border-primary/20' },
@@ -141,24 +168,16 @@ export function ThreadlightPlaceholder({
 
           {/* Threadlight Integration - Reusing ThreadlightPasteCard */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-full bg-gradient-to-br from-purple-500 to-blue-500">
-                  <Sparkle size={20} weight="fill" className="text-white" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-foreground">Threadlight Integration</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Professional architecture & process flow diagrams
-                  </p>
-                </div>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-full bg-gradient-to-br from-purple-500 to-blue-500">
+                <Sparkle size={20} weight="fill" className="text-white" />
               </div>
-              <Button asChild variant="outline" size="sm" className="gap-2">
-                <a href={threadlightUrl} target="_blank" rel="noreferrer">
-                  Open Wizard
-                  <ArrowSquareOut size={16} />
-                </a>
-              </Button>
+              <div>
+                <h4 className="font-semibold text-foreground">Threadlight Integration</h4>
+                <p className="text-xs text-muted-foreground">
+                  Professional architecture & process flow diagrams
+                </p>
+              </div>
             </div>
 
             <ThreadlightPasteCard
@@ -223,13 +242,25 @@ export function ThreadlightPlaceholder({
 
           {/* Microsoft Solutions Summary */}
           {useCase.microsoftSolutions && useCase.microsoftSolutions.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Microsoft Solutions</h4>
-              <div className="flex flex-wrap gap-2">
+            <div className="p-4 rounded-lg border bg-card">
+              <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                <Lightning size={18} weight="duotone" className="text-primary" />
+                Microsoft Solutions
+              </h4>
+              <div className="grid gap-3 md:grid-cols-2">
                 {useCase.microsoftSolutions.map((solution, idx) => (
-                  <Badge key={idx} variant="outline" className="text-xs">
-                    {solution.productFamily}: {solution.services.join(', ')}
-                  </Badge>
+                  <div key={idx} className="space-y-1">
+                    <Badge variant="secondary" className="text-xs font-medium capitalize">
+                      {solution.productFamily.replace(/-/g, ' ')}
+                    </Badge>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {solution.services.map((service, sIdx) => (
+                        <Badge key={sIdx} variant="outline" className="text-[10px] bg-background">
+                          {service}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

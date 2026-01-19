@@ -690,6 +690,7 @@ export interface DiscoverySession {
   suggestedUseCases?: SuggestedUseCaseData[]
   earningsInsights?: EarningsInsight[] // AI-extracted insights from earnings calls
   companyInsights?: CompanyInsight[] // AI-extracted insights from company research (news, docs, etc.)
+  companyResearchSummary?: string // AI-generated summary of company research insights
   
   // ============================================================================
   // INNOVATION HUB METHODOLOGY: BUSINESS ENVISIONING DATA

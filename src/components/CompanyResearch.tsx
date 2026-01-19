@@ -36,20 +36,24 @@ import {
 interface CompanyResearchProps {
   companyName: string
   onInsightsChange: (insights: CompanyInsight[]) => void
+  onSummaryChange?: (summary: string) => void
   initialInsights?: CompanyInsight[]
+  initialSummary?: string
 }
 
 export function CompanyResearch({ 
   companyName, 
   onInsightsChange,
-  initialInsights = []
+  onSummaryChange,
+  initialInsights = [],
+  initialSummary = ''
 }: CompanyResearchProps) {
   const [insights, setInsights] = useState<CompanyInsight[]>(initialInsights)
   const [sources, setSources] = useState<CompanySource[]>([])
   const [pastedText, setPastedText] = useState('')
   const [sourceTitle, setSourceTitle] = useState('')
   const [isExtracting, setIsExtracting] = useState(false)
-  const [summary, setSummary] = useState('')
+  const [summary, setSummary] = useState(initialSummary)
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
   const [rssItems, setRssItems] = useState<RSSFeedItem[]>([])
   const [isLoadingRSS, setIsLoadingRSS] = useState(false)
@@ -226,6 +230,7 @@ export function CompanyResearch({
     try {
       const result = await generateResearchSummary(companyName, insights)
       setSummary(result)
+      onSummaryChange?.(result)
     } catch (error) {
       toast.error('Failed to generate summary')
     } finally {
