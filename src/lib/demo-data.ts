@@ -12,12 +12,7 @@ import {
   SecurityRequirement,
   EnterpriseDiscoverySession,
   OpportunityStageData,
-  ResourcesStageData,
-  StrategicAlignmentInfo,
-  UseCaseBusinessProcess,
-  UseCaseMicrosoftSolution,
-  UseCaseAgenticOpportunity,
-  ImplementationComplexityInfo
+  ResourcesStageData
 } from './types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 
@@ -674,17 +669,14 @@ export const DEMO_RETAIL_RESPONSES: DiscoveryResponse[] = [
   {
     questionId: 'current-landscape',
     answer: 'Zava Retail operates 150 stores across Southern Africa with a growing e-commerce platform (12% of revenue). We use SAP S/4HANA for ERP, Oracle for supply chain, and legacy POS systems. Customer data is fragmented across loyalty programs, POS, and e-commerce platforms.',
-    timestamp: Date.now(),
   },
   {
     questionId: 'biggest-challenges',
     answer: 'Inventory management is our biggest pain point - R200M in shrinkage annually, stockouts causing lost sales of R50M per month. Customer experience is inconsistent across channels. Manual processes in pricing and promotions take 2 weeks to execute.',
-    timestamp: Date.now(),
   },
   {
     questionId: 'digital-initiatives',
     answer: 'We launched click-and-collect last year and are piloting self-checkout. Exploring personalized marketing but limited by data silos. Board has approved R100M for digital transformation over 3 years.',
-    timestamp: Date.now(),
   },
 ]
 
@@ -699,11 +691,12 @@ export const DEMO_RETAIL_USE_CASES: UseCase[] = [
     rice: { reach: 150, users: 150, period: 'quarter', impact: 3, confidence: 85, effort: 10 },
     kpis: ['revenue-growth', 'inventory-turnover', 'customer-satisfaction'],
     costOfInaction: {
-      annualizedCost: 600000000, // R50M/month stockouts = R600M/year
-      costType: 'lost-revenue',
-      confidence: 'high',
-      assumptions: 'Based on current R50M monthly lost sales from stockouts, 60% reduction achievable',
-      sourceData: 'Internal sales analytics, lost sale tracking',
+      directCosts: 0,
+      opportunityCosts: 600000000, // R50M/month stockouts = R600M/year
+      riskCosts: 0,
+      totalAnnualCOI: 600000000,
+      notes: 'Based on current R50M monthly lost sales from stockouts; 60% reduction achievable. Source: Internal sales analytics, lost sale tracking.',
+      calculatedAt: Date.now(),
     },
     // Innovation Hub Methodology: Business Envisioning
     strategicAlignment: {
@@ -769,11 +762,12 @@ export const DEMO_RETAIL_USE_CASES: UseCase[] = [
     rice: { reach: 150, users: 150, period: 'quarter', impact: 3, confidence: 75, effort: 14 },
     kpis: ['shrinkage-rate', 'loss-prevention-savings', 'incident-detection-rate'],
     costOfInaction: {
-      annualizedCost: 200000000, // R200M shrinkage
-      costType: 'operational-losses',
-      confidence: 'high',
-      assumptions: 'Current shrinkage at R200M annually, AI can reduce by 35%',
-      sourceData: 'Annual shrinkage audit reports',
+      directCosts: 200000000, // R200M shrinkage
+      opportunityCosts: 0,
+      riskCosts: 0,
+      totalAnnualCOI: 200000000,
+      notes: 'Current shrinkage at R200M annually; AI can reduce by ~35%. Source: Annual shrinkage audit reports.',
+      calculatedAt: Date.now(),
     },
     // Innovation Hub Methodology: Business Envisioning
     strategicAlignment: {
@@ -838,11 +832,12 @@ export const DEMO_RETAIL_USE_CASES: UseCase[] = [
     rice: { reach: 500000, users: 500000, period: 'quarter', impact: 2, confidence: 80, effort: 12 },
     kpis: ['customer-lifetime-value', 'conversion-rate', 'average-basket-size'],
     costOfInaction: {
-      annualizedCost: 180000000,
-      costType: 'lost-revenue',
-      confidence: 'medium',
-      assumptions: 'Personalization typically increases revenue by 10-15%, estimated R180M opportunity',
-      sourceData: 'Industry benchmarks, competitor analysis',
+      directCosts: 0,
+      opportunityCosts: 180000000,
+      riskCosts: 0,
+      totalAnnualCOI: 180000000,
+      notes: 'Personalization typically increases revenue by 10-15%; estimated R180M opportunity. Source: Industry benchmarks, competitor analysis.',
+      calculatedAt: Date.now(),
     },
     aiRegulations: {
       applicableFrameworks: ['popia', 'gdpr', 'ccpa', 'iso-42001'],
@@ -868,11 +863,12 @@ export const DEMO_RETAIL_USE_CASES: UseCase[] = [
     rice: { reach: 30, users: 30, period: 'quarter', impact: 3, confidence: 70, effort: 16 },
     kpis: ['margin-improvement', 'promotion-roi', 'competitive-price-index'],
     costOfInaction: {
-      annualizedCost: 120000000,
-      costType: 'efficiency-loss',
-      confidence: 'medium',
-      assumptions: 'Slow pricing responses losing 2% margin annually on R6B revenue',
-      sourceData: 'Pricing team estimates, margin analysis',
+      directCosts: 0,
+      opportunityCosts: 120000000,
+      riskCosts: 0,
+      totalAnnualCOI: 120000000,
+      notes: 'Slow pricing responses losing ~2% margin annually on R6B revenue. Source: Pricing team estimates, margin analysis.',
+      calculatedAt: Date.now(),
     },
     aiRegulations: {
       applicableFrameworks: ['iso-42001', 'popia'],
@@ -882,7 +878,7 @@ export const DEMO_RETAIL_USE_CASES: UseCase[] = [
     },
     cybersecurity: {
       securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'],
-      threatCategories: ['competitor-intelligence', 'data-exfiltration'],
+      threatCategories: ['insider-threat', 'data-exfiltration'],
       dataClassification: 'confidential',
       securityNotes: 'Pricing strategies are highly confidential. Strict access controls.',
     },
@@ -898,11 +894,12 @@ export const DEMO_RETAIL_USE_CASES: UseCase[] = [
     rice: { reach: 50, users: 50, period: 'quarter', impact: 2, confidence: 65, effort: 18 },
     kpis: ['supply-chain-cost', 'delivery-performance', 'carbon-footprint'],
     costOfInaction: {
-      annualizedCost: 90000000,
-      costType: 'operational-losses',
-      confidence: 'medium',
-      assumptions: 'Supply chain inefficiencies costing 1.5% of COGS, estimated R90M',
-      sourceData: 'Logistics analysis, supplier performance data',
+      directCosts: 90000000,
+      opportunityCosts: 0,
+      riskCosts: 0,
+      totalAnnualCOI: 90000000,
+      notes: 'Supply chain inefficiencies costing ~1.5% of COGS; estimated R90M. Source: Logistics analysis, supplier performance data.',
+      calculatedAt: Date.now(),
     },
     aiRegulations: {
       applicableFrameworks: ['iso-42001', 'epa'],
@@ -911,8 +908,8 @@ export const DEMO_RETAIL_USE_CASES: UseCase[] = [
       jurisdictions: ['South Africa'],
     },
     cybersecurity: {
-      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'third-party-security'],
-      threatCategories: ['supply-chain-attack', 'data-exfiltration'],
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'vulnerability-scanning'],
+      threatCategories: ['supply-chain', 'data-exfiltration'],
       dataClassification: 'confidential',
       securityNotes: 'Supplier integration requires secure APIs. Third-party risk assessment needed.',
     },
@@ -977,16 +974,25 @@ export const DEMO_RETAIL_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
     1: {
       status: 'in-progress',
       data: {
-        opportunity: 'AI-powered inventory optimization and demand forecasting across 150 stores',
-        businessProblem: 'R600M annual lost sales from stockouts, R200M shrinkage, fragmented customer data',
+        problemStatement: 'R600M annual lost sales from stockouts, R200M shrinkage, and fragmented customer data across channels.',
+        problemCategory: 'growth',
+        affectedArea: 'multiple',
         desiredOutcome: 'Reduce stockouts by 60%, shrinkage by 35%, unified customer 360 view',
         successMetrics: ['Inventory turnover improvement', 'Shrinkage reduction %', 'Customer NPS', 'Revenue per sqm'],
-        timeline: '18-month phased rollout starting with top 20 stores',
-        budgetRange: 'R80M-R120M',
-        stakeholders: ['CDO', 'CIO', 'Merchandising', 'Operations', 'Finance'],
-        yellowLights: [],
-        notes: 'Strong executive sponsorship. IT modernization already in progress.',
-      } as OpportunityStageData,
+        timelineExpectation: '12+-months',
+        coi: {
+          directCosts: { oneTime: 0, recurring: 16666667 },
+          opportunityCosts: { oneTime: 0, recurring: 50000000 },
+          riskCosts: { oneTime: 0, oneTimeProbability: 0, recurring: 0, recurringProbability: 0 },
+          totalAnnual: 800000000,
+        },
+        scq: {
+          situation: '150-store retailer with growing e-commerce, modern ERP, and fragmented data across POS, loyalty, and e-commerce.',
+          complication: 'Stockouts and shrinkage are materially impacting revenue and margins; manual forecasting and replenishment do not scale.',
+          question: 'How can we use AI to improve demand forecasting and inventory execution while keeping data governance and controls in place?',
+          status: 'pending',
+        },
+      },
     },
     2: { status: 'not-started', data: null },
     3: { status: 'not-started', data: null },
@@ -1010,17 +1016,14 @@ export const DEMO_FINANCIAL_RESPONSES: DiscoveryResponse[] = [
   {
     questionId: 'current-landscape',
     answer: 'Blue Yonder Financial is a mid-tier bank with 2M retail customers and R80B in assets under management. Core banking on legacy mainframe (30 years old), with modern digital banking layer. Using Azure for some workloads but limited AI adoption.',
-    timestamp: Date.now(),
   },
   {
     questionId: 'biggest-challenges',
     answer: 'Fraud losses at R150M annually and growing. Customer onboarding takes 5 days on average, losing prospects to neo-banks. Manual credit decisioning is slow and inconsistent. AML compliance is resource-intensive.',
-    timestamp: Date.now(),
   },
   {
     questionId: 'digital-initiatives',
     answer: 'Launched mobile banking app last year (500K active users). Exploring AI for credit scoring but regulatory concerns. Board wants to reduce cost-to-income ratio from 62% to 55% over 3 years.',
-    timestamp: Date.now(),
   },
 ]
 
@@ -1035,11 +1038,12 @@ export const DEMO_FINANCIAL_USE_CASES: UseCase[] = [
     rice: { reach: 2000000, users: 2000000, period: 'quarter', impact: 3, confidence: 85, effort: 12 },
     kpis: ['fraud-loss-reduction', 'false-positive-rate', 'detection-time'],
     costOfInaction: {
-      annualizedCost: 150000000,
-      costType: 'operational-losses',
-      confidence: 'high',
-      assumptions: 'Current R150M fraud losses, 70% reduction achievable with AI',
-      sourceData: 'Fraud operations quarterly reports',
+      directCosts: 150000000,
+      opportunityCosts: 0,
+      riskCosts: 0,
+      totalAnnualCOI: 150000000,
+      notes: 'Current R150M fraud losses; ~70% reduction achievable with AI. Source: Fraud operations quarterly reports.',
+      calculatedAt: Date.now(),
     },
     aiRegulations: {
       applicableFrameworks: ['popia', 'gdpr', 'glba', 'iso-42001', 'sox'],
@@ -1048,7 +1052,7 @@ export const DEMO_FINANCIAL_USE_CASES: UseCase[] = [
       jurisdictions: ['South Africa'],
     },
     cybersecurity: {
-      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging', 'siem-integration'],
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging'],
       threatCategories: ['data-breach', 'adversarial-attacks', 'model-poisoning', 'insider-threat'],
       dataClassification: 'highly-confidential',
       securityNotes: 'Transaction data requires highest security controls. Model integrity monitoring essential.',
@@ -1065,21 +1069,22 @@ export const DEMO_FINANCIAL_USE_CASES: UseCase[] = [
     rice: { reach: 50000, users: 50000, period: 'quarter', impact: 3, confidence: 90, effort: 8 },
     kpis: ['onboarding-time', 'customer-acquisition-cost', 'document-accuracy'],
     costOfInaction: {
-      annualizedCost: 75000000,
-      costType: 'lost-revenue',
-      confidence: 'medium',
-      assumptions: 'Losing 30% of applicants to faster neo-banks, estimated R75M in lifetime value',
-      sourceData: 'Customer journey analytics, competitor analysis',
+      directCosts: 0,
+      opportunityCosts: 75000000,
+      riskCosts: 0,
+      totalAnnualCOI: 75000000,
+      notes: 'Losing ~30% of applicants to faster neo-banks; estimated R75M in lifetime value. Source: Customer journey analytics, competitor analysis.',
+      calculatedAt: Date.now(),
     },
     aiRegulations: {
-      applicableFrameworks: ['popia', 'fica', 'gdpr', 'iso-42001'],
+      applicableFrameworks: ['popia', 'gdpr', 'iso-42001', 'other'],
       riskClassification: 'limited',
       complianceNotes: 'FICA compliance mandatory. Document verification must maintain audit trail. Human review for edge cases.',
       jurisdictions: ['South Africa'],
     },
     cybersecurity: {
       securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'data-masking', 'audit-logging'],
-      threatCategories: ['identity-fraud', 'data-breach', 'document-forgery'],
+      threatCategories: ['adversarial-attacks', 'data-breach'],
       dataClassification: 'pii',
       securityNotes: 'ID documents and personal data require strict handling. Temporary storage only.',
     },
@@ -1095,21 +1100,22 @@ export const DEMO_FINANCIAL_USE_CASES: UseCase[] = [
     rice: { reach: 100000, users: 100000, period: 'quarter', impact: 3, confidence: 70, effort: 18 },
     kpis: ['approval-rate', 'default-rate', 'decisioning-time', 'cost-per-decision'],
     costOfInaction: {
-      annualizedCost: 120000000,
-      costType: 'efficiency-loss',
-      confidence: 'medium',
-      assumptions: 'Manual underwriting costs + lost opportunity from thin-file rejections',
-      sourceData: 'Credit operations cost analysis',
+      directCosts: 60000000,
+      opportunityCosts: 60000000,
+      riskCosts: 0,
+      totalAnnualCOI: 120000000,
+      notes: 'Manual underwriting costs plus lost opportunity from thin-file rejections (split evenly as a placeholder). Source: Credit operations cost analysis.',
+      calculatedAt: Date.now(),
     },
     aiRegulations: {
-      applicableFrameworks: ['ncr', 'popia', 'eu-ai-act', 'glba', 'iso-42001'],
+      applicableFrameworks: ['popia', 'eu-ai-act', 'glba', 'iso-42001', 'other'],
       riskClassification: 'high',
       complianceNotes: 'High-risk AI under EU AI Act. NCR compliance for credit decisioning. Full explainability required. Regular bias audits mandatory.',
       jurisdictions: ['South Africa', 'European Union'],
     },
     cybersecurity: {
-      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging', 'model-governance'],
-      threatCategories: ['model-poisoning', 'data-breach', 'adversarial-attacks', 'bias-exploitation'],
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging', 'zero-trust'],
+      threatCategories: ['model-poisoning', 'data-breach', 'adversarial-attacks'],
       dataClassification: 'highly-confidential',
       securityNotes: 'Credit models require strict governance. Alternative data sources need vetting.',
     },
@@ -1125,11 +1131,12 @@ export const DEMO_FINANCIAL_USE_CASES: UseCase[] = [
     rice: { reach: 200, users: 200, period: 'quarter', impact: 2, confidence: 85, effort: 6 },
     kpis: ['relationship-manager-productivity', 'cross-sell-rate', 'customer-retention'],
     costOfInaction: {
-      annualizedCost: 45000000,
-      costType: 'efficiency-loss',
-      confidence: 'medium',
-      assumptions: 'RM spending 40% time on admin tasks, 15% productivity gain achievable',
-      sourceData: 'Time and motion study, RM feedback surveys',
+      directCosts: 45000000,
+      opportunityCosts: 0,
+      riskCosts: 0,
+      totalAnnualCOI: 45000000,
+      notes: 'RM spending ~40% time on admin tasks; ~15% productivity gain achievable. Source: Time and motion study, RM feedback surveys.',
+      calculatedAt: Date.now(),
     },
     aiRegulations: {
       applicableFrameworks: ['popia', 'gdpr', 'iso-42001', 'ms-copilot-governance'],
@@ -1155,21 +1162,22 @@ export const DEMO_FINANCIAL_USE_CASES: UseCase[] = [
     rice: { reach: 50, users: 50, period: 'quarter', impact: 3, confidence: 75, effort: 14 },
     kpis: ['false-positive-reduction', 'investigation-time', 'sar-filing-accuracy'],
     costOfInaction: {
-      annualizedCost: 60000000,
-      costType: 'efficiency-loss',
-      confidence: 'high',
-      assumptions: 'AML team spending 70% time on false positives, R60M annual cost',
-      sourceData: 'Compliance operations cost analysis',
+      directCosts: 60000000,
+      opportunityCosts: 0,
+      riskCosts: 0,
+      totalAnnualCOI: 60000000,
+      notes: 'AML team spending ~70% time on false positives; R60M annual cost. Source: Compliance operations cost analysis.',
+      calculatedAt: Date.now(),
     },
     aiRegulations: {
-      applicableFrameworks: ['fica', 'popia', 'glba', 'iso-42001'],
+      applicableFrameworks: ['popia', 'glba', 'iso-42001', 'other'],
       riskClassification: 'high',
       complianceNotes: 'SARB and FIC oversight. AI cannot replace human judgment for SAR decisions. Full audit trail required.',
       jurisdictions: ['South Africa'],
     },
     cybersecurity: {
-      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging', 'siem-integration'],
-      threatCategories: ['data-breach', 'insider-threat', 'model-evasion'],
+      securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'mfa-required', 'audit-logging'],
+      threatCategories: ['data-breach', 'insider-threat', 'adversarial-attacks'],
       dataClassification: 'highly-confidential',
       securityNotes: 'AML data is highly sensitive. Segregated access. Audit everything.',
     },
@@ -1234,16 +1242,25 @@ export const DEMO_FINANCIAL_ENTERPRISE_SESSION: EnterpriseDiscoverySession = {
     1: {
       status: 'in-progress',
       data: {
-        opportunity: 'AI-powered fraud detection and intelligent customer onboarding',
-        businessProblem: 'R150M annual fraud losses, 5-day onboarding losing customers to neo-banks',
+        problemStatement: 'R150M annual fraud losses and 5-day onboarding cycles are driving churn and lost acquisition to neo-banks.',
+        problemCategory: 'risk',
+        affectedArea: 'multiple',
         desiredOutcome: 'Reduce fraud by 70%, same-day onboarding, improve cost-to-income ratio',
         successMetrics: ['Fraud loss reduction', 'Onboarding time', 'Customer acquisition cost', 'Cost-to-income ratio'],
-        timeline: '24-month transformation with quick wins in first 6 months',
-        budgetRange: 'R150M-R200M',
-        stakeholders: ['CDIO', 'CTO', 'CRO', 'CCO', 'CFO'],
-        yellowLights: [],
-        notes: 'Strong regulatory focus. SARB engagement required for credit AI.',
-      } as OpportunityStageData,
+        timelineExpectation: '12+-months',
+        coi: {
+          directCosts: { oneTime: 0, recurring: 12500000 },
+          opportunityCosts: { oneTime: 0, recurring: 6250000 },
+          riskCosts: { oneTime: 0, oneTimeProbability: 0, recurring: 0, recurringProbability: 0 },
+          totalAnnual: 225000000,
+        },
+        scq: {
+          situation: 'Mid-tier bank with legacy core systems and growing digital adoption; some Azure footprint but limited AI at scale.',
+          complication: 'Fraud losses and slow onboarding create direct losses and competitive disadvantage, while regulatory expectations are increasing.',
+          question: 'How do we deploy AI for fraud and onboarding with explainability, auditability, and appropriate human oversight?',
+          status: 'pending',
+        },
+      },
     },
     2: { status: 'not-started', data: null },
     3: { status: 'not-started', data: null },

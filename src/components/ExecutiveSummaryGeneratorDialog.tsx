@@ -35,6 +35,11 @@ interface ExecutiveSummaryGeneratorDialogProps {
   onSaveSummary: (summary: string) => void
 }
 
+function getIndustryLabel(session: DiscoverySession): string {
+  if (!session.industry) return 'General'
+  return industryLabels[session.industry] || 'General'
+}
+
 function buildPrompt(params: {
   preset: ExecutiveSummaryPreset
   session: DiscoverySession
@@ -70,7 +75,7 @@ FORMAT
 
 SESSION
 Customer: ${session.customerName}
-Industry: ${industryLabels[session.industry] || 'General'}
+Industry: ${getIndustryLabel(session)}
 Session Name: ${session.name}
 
 EXISTING USE CASES (if any)
@@ -112,7 +117,7 @@ function buildFallbackSummary(params: {
   return `# Executive Summary
 
 ## Context
-This summary captures the current discovery context for **${session.customerName}** (${industryLabels[session.industry] || 'General'}).
+This summary captures the current discovery context for **${session.customerName}** (${getIndustryLabel(session)}).
 
 ## What We Heard
 ${contextSnippet}
@@ -138,7 +143,6 @@ export function ExecutiveSummaryGeneratorDialog({
 }: ExecutiveSummaryGeneratorDialogProps) {
   const [preset, setPreset] = useState<ExecutiveSummaryPreset>('standard')
   const [pastedText, setPastedText] = useState('')
-  const [files, setFiles] = useState<File[]>([])
   const [isExtracting, setIsExtracting] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [attachmentResults, setAttachmentResults] = useState<AttachmentTextResult[]>([])
@@ -149,7 +153,6 @@ export function ExecutiveSummaryGeneratorDialog({
     // reset per-open to keep it demo-friendly and avoid leaking state
     setPreset('standard')
     setPastedText('')
-    setFiles([])
     setAttachmentResults([])
     setAttachmentsCombinedText('')
     setIsExtracting(false)
@@ -169,7 +172,6 @@ export function ExecutiveSummaryGeneratorDialog({
 
   const handleFilesSelected = async (selected: FileList | null) => {
     const nextFiles = selected ? Array.from(selected) : []
-    setFiles(nextFiles)
 
     if (nextFiles.length === 0) {
       setAttachmentResults([])

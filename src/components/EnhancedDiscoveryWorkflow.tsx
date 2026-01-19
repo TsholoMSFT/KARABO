@@ -785,12 +785,11 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="text-center py-4">
-                      <div className="w-full bg-muted rounded-full h-2 mb-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${journeyProgress}%` }}
-                        />
-                      </div>
+                      <progress
+                        value={journeyProgress}
+                        max={100}
+                        className="w-full h-2 mb-2 rounded-full overflow-hidden bg-muted [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary"
+                      />
                       <p className="text-sm text-muted-foreground">
                         Processing use cases... {journeyProgress}%
                       </p>

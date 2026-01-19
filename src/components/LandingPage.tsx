@@ -48,8 +48,6 @@ export function LandingPage({
   onStartDemo,
   onStartEnterpriseDemo,
   onSkipToUseCases,
-  isDemoMode,
-  demoIndustry,
   onEnterDemoMode
 }: LandingPageProps) {
   const hasExistingCustomers = customers.length > 0
