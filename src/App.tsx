@@ -328,7 +328,7 @@ function App() {
     const demoDataMap = {
       mining: { session: DEMO_DISCOVERY_SESSION, useCases: DEMO_USE_CASES, name: 'Zava Mining', desc: 'AI-powered mining innovations with regulatory compliance' },
       retail: { session: DEMO_RETAIL_SESSION, useCases: DEMO_RETAIL_USE_CASES, name: 'MegaMart Retail', desc: 'Retail AI for inventory, shrinkage, and customer experience' },
-      financial: { session: DEMO_FINANCIAL_SESSION, useCases: DEMO_FINANCIAL_USE_CASES, name: 'Apex Financial', desc: 'Financial services AI for fraud, onboarding, and credit' },
+      financial: { session: DEMO_FINANCIAL_SESSION, useCases: DEMO_FINANCIAL_USE_CASES, name: 'Contoso Financial', desc: 'Financial services AI for fraud, onboarding, and credit' },
     }
     const demoData = demoDataMap[demoType]
 
@@ -370,7 +370,7 @@ function App() {
     const demoDataMap = {
       mining: { session: DEMO_ENTERPRISE_SESSION, name: 'Zava Mining', desc: 'Predictive maintenance opportunity' },
       retail: { session: DEMO_RETAIL_ENTERPRISE_SESSION, name: 'MegaMart Retail', desc: 'Inventory optimization opportunity' },
-      financial: { session: DEMO_FINANCIAL_ENTERPRISE_SESSION, name: 'Apex Financial', desc: 'Fraud detection and onboarding opportunity' },
+      financial: { session: DEMO_FINANCIAL_ENTERPRISE_SESSION, name: 'Contoso Financial', desc: 'Fraud detection and onboarding opportunity' },
     }
     const demoData = demoDataMap[demoType]
 
@@ -438,7 +438,7 @@ function App() {
   const handleEnterDemoMode = (industry: DemoIndustry) => {
     setIsDemoMode(true)
     setDemoIndustry(industry)
-    toast.success(`Demo Mode activated for ${industry === 'mining' ? 'Zava Mining' : industry === 'retail' ? 'MegaMart Retail' : 'Apex Financial'}`, {
+    toast.success(`Demo Mode activated for ${industry === 'mining' ? 'Zava Mining' : industry === 'retail' ? 'MegaMart Retail' : 'Contoso Financial'}`, {
       description: 'Forms will be pre-filled with sample data. You can edit any values.',
     })
   }

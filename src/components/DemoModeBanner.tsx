@@ -32,7 +32,7 @@ const industryConfig: Record<DemoIndustry, {
     color: 'text-green-600',
   },
   financial: {
-    name: 'Apex Financial',
+    name: 'Contoso Financial',
     icon: <Bank size={18} weight="duotone" />,
     color: 'text-blue-600',
   },

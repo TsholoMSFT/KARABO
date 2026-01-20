@@ -315,7 +315,7 @@ export function LandingPage({
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
-                  {/* Mining Demo */}
+                  {/* 1. Quick Discovery - Zava Mining */}
                   <div className="space-y-2">
                     <Button
                       variant="outline"
@@ -328,43 +328,43 @@ export function LandingPage({
                       <HardHat size={18} weight="duotone" className="text-amber-600" />
                       <div className="text-left">
                         <div className="font-medium text-sm">Zava Mining</div>
-                        <div className="text-[10px] text-muted-foreground">Enter Demo Mode</div>
+                        <div className="text-[10px] text-muted-foreground">Quick Discovery</div>
                       </div>
                     </Button>
                   </div>
                   
-                  {/* Retail Demo */}
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 h-auto py-3 hover:border-green-500/50 hover:bg-green-500/5"
-                      onClick={() => {
-                        onEnterDemoMode?.('retail')
-                        onStartNew()
-                      }}
-                    >
-                      <ShoppingCart size={18} weight="duotone" className="text-green-600" />
-                      <div className="text-left">
-                        <div className="font-medium text-sm">MegaMart Retail</div>
-                        <div className="text-[10px] text-muted-foreground">Enter Demo Mode</div>
-                      </div>
-                    </Button>
-                  </div>
-                  
-                  {/* Financial Demo */}
+                  {/* 2. AI Assessment Lite - Contoso Financial */}
                   <div className="space-y-2">
                     <Button
                       variant="outline"
                       className="w-full gap-2 h-auto py-3 hover:border-blue-500/50 hover:bg-blue-500/5"
                       onClick={() => {
                         onEnterDemoMode?.('financial')
-                        onStartNew()
+                        onStartAIAssessment?.()
                       }}
                     >
                       <Bank size={18} weight="duotone" className="text-blue-600" />
                       <div className="text-left">
-                        <div className="font-medium text-sm">Apex Financial</div>
-                        <div className="text-[10px] text-muted-foreground">Enter Demo Mode</div>
+                        <div className="font-medium text-sm">Contoso Financial</div>
+                        <div className="text-[10px] text-muted-foreground">AI Assessment Lite</div>
+                      </div>
+                    </Button>
+                  </div>
+                  
+                  {/* 3. Enterprise Discovery - MegaMart Retail */}
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 h-auto py-3 hover:border-green-500/50 hover:bg-green-500/5"
+                      onClick={() => {
+                        onEnterDemoMode?.('retail')
+                        onStartEnterpriseDiscovery()
+                      }}
+                    >
+                      <ShoppingCart size={18} weight="duotone" className="text-green-600" />
+                      <div className="text-left">
+                        <div className="font-medium text-sm">MegaMart Retail</div>
+                        <div className="text-[10px] text-muted-foreground">Enterprise Discovery</div>
                       </div>
                     </Button>
                   </div>
