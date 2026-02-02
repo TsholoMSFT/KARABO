@@ -110,6 +110,30 @@ export type DataClassification =
   | 'financial'
   | 'operational'         // Operational/industrial data
 
+// ============================================================================
+// ENTITY TYPE - For public vs private vs government organizations
+// ============================================================================
+
+export type EntityType = 
+  | 'public-company'      // Publicly traded company with stock ticker
+  | 'private-company'     // Private company (no stock ticker)
+  | 'government'          // Government / Public Sector agency
+  | 'non-profit'          // Non-profit organization
+
+export const ENTITY_TYPE_LABELS: Record<EntityType, string> = {
+  'public-company': 'Public Company',
+  'private-company': 'Private Company',
+  'government': 'Government / Public Sector',
+  'non-profit': 'Non-Profit Organization',
+}
+
+export const ENTITY_TYPE_DESCRIPTIONS: Record<EntityType, string> = {
+  'public-company': 'Publicly traded on stock exchanges (NYSE, NASDAQ, JSE, etc.)',
+  'private-company': 'Privately held company, not publicly traded',
+  'government': 'Government department, agency, or public sector organization',
+  'non-profit': 'Non-profit, NGO, or charitable organization',
+}
+
 export interface AIRegulationsInfo {
   applicableFrameworks: AIRegulationFramework[]
   riskClassification?: AIRiskLevel
@@ -770,6 +794,7 @@ export interface DiscoverySession {
   accountTeamRep: string
   primaryStakeholder: string
   stockTicker?: string // For public companies - enables earnings/financial analysis
+  entityType?: EntityType // Type of organization (public, private, government, non-profit)
   executiveSummary?: string
   creationSource?: DiscoverySessionCreationSource
   responses: DiscoveryResponse[]

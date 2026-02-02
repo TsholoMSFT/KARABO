@@ -31,6 +31,21 @@ import {
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Info, Target, Scales, Clock } from '@phosphor-icons/react'
+
+/**
+ * Why COI (Cost of Inaction) matters:
+ * 
+ * COI quantifies what the organization loses EACH YEAR by NOT solving a problem.
+ * It's the "do nothing" tax - the ongoing cost of maintaining the status quo.
+ * 
+ * This should be calculated BEFORE prioritization because:
+ * 1. It provides objective financial data to justify RICE Impact scores
+ * 2. It creates urgency by showing the cost of delay
+ * 3. It enables ROI calculations once solution costs are known
+ * 4. It shifts the conversation from "can we afford to do this?" to "can we afford NOT to?"
+ */
 
 export interface COIValues {
   directCosts: number
@@ -169,6 +184,78 @@ function formatCurrency(value: number): string {
   return `$${value.toLocaleString()}`
 }
 
+function COIExplainer({ compact = false }: { compact?: boolean }) {
+  const [expanded, setExpanded] = useState(false)
+
+  if (compact && !expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        className="flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors p-2 rounded-md hover:bg-primary/5"
+      >
+        <Info size={14} weight="fill" />
+        <span>What is Cost of Inaction?</span>
+      </button>
+    )
+  }
+
+  return (
+    <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+      {compact && (
+        <button
+          onClick={() => setExpanded(false)}
+          className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
+          title="Close explanation"
+          aria-label="Close explanation"
+        >
+          <X size={14} />
+        </button>
+      )}
+      <Info className="h-4 w-4 text-blue-600" />
+      <AlertTitle className="text-blue-800 dark:text-blue-300">Understanding Cost of Inaction (COI)</AlertTitle>
+      <AlertDescription className="text-blue-700 dark:text-blue-400 space-y-3 mt-2">
+        <p className="text-sm">
+          <strong>COI answers: "What does doing nothing cost us each year?"</strong>
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="flex items-start gap-2">
+            <CurrencyDollar size={16} className="text-blue-500 mt-0.5 shrink-0" />
+            <div>
+              <strong>Direct Costs</strong>
+              <p className="text-blue-600/80 dark:text-blue-400/80">Money spent on workarounds, manual processes, overtime</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <TrendUp size={16} className="text-amber-500 mt-0.5 shrink-0" />
+            <div>
+              <strong>Opportunity Costs</strong>
+              <p className="text-blue-600/80 dark:text-blue-400/80">Revenue lost to competitors, missed market opportunities</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Warning size={16} className="text-red-500 mt-0.5 shrink-0" />
+            <div>
+              <strong>Risk Costs</strong>
+              <p className="text-blue-600/80 dark:text-blue-400/80">Potential fines, breaches, compliance failures (probability-weighted)</p>
+            </div>
+          </div>
+        </div>
+        <div className="pt-2 border-t border-blue-200 dark:border-blue-700 space-y-1">
+          <p className="text-xs font-medium flex items-center gap-1">
+            <Target size={12} className="text-blue-500" /> Why calculate COI before prioritizing?
+          </p>
+          <ul className="text-xs list-disc pl-5 space-y-0.5">
+            <li>Provides objective data for Impact scoring (not just gut feel)</li>
+            <li>Creates urgency: delay = money lost</li>
+            <li>Shifts from "can we afford this?" to "can we afford NOT to?"</li>
+            <li>Enables accurate ROI once solution costs are known</li>
+          </ul>
+        </div>
+      </AlertDescription>
+    </Alert>
+  )
+}
+
 export function QuickCOICalculator({
   initialValues,
   onSave,
@@ -284,6 +371,9 @@ ${notes ? `\nNotes: ${notes}` : ''}
 
   const calculatorContent = (
     <div className="space-y-4">
+      {/* Compact explainer for inline/compact variants */}
+      {variant !== 'dialog' && <COIExplainer compact />}
+      
       <CostInput
         label="Direct Costs"
         description="Current spending on workarounds, manual processes"
@@ -464,13 +554,13 @@ ${notes ? `\nNotes: ${notes}` : ''}
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calculator size={24} weight="duotone" className="text-primary" />
-              Quick Cost of Inaction Calculator
+              Cost of Inaction (COI) Calculator
             </DialogTitle>
-            <DialogDescription>
-              Quantify the financial impact of maintaining the status quo. 
-              This 4-box model helps justify investment in solutions.
+            <DialogDescription className="text-base">
+              <strong>What does "doing nothing" cost your organization each year?</strong>
             </DialogDescription>
           </DialogHeader>
+          <COIExplainer />
           {calculatorContent}
           <DialogFooter>
             {actionButtons}

@@ -6,10 +6,12 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { PausedSessionsList } from '@/components/enterprise-discovery/PausedSessionsList'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
+import { CustomerJourneyTool } from '@/components/CustomerJourneyTool'
+import { ThreadlightTool } from '@/components/ThreadlightTool'
 import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, TreeStructure, Buildings, Microphone, GearSix, Briefcase, Rocket, Play, Toolbox, Calculator, FileArrowDown, ArrowsLeftRight, FileText } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import type { EnterpriseDiscoverySession } from '@/lib/types'
+import type { EnterpriseDiscoverySession, DiscoverySession, CustomerJourney } from '@/lib/types'
 
 type DiscoveryMode = 'quick' | 'ai-assessment' | 'enterprise' | 'tools'
 
@@ -24,9 +26,11 @@ interface DiscoveryLauncherProps {
   customerName?: string
   onOpenSessionComparison?: () => void
   onOpenExport?: () => void
+  currentSession?: DiscoverySession | null
+  onJourneyUpdate?: (useCaseId: string, journey: CustomerJourney) => void
 }
 
-export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport }: DiscoveryLauncherProps) {
+export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport, currentSession, onJourneyUpdate }: DiscoveryLauncherProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mode, setMode] = useState<DiscoveryMode>('quick')
 
@@ -336,6 +340,19 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
               onSave={(coiData) => {
                 toast.success(`COI of ${coiData.totalCOI.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} calculated`)
               }}
+            />
+
+            {/* Customer Journey Builder */}
+            <CustomerJourneyTool
+              session={currentSession || null}
+              onJourneyUpdate={onJourneyUpdate}
+            />
+
+            {/* Threadlight Export Tool */}
+            <ThreadlightTool
+              useCases={currentSession?.useCases || []}
+              customerName={currentSession?.customerName}
+              industry={currentSession?.industry}
             />
 
             {/* Other Tools Grid */}

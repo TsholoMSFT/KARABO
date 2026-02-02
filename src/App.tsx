@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import '@/lib/openai-service' // Initialize OpenAI service
-import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse } from '@/lib/types'
+import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType } from '@/lib/types'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { getTopUseCases, getRankedUseCases } from '@/lib/scoring'
@@ -90,6 +90,18 @@ function App() {
   const [pendingDiscoveryTrack, setPendingDiscoveryTrack] = useState<DiscoveryTrack | null>(null)
   const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live' | 'ai-assessment'>('standard')
   const [notesSession, setNotesSession] = useState<{ metadata: SessionMetadata; notes: string; extractedUseCases: ExtractedUseCase[] } | null>(null)
+  
+  // Draft persistence for notes - prevents data loss when switching views
+  const [draftDiscoveryNotes, setDraftDiscoveryNotes] = useLocalStorage<{
+    notes: string
+    customerName: string
+    sessionName: string
+    industry: Industry
+    entityType?: EntityType
+    location?: string
+    stockTicker?: string
+  } | null>('discovery-draft', null)
+  
   const [scoringMethod, setScoringMethod] = useState<ScoringMethod>('impact-feasibility')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [tableExportOpen, setTableExportOpen] = useState(false)
@@ -521,7 +533,7 @@ function App() {
     resetPendingDiscoveryDraft()
   }
 
-  const handleNotesAnalyze = (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry) => {
+  const handleNotesAnalyze = (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry, entityType?: EntityType) => {
     // Create discovery session from notes
     const session: DiscoverySession = {
       id: `notes-${Date.now()}`,
@@ -535,6 +547,7 @@ function App() {
       stockTicker: metadata.stockTicker,
       name: sessionName,
       industry: industry,
+      entityType: entityType,
       responses: [
         {
           questionId: 'notes-input',
@@ -785,6 +798,9 @@ function App() {
           onBackToLanding={handleBackToLanding}
           isDemoMode={isDemoMode}
           demoIndustry={demoIndustry}
+          initialDraft={draftDiscoveryNotes}
+          onDraftChange={setDraftDiscoveryNotes}
+          onDraftClear={() => setDraftDiscoveryNotes(null)}
         />
       )}
 

@@ -10,6 +10,7 @@ import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { useCustomers } from '@/hooks/use-customers'
 import { lookupTickerSymbol, TickerLookupResult } from '@/lib/earnings-service'
+import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS } from '@/lib/types'
 import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -24,6 +25,7 @@ export interface SessionMetadata {
   innovationHubLocation: string
   solutionEngineer: string
   stockTicker?: string // Optional stock ticker for public companies
+  entityType?: EntityType // Type of organization
 }
 
 interface SessionMetadataFormProps {
@@ -350,7 +352,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                           <button
                             key={suggestion.ticker}
                             type="button"
-                            onClick={() => handleSelectTicker(suggestion)}
+                            onMouseDown={() => handleSelectTicker(suggestion)}
                             className="w-full text-left p-2 rounded hover:bg-accent transition-colors flex items-center justify-between group"
                           >
                             <div className="flex-1 min-w-0">

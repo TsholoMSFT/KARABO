@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue, CustomerJourney, generateDefaultJourneyMilestones, calculateJourneyDuration, type MicrosoftProductFamily } from '@/lib/types'
+import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue, CustomerJourney, type MicrosoftProductFamily, type EntityType } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
-import { generateCustomerJourney } from '@/lib/openai-service'
 import { industryLabels } from '@/lib/discovery-questions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,11 +15,9 @@ import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
-import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, TreeStructure } from '@phosphor-icons/react'
+import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import { ThreadlightPlaceholder } from '@/components/ThreadlightPlaceholder'
-import { CustomerJourneyView } from '@/components/CustomerJourneyView'
 import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { fetchFinancialStatements } from '@/lib/earnings-service'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
@@ -54,6 +51,17 @@ interface WorkflowUseCase {
       confidenceBoost: number
       confidenceReason: string
     }
+    estimatedAt: number
+  }
+  roiEstimate?: {
+    implementationCost: number
+    expectedAnnualBenefit: number
+    roiPercentage: number
+    paybackMonths: number
+    threeYearValue: number
+    assumptions: string[]
+    reasoning: string
+    confidence: 'high' | 'medium' | 'low'
     estimatedAt: number
   }
   manualCOI?: UseCaseCOI
@@ -128,7 +136,7 @@ interface EnhancedDiscoveryWorkflowProps {
   onCancel: () => void
 }
 
-type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'threadlight' | 'journey' | 'summary' | 'save-confirm'
+type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'summary' | 'save-confirm'
 
 export function EnhancedDiscoveryWorkflow({
   session,
@@ -157,8 +165,6 @@ export function EnhancedDiscoveryWorkflow({
   const [newUseCaseTitle, setNewUseCaseTitle] = useState('')
   const [newUseCaseDescription, setNewUseCaseDescription] = useState('')
   const [_isGeneratingSummary, setIsGeneratingSummary] = useState(false)
-  const [isGeneratingJourneys, setIsGeneratingJourneys] = useState(false)
-  const [journeyProgress, setJourneyProgress] = useState(0)
   const [executiveSummary, setExecutiveSummary] = useState('')
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [annualRevenue, setAnnualRevenue] = useState<number | undefined>(undefined)
@@ -195,7 +201,7 @@ export function EnhancedDiscoveryWorkflow({
   }, [session.stockTicker])
 
   const selectedUseCases = useCases.filter(uc => uc.selected)
-  const currentUseCase = step === 'impact-feasibility' || step === 'rice' || step === 'threadlight'
+  const currentUseCase = step === 'impact-feasibility' || step === 'rice'
     ? selectedUseCases[currentUseCaseIndex] 
     : null
 
@@ -315,132 +321,21 @@ export function EnhancedDiscoveryWorkflow({
   const handleSaveRice = (
     rice: WorkflowUseCase['rice'], 
     aiEffortEstimate?: WorkflowUseCase['aiEffortEstimate'],
-    coiEstimate?: WorkflowUseCase['coiEstimate']
+    coiEstimate?: WorkflowUseCase['coiEstimate'],
+    roiEstimate?: WorkflowUseCase['roiEstimate']
   ) => {
     const updatedUseCases = useCases.map(uc =>
-      uc.id === currentUseCase?.id ? { ...uc, rice, aiEffortEstimate, coiEstimate } : uc
+      uc.id === currentUseCase?.id ? { ...uc, rice, aiEffortEstimate, coiEstimate, roiEstimate } : uc
     )
     setUseCases(updatedUseCases)
 
     if (currentUseCaseIndex < selectedUseCases.length - 1) {
       setCurrentUseCaseIndex(currentUseCaseIndex + 1)
     } else {
-      // Move to threadlight step after all RICE scoring is complete
+      // Move directly to summary after all RICE scoring is complete (Threadlight moved to Tools tab)
       setCurrentUseCaseIndex(0)
-      handleStepWithSave('threadlight')
+      handleCompleteDiscovery()
     }
-  }
-
-  const handleThreadlightNext = () => {
-    if (currentUseCaseIndex < selectedUseCases.length - 1) {
-      setCurrentUseCaseIndex(currentUseCaseIndex + 1)
-    } else {
-      // All use cases reviewed, proceed to journey generation
-      handleStepWithSave('journey')
-      handleGenerateJourneys()
-    }
-  }
-
-  const handleThreadlightBack = () => {
-    if (currentUseCaseIndex > 0) {
-      setCurrentUseCaseIndex(currentUseCaseIndex - 1)
-    } else {
-      // Go back to last RICE scoring
-      setCurrentUseCaseIndex(selectedUseCases.length - 1)
-      setStep('rice')
-    }
-  }
-
-  // Generate customer journeys for all selected use cases
-  const handleGenerateJourneys = async () => {
-    setIsGeneratingJourneys(true)
-    setJourneyProgress(0)
-    
-    const updatedUseCases = [...useCases]
-    const selectedIndices = useCases
-      .map((uc, idx) => uc.selected ? idx : -1)
-      .filter(idx => idx >= 0)
-    
-    for (let i = 0; i < selectedIndices.length; i++) {
-      const idx = selectedIndices[i]
-      const uc = updatedUseCases[idx]
-      
-      setJourneyProgress(Math.round(((i + 1) / selectedIndices.length) * 100))
-      
-      try {
-        // Determine complexity from existing data
-        const complexity: 'low' | 'medium' | 'high' | 'very-high' = 
-          (uc.aiEffortEstimate?.effortWeeks || 4) > 16 ? 'very-high' :
-          (uc.aiEffortEstimate?.effortWeeks || 4) > 8 ? 'high' :
-          (uc.aiEffortEstimate?.effortWeeks || 4) > 4 ? 'medium' : 'low'
-        
-        const generated = await generateCustomerJourney(
-          { id: uc.id, title: uc.title, description: uc.description },
-          {
-            complexity,
-            industry: session.industry,
-            customerName: session.customerName
-          }
-        )
-        
-        // Convert to CustomerJourney format
-        const journey: CustomerJourney = {
-          useCaseId: uc.id,
-          title: generated.title,
-          journeyNotes: generated.journeyNotes,
-          milestones: generated.milestones.map((m, mIdx) => ({
-            id: `${uc.id}-m${mIdx + 1}`,
-            order: mIdx + 1,
-            title: m.title,
-            description: m.description,
-            engagement: m.engagement,
-            duration: m.duration,
-            deliverables: m.deliverables,
-            dependencies: m.dependencies,
-            isComplete: false,
-            discoveryContext: m.discoveryContext
-          })),
-          nextSteps: generated.nextSteps?.map((s, sIdx) => ({
-            id: `${uc.id}-step${sIdx + 1}`,
-            action: s.action,
-            owner: s.owner,
-            targetDate: s.targetDate,
-            isComplete: false
-          })),
-          totalDuration: generated.totalDuration,
-          createdAt: Date.now(),
-          generatedBy: 'ai',
-          editHistory: [],
-          discoveryInsights: generated.discoveryInsights
-        }
-        
-        updatedUseCases[idx] = { ...uc, customerJourney: journey }
-      } catch (error) {
-        console.error(`Failed to generate journey for ${uc.title}:`, error)
-        // Use default journey on error
-        const milestones = generateDefaultJourneyMilestones(uc.id, 'medium')
-        const journey: CustomerJourney = {
-          useCaseId: uc.id,
-          title: `${uc.title} Implementation Journey`,
-          milestones,
-          totalDuration: calculateJourneyDuration(milestones),
-          createdAt: Date.now(),
-          generatedBy: 'ai',
-          editHistory: []
-        }
-        updatedUseCases[idx] = { ...uc, customerJourney: journey }
-      }
-    }
-    
-    setUseCases(updatedUseCases)
-    setIsGeneratingJourneys(false)
-    toast.success(`Generated customer journeys for ${selectedIndices.length} use cases`)
-  }
-
-  const handleJourneyUpdate = (useCaseId: string, journey: CustomerJourney) => {
-    setUseCases(prev => prev.map(uc => 
-      uc.id === useCaseId ? { ...uc, customerJourney: journey } : uc
-    ))
   }
 
   const handleCompleteDiscovery = async () => {
@@ -761,112 +656,10 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
               context={{
                 industry: session.industry ? industryLabels[session.industry] : undefined,
                 companyName: session.customerName,
-                annualRevenue
+                annualRevenue,
+                entityType: session.entityType
               }}
             />
-          )}
-
-          {step === 'threadlight' && currentUseCase && (
-            <ThreadlightPlaceholder
-              useCase={currentUseCase}
-              industry={session.industry ? industryLabels[session.industry] : undefined}
-              currentIndex={currentUseCaseIndex}
-              totalCount={selectedUseCases.length}
-              onNext={handleThreadlightNext}
-              onBack={handleThreadlightBack}
-            />
-          )}
-
-          {step === 'journey' && (
-            <motion.div
-              key="journey"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-            >
-              {isGeneratingJourneys ? (
-                <Card className="border-2">
-                  <CardHeader className="text-center">
-                    <div className="mx-auto mb-4 w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
-                      <TreeStructure size={40} weight="duotone" className="text-primary animate-pulse" />
-                    </div>
-                    <CardTitle className="text-2xl">Generating Customer Journeys</CardTitle>
-                    <CardDescription>
-                      Creating Innovation Hub engagement roadmaps for each use case
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="text-center py-4">
-                      <progress
-                        value={journeyProgress}
-                        max={100}
-                        className="w-full h-2 mb-2 rounded-full overflow-hidden bg-muted [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary"
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Processing use cases... {journeyProgress}%
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border-2">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TreeStructure size={24} weight="duotone" className="text-primary" />
-                      Customer Journeys
-                    </CardTitle>
-                    <CardDescription>
-                      Review and customize the Innovation Hub engagement roadmap for each use case
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <ScrollArea className="h-[500px] pr-4">
-                      <div className="space-y-6">
-                        {selectedUseCases.map((uc, idx) => (
-                          <div key={uc.id}>
-                            <h3 className="text-sm font-medium mb-3">
-                              {idx + 1}. {uc.title}
-                            </h3>
-                            {uc.customerJourney ? (
-                              <CustomerJourneyView
-                                journey={uc.customerJourney}
-                                onUpdate={(journey) => handleJourneyUpdate(uc.id, journey)}
-                              />
-                            ) : (
-                              <Card className="border border-dashed">
-                                <CardContent className="py-6 text-center text-muted-foreground">
-                                  No journey generated for this use case
-                                </CardContent>
-                              </Card>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setCurrentUseCaseIndex(selectedUseCases.length - 1)
-                        setStep('threadlight')
-                      }}
-                      className="gap-2"
-                    >
-                      <ArrowLeft size={16} />
-                      Back to Solution Design
-                    </Button>
-                    <Button
-                      onClick={handleCompleteDiscovery}
-                      className="gap-2"
-                    >
-                      Generate Summary
-                      <ArrowRight size={16} />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              )}
-            </motion.div>
           )}
 
           {step === 'summary' && (
@@ -1020,7 +813,32 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
 
                   {/* Financial Quantification (Optional) - COI + ROI for a selected use case */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-foreground">Financial Quantification (Optional)</h3>
+                    <h3 className="text-lg font-semibold text-foreground">Financial Quantification</h3>
+                    
+                    {/* COI/ROI Educational Context */}
+                    <div className="p-4 bg-gradient-to-r from-blue-500/5 to-green-500/5 rounded-lg border border-blue-500/20 space-y-3">
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-1">💰 Cost of Inaction (COI)</h4>
+                          <p className="text-xs text-muted-foreground">
+                            What the organization loses <em>each year</em> by NOT solving this problem. 
+                            Includes direct costs (workarounds), opportunity costs (lost revenue), and risk costs (fines/breaches).
+                          </p>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-1">📈 Expected Value (ROI)</h4>
+                          <p className="text-xs text-muted-foreground">
+                            What the organization gains by solving this problem.
+                            Compares annual value delivered vs implementation cost to calculate payback period & ROI.
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground border-t border-border/50 pt-2">
+                        <strong>Tip:</strong> AI already estimated COI during RICE scoring. Use this section to refine with actual data, 
+                        or add ROI projections for executive presentations.
+                      </p>
+                    </div>
+
                     <div className="space-y-2">
                       <Label>Apply COI/ROI to use case</Label>
                       <Select
@@ -1182,6 +1000,16 @@ function ImpactFeasibilityStep({ useCase, currentIndex, totalCount, onSave, onBa
             <p className="text-sm text-muted-foreground">{useCase.description}</p>
           </div>
 
+          {/* COI Preview Context */}
+          <div className="p-3 bg-blue-500/5 rounded-lg border border-blue-500/20 text-sm">
+            <p className="font-medium text-blue-700 dark:text-blue-400 mb-1">📊 Quick Assessment → Data-Driven Scoring</p>
+            <p className="text-muted-foreground text-xs">
+              This quick assessment captures your initial view. In the next step (RICE Scoring), 
+              we'll calculate the <strong>Cost of Inaction (COI)</strong> — what the organization loses each year by NOT solving this problem — 
+              to provide objective, financial backing for prioritization decisions.
+            </p>
+          </div>
+
           <div className="space-y-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -1249,9 +1077,9 @@ interface RiceStepProps {
   useCase: WorkflowUseCase
   currentIndex: number
   totalCount: number
-  onSave: (rice: WorkflowUseCase['rice'], aiEffortEstimate?: WorkflowUseCase['aiEffortEstimate'], coiEstimate?: WorkflowUseCase['coiEstimate']) => void
+  onSave: (rice: WorkflowUseCase['rice'], aiEffortEstimate?: WorkflowUseCase['aiEffortEstimate'], coiEstimate?: WorkflowUseCase['coiEstimate'], roiEstimate?: WorkflowUseCase['roiEstimate']) => void
   onBack: () => void
-  context?: { industry?: string; companyName?: string; annualRevenue?: number }
+  context?: { industry?: string; companyName?: string; annualRevenue?: number; entityType?: EntityType }
 }
 
 interface COIEstimateResult {
@@ -1290,6 +1118,10 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
   const [hasOverriddenImpact, setHasOverriddenImpact] = useState(false)
   const [hasOverriddenConfidence, setHasOverriddenConfidence] = useState(false)
   const [showCOIDetails, setShowCOIDetails] = useState(false)
+
+  // ROI estimation state
+  const [isEstimatingROI, setIsEstimatingROI] = useState(false)
+  const [roiEstimate, setRoiEstimate] = useState<WorkflowUseCase['roiEstimate']>(useCase.roiEstimate)
 
   // Auto-run AI estimation when entering the step (if not already cached)
   useEffect(() => {
@@ -1335,7 +1167,7 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
           if (typeof window.estimateCOI === 'function') {
             const result = await window.estimateCOI(
               { title: useCase.title, description: useCase.description },
-              { industry: context?.industry, companyName: context?.companyName, annualRevenue: context?.annualRevenue }
+              { industry: context?.industry, companyName: context?.companyName, annualRevenue: context?.annualRevenue, entityType: context?.entityType }
             )
             setCoiEstimate(result)
             if (!hasOverriddenImpact) {
@@ -1343,6 +1175,27 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
             }
             if (!hasOverriddenConfidence && result.suggestedRICE.confidenceBoost > 0) {
               setConfidence(prev => Math.min(100, prev + result.suggestedRICE.confidenceBoost))
+            }
+            
+            // ROI estimation (after COI is available)
+            if (result.totalAnnualCOI > 0 && typeof window.estimateROI === 'function') {
+              setIsEstimatingROI(true)
+              try {
+                const roiResult = await window.estimateROI(
+                  { title: useCase.title, description: useCase.description },
+                  { 
+                    industry: context?.industry, 
+                    entityType: context?.entityType,
+                    coiEstimate: result.totalAnnualCOI, 
+                    effortWeeks: effort || useCase.aiEffortEstimate?.effortWeeks || 4 
+                  }
+                )
+                setRoiEstimate({ ...roiResult, estimatedAt: Date.now() })
+              } catch (roiError) {
+                console.error('AI ROI estimation failed:', roiError)
+              } finally {
+                setIsEstimatingROI(false)
+              }
             }
           }
         } catch (error) {
@@ -1391,7 +1244,8 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
         effort,
       },
       aiEstimate ? { ...aiEstimate, estimatedAt: Date.now() } : undefined,
-      coiEstimate ? { ...coiEstimate, estimatedAt: Date.now() } : undefined
+      coiEstimate ? { ...coiEstimate, estimatedAt: Date.now() } : undefined,
+      roiEstimate ? { ...roiEstimate, estimatedAt: Date.now() } : undefined
     )
   }
 
@@ -1518,6 +1372,19 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
                   </Button>
                 </div>
 
+                {/* COI Explanation */}
+                <div className="text-xs text-muted-foreground bg-green-500/10 p-3 rounded-md border border-green-500/15">
+                  <p className="font-medium text-foreground mb-1">💡 What is COI?</p>
+                  <p>
+                    <strong>Cost of Inaction</strong> = what the organization loses <em>each year</em> by NOT solving this problem. 
+                    It includes current spending on workarounds (Direct), lost revenue/opportunities (Opportunity), 
+                    and potential fines or risks (Risk).
+                  </p>
+                  <p className="mt-2 text-green-700 dark:text-green-400">
+                    ↳ COI is used to suggest an objective <strong>Impact</strong> score — higher COI means more business impact.
+                  </p>
+                </div>
+
                 {isEstimatingCOI ? (
                   <p className="text-sm text-muted-foreground animate-pulse">
                     Calculating cost of inaction based on industry and use case context...
@@ -1611,6 +1478,55 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
                         )}
                       </div>
                     )}
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* ROI Estimation Panel */}
+            {(roiEstimate || isEstimatingROI) && (
+              <div className="p-4 bg-emerald-500/5 rounded-lg border border-emerald-500/20 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkle size={16} className="text-emerald-600" weight="fill" />
+                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                      Expected Return on Investment
+                    </span>
+                    {roiEstimate && (
+                      <Badge variant="outline" className="text-xs capitalize">{roiEstimate.confidence}</Badge>
+                    )}
+                  </div>
+                </div>
+
+                {isEstimatingROI ? (
+                  <p className="text-sm text-muted-foreground animate-pulse">
+                    Calculating expected ROI based on COI and effort estimates...
+                  </p>
+                ) : roiEstimate && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-background rounded-lg">
+                        <p className="text-xs text-muted-foreground">Implementation Cost</p>
+                        <p className="text-sm font-semibold">{formatCurrency(roiEstimate.implementationCost)}</p>
+                      </div>
+                      <div className="p-3 bg-background rounded-lg">
+                        <p className="text-xs text-muted-foreground">Annual Benefit</p>
+                        <p className="text-sm font-semibold text-emerald-600">{formatCurrency(roiEstimate.expectedAnnualBenefit)}</p>
+                      </div>
+                      <div className="p-3 bg-background rounded-lg">
+                        <p className="text-xs text-muted-foreground">ROI</p>
+                        <p className="text-lg font-bold text-emerald-600">{roiEstimate.roiPercentage.toFixed(0)}%</p>
+                      </div>
+                      <div className="p-3 bg-background rounded-lg">
+                        <p className="text-xs text-muted-foreground">Payback Period</p>
+                        <p className="text-sm font-semibold">{roiEstimate.paybackMonths} months</p>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-emerald-500/10 rounded-lg text-center">
+                      <p className="text-xs text-muted-foreground">3-Year Net Value</p>
+                      <p className="text-xl font-bold text-emerald-600">{formatCurrency(roiEstimate.threeYearValue)}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground italic">{roiEstimate.reasoning}</p>
                   </>
                 )}
               </div>

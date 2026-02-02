@@ -83,6 +83,7 @@ export interface ExtractedUseCase {
 interface ExtractionContext {
   customerName: string
   industry?: Industry
+  entityType?: 'public-company' | 'private-company' | 'government' | 'non-profit'
   location?: string
   stockTicker?: string
   companyInsights?: CompanyInsight[]
@@ -107,6 +108,16 @@ export async function extractUseCasesFromNotes(
     ? `\nLOCATION: ${context.location}`
     : ''
 
+  // Entity type context for appropriate AI recommendations
+  const entityTypeContext = context.entityType
+    ? `\nORGANIZATION TYPE: ${
+        context.entityType === 'government' ? 'Government/Public Sector - Avoid shareholder value, P/E ratio, stock price references. Focus on citizen impact, budget efficiency, compliance, and public service delivery.' : 
+        context.entityType === 'non-profit' ? 'Non-Profit Organization - Focus on mission impact, donor value, operational efficiency, and beneficiary outcomes rather than profit metrics.' :
+        context.entityType === 'private-company' ? 'Private Company - No public financial data available. Focus on competitive advantage, operational efficiency, and growth without referencing stock performance.' : 
+        'Public Company - Can reference stock performance, financial metrics, shareholder value.'
+      }`
+    : ''
+
   // Build company insights context if available
   const insightsContext = context.companyInsights && context.companyInsights.length > 0
     ? `\n\nCOMPANY RESEARCH INSIGHTS:
@@ -122,7 +133,7 @@ ${context.companyInsights.map(insight => `
   const prompt = `You are an expert innovation consultant at Microsoft using the Innovation Hub Methodology. Your task is to analyze unstructured discovery notes from a customer conversation and extract high-value use cases for Microsoft AI and cloud solutions.
 
 CUSTOMER CONTEXT:
-Customer: ${context.customerName}${industryContext}${locationContext}${insightsContext}
+Customer: ${context.customerName}${industryContext}${locationContext}${entityTypeContext}${insightsContext}
 
 DISCOVERY NOTES (UNSTRUCTURED):
 """

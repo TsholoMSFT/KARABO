@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Industry } from '@/lib/types'
+import { Industry, EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS } from '@/lib/types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { industryLabels } from '@/lib/discovery-questions'
 import { extractUseCasesFromNotes, ExtractedUseCase } from '@/lib/use-case-extraction'
@@ -10,21 +10,42 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { NavigationHeader } from '@/components/NavigationHeader'
-import { Sparkle, FileText, Info } from '@phosphor-icons/react'
+import { Sparkle, FileText, Info, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { DEMO_NOTES, DEMO_SESSION_METADATA_BY_INDUSTRY } from '@/lib/demo-data'
 import type { DemoIndustry } from '@/lib/demo-data'
 
+// Draft persistence interface
+export interface DiscoveryDraft {
+  notes: string
+  customerName: string
+  sessionName: string
+  industry: Industry
+  entityType?: EntityType
+  location?: string
+  stockTicker?: string
+  // Session details (optional)
+  innovationHubSPOC?: string
+  primaryStakeholder?: string
+  accountTeamRep?: string
+  solutionEngineer?: string
+}
+
 interface DiscoveryNotesInputProps {
   sessionMetadata?: Partial<SessionMetadata>
-  onAnalyze: (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry) => void
+  onAnalyze: (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry, entityType?: EntityType) => void
   onCancel: () => void
   onBackToLanding?: () => void
   // Demo mode props
   isDemoMode?: boolean
   demoIndustry?: DemoIndustry
+  // Draft persistence props
+  initialDraft?: DiscoveryDraft | null
+  onDraftChange?: (draft: DiscoveryDraft) => void
+  onDraftClear?: () => void
 }
 
 const industryOptions: Array<{ value: Industry; label: string }> = [
@@ -46,16 +67,57 @@ export function DiscoveryNotesInput({
   onCancel,
   onBackToLanding,
   isDemoMode,
-  demoIndustry
+  demoIndustry,
+  initialDraft,
+  onDraftChange,
+  onDraftClear
 }: DiscoveryNotesInputProps) {
-  const [notes, setNotes] = useState('')
-  const [sessionName, setSessionName] = useState('')
-  const [customerName, setCustomerName] = useState(sessionMetadata?.customerName || '')
-  const [industry, setIndustry] = useState<Industry>('general')
-  const [location, setLocation] = useState(sessionMetadata?.innovationHubLocation || '')
-  const [stockTicker, setStockTicker] = useState('')
+  // Initialize from draft if available, otherwise from sessionMetadata
+  const [notes, setNotes] = useState(initialDraft?.notes || '')
+  const [sessionName, setSessionName] = useState(initialDraft?.sessionName || '')
+  const [customerName, setCustomerName] = useState(initialDraft?.customerName || sessionMetadata?.customerName || '')
+  const [industry, setIndustry] = useState<Industry>(initialDraft?.industry || 'general')
+  const [entityType, setEntityType] = useState<EntityType>(initialDraft?.entityType || 'public-company')
+  const [location, setLocation] = useState(initialDraft?.location || sessionMetadata?.innovationHubLocation || '')
+  const [stockTicker, setStockTicker] = useState(initialDraft?.stockTicker || '')
+  
+  // Session details (collapsible)
+  const [showSessionDetails, setShowSessionDetails] = useState(false)
+  const [innovationHubSPOC, setInnovationHubSPOC] = useState(initialDraft?.innovationHubSPOC || sessionMetadata?.innovationHubSPOC || '')
+  const [primaryStakeholder, setPrimaryStakeholder] = useState(initialDraft?.primaryStakeholder || sessionMetadata?.primaryStakeholder || '')
+  const [accountTeamRep, setAccountTeamRep] = useState(initialDraft?.accountTeamRep || sessionMetadata?.accountTeamRep || '')
+  const [solutionEngineer, setSolutionEngineer] = useState(initialDraft?.solutionEngineer || sessionMetadata?.solutionEngineer || '')
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showExample, setShowExample] = useState(false)
+  
+  // Auto-detect entity type from customer name patterns
+  useEffect(() => {
+    if (!customerName) return
+    const lowerName = customerName.toLowerCase()
+    if (lowerName.includes('department of') || lowerName.includes('ministry of') || 
+        lowerName.includes('government') || lowerName.includes('municipality') ||
+        lowerName.includes('city of') || lowerName.includes('province') ||
+        lowerName.includes('national') && (lowerName.includes('treasury') || lowerName.includes('agency'))) {
+      setEntityType('government')
+    } else if (lowerName.includes('foundation') || lowerName.includes('ngo') || 
+               lowerName.includes('non-profit') || lowerName.includes('charity')) {
+      setEntityType('non-profit')
+    }
+  }, [customerName])
+  
+  // Draft persistence - debounced save
+  useEffect(() => {
+    if (!onDraftChange) return
+    const timer = setTimeout(() => {
+      onDraftChange({
+        notes, customerName, sessionName, industry, entityType, location, stockTicker,
+        innovationHubSPOC, primaryStakeholder, accountTeamRep, solutionEngineer
+      })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [notes, customerName, sessionName, industry, entityType, location, stockTicker,
+      innovationHubSPOC, primaryStakeholder, accountTeamRep, solutionEngineer, onDraftChange])
 
   // Pre-fill with demo data when demo mode is active
   useEffect(() => {
@@ -94,19 +156,21 @@ export function DiscoveryNotesInput({
     try {
       const metadata: SessionMetadata = {
         customerName: customerName.trim(),
-        innovationHubSPOC: '',
-        primaryStakeholder: '',
-        accountTeamRep: '',
+        innovationHubSPOC: innovationHubSPOC.trim() || '',
+        primaryStakeholder: primaryStakeholder.trim() || '',
+        accountTeamRep: accountTeamRep.trim() || '',
         innovationHubLocation: location.trim() || '',
-        solutionEngineer: '',
-        stockTicker: stockTicker.trim() || '',
+        solutionEngineer: solutionEngineer.trim() || '',
+        stockTicker: entityType === 'public-company' ? stockTicker.trim() : '',
+        entityType,
       }
 
       const extractedUseCases = await extractUseCasesFromNotes(notes, {
         customerName: customerName.trim(),
         industry,
+        entityType,
         location: location.trim() || undefined,
-        stockTicker: stockTicker.trim() || undefined,
+        stockTicker: entityType === 'public-company' ? stockTicker.trim() : undefined,
       })
 
       if (extractedUseCases.length === 0) {
@@ -121,7 +185,10 @@ export function DiscoveryNotesInput({
         description: 'Proceeding to review and scoring workflow'
       })
 
-      onAnalyze(notes, metadata, extractedUseCases, sessionName.trim(), industry)
+      // Clear draft on successful analysis
+      onDraftClear?.()
+      
+      onAnalyze(notes, metadata, extractedUseCases, sessionName.trim(), industry, entityType)
     } catch (error) {
       console.error('Analysis failed:', error)
       toast.error('Failed to analyze notes', {
@@ -197,7 +264,7 @@ export function DiscoveryNotesInput({
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="industry">Industry</Label>
                     <Select value={industry} onValueChange={(value) => setIndustry(value as Industry)} disabled={isAnalyzing}>
@@ -215,6 +282,27 @@ export function DiscoveryNotesInput({
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="entity-type">Organization Type</Label>
+                    <Select value={entityType} onValueChange={(value) => setEntityType(value as EntityType)} disabled={isAnalyzing}>
+                      <SelectTrigger id="entity-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.entries(ENTITY_TYPE_LABELS) as [EntityType, string][]).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            <div className="flex flex-col">
+                              <span>{label}</span>
+                              <span className="text-xs text-muted-foreground">{ENTITY_TYPE_DESCRIPTIONS[value]}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className={`grid gap-4 ${entityType === 'public-company' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+                  <div className="space-y-2">
                     <Label htmlFor="location">Location (Optional)</Label>
                     <Input
                       id="location"
@@ -225,17 +313,86 @@ export function DiscoveryNotesInput({
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="ticker">Stock Ticker (Optional)</Label>
-                    <Input
-                      id="ticker"
-                      placeholder="e.g., MTN.JO"
-                      value={stockTicker}
-                      onChange={(e) => setStockTicker(e.target.value)}
-                      disabled={isAnalyzing}
-                    />
-                  </div>
+                  {entityType === 'public-company' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="ticker">Stock Ticker (Optional)</Label>
+                      <Input
+                        id="ticker"
+                        placeholder="e.g., MTN.JO"
+                        value={stockTicker}
+                        onChange={(e) => setStockTicker(e.target.value)}
+                        disabled={isAnalyzing}
+                      />
+                    </div>
+                  )}
+
+                  {entityType === 'government' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="jurisdiction">Jurisdiction (Optional)</Label>
+                      <Input
+                        id="jurisdiction"
+                        placeholder="e.g., National, Gauteng Province"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        disabled={isAnalyzing}
+                      />
+                    </div>
+                  )}
                 </div>
+
+                {/* Collapsible Session Details */}
+                <Collapsible open={showSessionDetails} onOpenChange={setShowSessionDetails}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground hover:text-foreground">
+                      {showSessionDetails ? <CaretUp size={14} className="mr-2" /> : <CaretDown size={14} className="mr-2" />}
+                      {showSessionDetails ? 'Hide' : 'Show'} Session Details (optional team info)
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4 space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="spoc">Innovation Hub SPOC</Label>
+                        <Input
+                          id="spoc"
+                          placeholder="e.g., John Smith"
+                          value={innovationHubSPOC}
+                          onChange={(e) => setInnovationHubSPOC(e.target.value)}
+                          disabled={isAnalyzing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="stakeholder">Primary Stakeholder</Label>
+                        <Input
+                          id="stakeholder"
+                          placeholder="e.g., Jane Doe (CTO)"
+                          value={primaryStakeholder}
+                          onChange={(e) => setPrimaryStakeholder(e.target.value)}
+                          disabled={isAnalyzing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="account-rep">Account Team Rep</Label>
+                        <Input
+                          id="account-rep"
+                          placeholder="e.g., Account Executive name"
+                          value={accountTeamRep}
+                          onChange={(e) => setAccountTeamRep(e.target.value)}
+                          disabled={isAnalyzing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="solution-engineer">Solution Engineer</Label>
+                        <Input
+                          id="solution-engineer"
+                          placeholder="e.g., SE name"
+                          value={solutionEngineer}
+                          onChange={(e) => setSolutionEngineer(e.target.value)}
+                          disabled={isAnalyzing}
+                        />
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
 
               {/* Discovery Notes */}

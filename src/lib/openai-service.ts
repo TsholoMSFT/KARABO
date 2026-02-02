@@ -9,6 +9,8 @@
  * - Multi-model support (GPT-4o, GPT-4o-mini, Phi-4-mini-instruct, GPT-5-nano)
  */
 
+import type { EntityType } from './types'
+
 // API endpoint for the Azure Function proxy
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || '/api'
 
@@ -412,8 +414,17 @@ export interface COIEstimate {
 
 export async function estimateCOI(
   useCase: { title: string; description: string },
-  context?: { industry?: string; companyName?: string; annualRevenue?: number }
+  context?: { industry?: string; companyName?: string; annualRevenue?: number; entityType?: EntityType }
 ): Promise<COIEstimate> {
+  // Entity type context for appropriate language
+  const entityContext = context?.entityType === 'government'
+    ? '\nORGANIZATION TYPE: Government/Public Sector\n- Use "budget efficiency" and "taxpayer value" instead of revenue/profit\n- Consider public service delivery impact\n- Include regulatory compliance costs'
+    : context?.entityType === 'non-profit'
+    ? '\nORGANIZATION TYPE: Non-Profit\n- Focus on "mission impact" and "donor efficiency"\n- Consider program effectiveness metrics\n- Include fundraising/grant efficiency'
+    : context?.entityType === 'private-company'
+    ? '\nORGANIZATION TYPE: Private Company (no public financials)\n- Focus on competitive advantage and operational efficiency\n- No public stock/P-E metrics available'
+    : ''
+
   const prompt = `You are a financial analyst specializing in business case development and cost-benefit analysis.
 
 USE CASE TO ANALYZE:
@@ -421,7 +432,7 @@ Title: ${useCase.title}
 Problem Statement: ${useCase.description}
 ${context?.industry ? `Industry: ${context.industry}` : ''}
 ${context?.companyName ? `Company: ${context.companyName}` : ''}
-${context?.annualRevenue ? `Approx Annual Revenue: $${context.annualRevenue.toLocaleString()}` : ''}
+${context?.annualRevenue ? `Approx Annual Revenue: $${context.annualRevenue.toLocaleString()}` : ''}${entityContext}
 
 TASK: Estimate the annual Cost of Inaction (COI) - what the organization loses each year by NOT solving this problem.
 
@@ -506,15 +517,22 @@ Be realistic but optimistic. Use industry benchmarks where applicable.`
 
 export async function estimateEffort(
   useCase: { title: string; description: string },
-  context?: { industry?: string; complexity?: string }
+  context?: { industry?: string; complexity?: string; entityType?: EntityType }
 ): Promise<EffortEstimate> {
+  // Entity type adjustments
+  const entityContext = context?.entityType === 'government'
+    ? '\n\nGOVERNMENT CONTEXT: Factor in procurement cycles, FedRAMP/compliance requirements, and multi-stakeholder approval processes.'
+    : context?.entityType === 'non-profit'
+    ? '\n\nNON-PROFIT CONTEXT: Consider limited IT resources and budget constraints typical of non-profits.'
+    : ''
+
   const prompt = `You are an expert software development estimator for Microsoft AI and cloud solutions.
 
 USE CASE TO ESTIMATE:
 Title: ${useCase.title}
 Description: ${useCase.description}
 ${context?.industry ? `Industry: ${context.industry}` : ''}
-${context?.complexity ? `Known Complexity: ${context.complexity}` : ''}
+${context?.complexity ? `Known Complexity: ${context.complexity}` : ''}${entityContext}
 
 TASK: Estimate the implementation effort in PERSON-WEEKS for this use case.
 
@@ -564,6 +582,105 @@ Be concise but specific in reasoning.`
 }
 
 // ============================================================================
+// ROI ESTIMATION
+// ============================================================================
+
+export interface ROIEstimate {
+  implementationCost: number
+  expectedAnnualBenefit: number
+  roiPercentage: number
+  paybackMonths: number
+  threeYearValue: number
+  assumptions: string[]
+  reasoning: string
+  confidence: 'high' | 'medium' | 'low'
+}
+
+/**
+ * Estimate ROI for a use case based on COI data and effort estimates
+ */
+export async function estimateROI(
+  useCase: { title: string; description: string },
+  context?: {
+    industry?: string
+    entityType?: EntityType
+    companyName?: string
+    coiEstimate?: number
+    effortWeeks?: number
+  }
+): Promise<ROIEstimate> {
+  // Entity type context
+  const entityContext = context?.entityType === 'government'
+    ? '\nORGANIZATION TYPE: Government/Public Sector\n- Express benefits in terms of "budget savings," "taxpayer value," and "service efficiency"\n- Focus on cost avoidance and operational efficiency metrics\n- Implementation costs should include FedRAMP/compliance overhead'
+    : context?.entityType === 'non-profit'
+    ? '\nORGANIZATION TYPE: Non-Profit\n- Express benefits as "mission impact" and "donor efficiency"\n- Focus on program effectiveness and administrative cost reduction\n- Consider grant funding cycles in payback period'
+    : context?.entityType === 'private-company'
+    ? '\nORGANIZATION TYPE: Private Company\n- Focus on competitive advantage and market positioning\n- No public financials - use industry benchmarks'
+    : ''
+
+  const prompt = `You are a financial analyst estimating Return on Investment for technology investments.
+
+USE CASE:
+Title: ${useCase.title}
+Description: ${useCase.description}
+${context?.industry ? `Industry: ${context.industry}` : ''}
+${context?.companyName ? `Company: ${context.companyName}` : ''}
+${context?.coiEstimate ? `Estimated Annual Cost of Inaction (COI): $${context.coiEstimate.toLocaleString()}` : ''}
+${context?.effortWeeks ? `Estimated Implementation Effort: ${context.effortWeeks} person-weeks` : ''}${entityContext}
+
+TASK: Estimate the ROI for implementing this use case.
+
+CALCULATION APPROACH:
+1. **Implementation Cost**: Based on effort weeks × $2,500/week blended rate + 30% for infrastructure/licensing
+2. **Expected Annual Benefit**: Percentage of COI captured (typically 40-80% depending on solution maturity) + any new value creation
+3. **ROI Percentage**: ((Annual Benefit - (Implementation Cost ÷ 3)) / (Implementation Cost ÷ 3)) × 100
+4. **Payback Period**: Implementation Cost / Monthly Benefit
+5. **3-Year Value**: (Annual Benefit × 3) - Implementation Cost
+
+Return a JSON object:
+{
+  "implementationCost": <total USD including labor, infrastructure, licensing>,
+  "expectedAnnualBenefit": <annual USD value/savings>,
+  "roiPercentage": <percentage, can exceed 100>,
+  "paybackMonths": <months to break even>,
+  "threeYearValue": <net value over 3 years>,
+  "assumptions": ["assumption 1", "assumption 2", "assumption 3"],
+  "reasoning": "<2-3 sentences explaining the ROI calculation>",
+  "confidence": "high" | "medium" | "low"
+}
+
+Be realistic. If COI data is provided, use it as the primary benefit driver.`
+
+  try {
+    const result = await callOpenAI(prompt, 'gpt-4o-mini', true)
+    const parsed = JSON.parse(result)
+    
+    return {
+      implementationCost: Math.max(0, parsed.implementationCost || 0),
+      expectedAnnualBenefit: Math.max(0, parsed.expectedAnnualBenefit || 0),
+      roiPercentage: parsed.roiPercentage || 0,
+      paybackMonths: Math.max(0, parsed.paybackMonths || 12),
+      threeYearValue: parsed.threeYearValue || 0,
+      assumptions: parsed.assumptions || ['Based on industry benchmarks'],
+      reasoning: parsed.reasoning || 'Estimated based on typical ROI patterns.',
+      confidence: parsed.confidence || 'medium',
+    }
+  } catch (error) {
+    console.error('ROI estimation failed:', error)
+    return {
+      implementationCost: 0,
+      expectedAnnualBenefit: 0,
+      roiPercentage: 0,
+      paybackMonths: 0,
+      threeYearValue: 0,
+      assumptions: ['AI estimation unavailable - please calculate manually'],
+      reasoning: 'Unable to estimate. Please provide your own assessment.',
+      confidence: 'low',
+    }
+  }
+}
+
+// ============================================================================
 // CUSTOMER JOURNEY GENERATION
 // ============================================================================
 
@@ -607,6 +724,7 @@ export async function generateCustomerJourney(
   context?: {
     complexity?: 'low' | 'medium' | 'high' | 'very-high'
     industry?: string
+    entityType?: EntityType
     existingMicrosoftProducts?: string[]
     customerName?: string
     discoveryNotes?: string
@@ -617,6 +735,13 @@ export async function generateCustomerJourney(
 ): Promise<GeneratedJourney> {
   const complexityLevel = context?.complexity || 'medium'
   
+  // Entity type context for appropriate language
+  const entityContext = context?.entityType === 'government'
+    ? '\nORGANIZATION TYPE: Government/Public Sector\n- Use procurement-friendly language\n- Reference compliance requirements (FedRAMP, etc.)\n- Include stakeholder review/approval milestones'
+    : context?.entityType === 'non-profit'
+    ? '\nORGANIZATION TYPE: Non-Profit\n- Consider limited IT resources\n- Reference grant/funding alignment'
+    : ''
+
   const prompt = `You are a Microsoft Innovation Hub expert creating a customer engagement roadmap.
 
 USE CASE:
@@ -625,7 +750,7 @@ Description: ${useCase.description}
 ${context?.industry ? `Industry: ${context.industry}` : ''}
 ${context?.customerName ? `Customer: ${context.customerName}` : ''}
 ${context?.existingMicrosoftProducts?.length ? `Existing Microsoft Products: ${context.existingMicrosoftProducts.join(', ')}` : ''}
-Complexity Level: ${complexityLevel}
+Complexity Level: ${complexityLevel}${entityContext}
 ${context?.discoveryNotes ? `\nDISCOVERY NOTES:\n${context.discoveryNotes}` : ''}
 ${context?.painPoints?.length ? `\nIDENTIFIED PAIN POINTS:\n${context.painPoints.map(p => `- ${p}`).join('\n')}` : ''}
 ${context?.stakeholders?.length ? `\nKEY STAKEHOLDERS:\n${context.stakeholders.map(s => `- ${s}`).join('\n')}` : ''}
@@ -841,6 +966,7 @@ declare global {
     llmForTask: typeof callAIForTask
     estimateEffort: typeof estimateEffort
     estimateCOI: typeof estimateCOI
+    estimateROI: typeof estimateROI
     clearAICache: typeof clearAICache
     getAICacheStats: typeof getCacheStats
   }
@@ -851,6 +977,7 @@ if (typeof window !== 'undefined') {
   window.llmForTask = callAIForTask
   window.estimateEffort = estimateEffort
   window.estimateCOI = estimateCOI
+  window.estimateROI = estimateROI
   window.clearAICache = clearAICache
   window.getAICacheStats = getCacheStats
 }
