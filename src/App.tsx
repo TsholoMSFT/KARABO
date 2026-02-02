@@ -3,6 +3,7 @@ import { useLocalStorage } from '@/hooks/use-local-storage'
 import '@/lib/openai-service' // Initialize OpenAI service
 import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType } from '@/lib/types'
 import type { EnterpriseDiscoverySession } from '@/lib/types'
+import type { SessionTemplate } from '@/lib/session-templates'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { getTopUseCases, getRankedUseCases } from '@/lib/scoring'
 import { useDiscovery } from '@/hooks/use-discovery'
@@ -146,6 +147,28 @@ function App() {
       })
     }
   }, [useCasesList.length])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      
+      // Ctrl/Cmd + N: New session
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault()
+        handleBackToLanding()
+      }
+      // Ctrl/Cmd + S: Save (prevent default browser save)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        toast.info('Sessions auto-save to browser storage')
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   const handleAddUseCase = (data: Partial<UseCase>) => {
     if (!selectedSessionId) {
@@ -608,6 +631,18 @@ function App() {
     })
   }
 
+  // Handle template selection from industry templates
+  const handleSelectTemplate = (template: SessionTemplate) => {
+    setDraftDiscoveryNotes({
+      notes: template.discoveryPrompts.join('\n\n'),
+      customerName: '',
+      sessionName: `${template.name} Discovery`,
+      industry: template.industry,
+      entityType: template.entityType
+    })
+    setCurrentView('notes-input')
+  }
+
   const handleCreateUseCasesFromDiscovery = (newUseCases: Partial<UseCase>[], executiveSummary: string) => {
     if (!currentDiscoverySession) return
     
@@ -697,6 +732,7 @@ function App() {
           onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
           onSkipToUseCases={handleSkipToUseCases}
+          onSelectTemplate={handleSelectTemplate}
           isDemoMode={isDemoMode}
           demoIndustry={demoIndustry}
           onEnterDemoMode={handleEnterDemoMode}

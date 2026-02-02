@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { Customer } from '@/lib/types'
+import { TemplateSelector } from '@/components/TemplateSelector'
+import type { SessionTemplate } from '@/lib/session-templates'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,6 +35,7 @@ interface LandingPageProps {
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onSkipToUseCases?: () => void
+  onSelectTemplate?: (template: SessionTemplate) => void
   // Demo mode props
   isDemoMode?: boolean
   demoIndustry?: DemoIndustry
@@ -48,12 +52,28 @@ export function LandingPage({
   onStartDemo,
   onStartEnterpriseDemo,
   onSkipToUseCases,
+  onSelectTemplate,
   onEnterDemoMode
 }: LandingPageProps) {
   const hasExistingCustomers = customers.length > 0
+  const [showTemplates, setShowTemplates] = useState(false)
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
+    <>
+      {/* Template Selector Overlay */}
+      {showTemplates && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <TemplateSelector 
+            onSelectTemplate={(template) => {
+              onSelectTemplate?.(template)
+              setShowTemplates(false)
+            }}
+            onSkip={() => setShowTemplates(false)}
+          />
+        </div>
+      )}
+
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background via-muted/20 to-background">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -170,6 +190,16 @@ export function LandingPage({
                       >
                         <Lightbulb size={18} weight="duotone" />
                         Skip to Use Case Entry
+                      </Button>
+                    )}
+                    {onSelectTemplate && (
+                      <Button
+                        onClick={() => setShowTemplates(true)}
+                        variant="secondary"
+                        className="w-full gap-2"
+                      >
+                        <Sparkle size={18} weight="duotone" />
+                        Use Industry Template
                       </Button>
                     )}
                   </div>
@@ -385,5 +415,6 @@ export function LandingPage({
         
       </motion.div>
     </div>
+    </>
   )
 }

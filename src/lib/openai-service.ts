@@ -978,6 +978,145 @@ if (typeof window !== 'undefined') {
   window.estimateEffort = estimateEffort
   window.estimateCOI = estimateCOI
   window.estimateROI = estimateROI
+  window.generateSuccessMetrics = generateSuccessMetrics
   window.clearAICache = clearAICache
   window.getAICacheStats = getCacheStats
+}
+
+// ============================================================================
+// SUCCESS METRICS GENERATOR
+// ============================================================================
+
+export interface SuccessMetric {
+  name: string
+  description: string
+  measurementMethod: string
+  targetValue: string
+  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly'
+  category: 'efficiency' | 'quality' | 'financial' | 'satisfaction' | 'adoption'
+}
+
+export interface SuccessMetricsResult {
+  metrics: SuccessMetric[]
+  baselineSuggestions: string[]
+  measurementPlan: string
+  generatedAt: number
+}
+
+/**
+ * Generate success metrics (KPIs) for a use case
+ */
+export async function generateSuccessMetrics(
+  useCase: { title: string; description: string; category?: string },
+  context?: {
+    industry?: string
+    coiEstimate?: number
+    entityType?: EntityType
+  }
+): Promise<SuccessMetricsResult> {
+  const entityContext = context?.entityType 
+    ? context.entityType === 'government' 
+      ? 'This is a government agency - focus on citizen outcomes, budget efficiency, and compliance metrics.'
+      : context.entityType === 'non-profit'
+      ? 'This is a non-profit - focus on mission impact, donor efficiency, and program effectiveness.'
+      : ''
+    : ''
+
+  const prompt = `Generate success metrics (KPIs) for measuring the success of this AI use case implementation.
+
+USE CASE:
+Title: ${useCase.title}
+Description: ${useCase.description}
+Category: ${useCase.category || 'General'}
+${context?.industry ? `Industry: ${context.industry}` : ''}
+${context?.coiEstimate ? `Estimated Annual Impact: $${context.coiEstimate.toLocaleString()}` : ''}
+${entityContext}
+
+Generate 4-6 specific, measurable KPIs that would demonstrate the success of this initiative.
+
+Return valid JSON matching this structure:
+{
+  "metrics": [
+    {
+      "name": "Short metric name (e.g., 'Time to Resolution')",
+      "description": "What this metric measures",
+      "measurementMethod": "How to measure/collect this data",
+      "targetValue": "Specific target (e.g., '50% reduction', '<2 hours', '>90%')",
+      "frequency": "daily|weekly|monthly|quarterly",
+      "category": "efficiency|quality|financial|satisfaction|adoption"
+    }
+  ],
+  "baselineSuggestions": [
+    "Suggestion for measuring current state before implementation"
+  ],
+  "measurementPlan": "Brief paragraph on how to track these metrics over time"
+}
+
+Focus on metrics that are:
+1. Specific and measurable
+2. Relevant to the use case outcomes
+3. Achievable within 6-12 months
+4. Tied to business value`
+
+  try {
+    const response = await callAI(prompt, {
+      systemPrompt: 'You are a business analyst expert at defining KPIs and success metrics for technology initiatives. Return only valid JSON.',
+      temperature: 0.5,
+      maxTokens: 1500,
+    })
+
+    const result = JSON.parse(response)
+    return {
+      metrics: result.metrics || [],
+      baselineSuggestions: result.baselineSuggestions || [],
+      measurementPlan: result.measurementPlan || '',
+      generatedAt: Date.now(),
+    }
+  } catch (error) {
+    console.error('Failed to generate success metrics:', error)
+    // Return default metrics based on category
+    return {
+      metrics: [
+        {
+          name: 'Time Savings',
+          description: 'Reduction in time spent on manual tasks',
+          measurementMethod: 'Compare time logs before and after implementation',
+          targetValue: '40% reduction',
+          frequency: 'monthly',
+          category: 'efficiency',
+        },
+        {
+          name: 'User Adoption Rate',
+          description: 'Percentage of target users actively using the solution',
+          measurementMethod: 'Track unique active users vs. total eligible users',
+          targetValue: '>80% adoption within 3 months',
+          frequency: 'weekly',
+          category: 'adoption',
+        },
+        {
+          name: 'Error Rate Reduction',
+          description: 'Decrease in errors or exceptions',
+          measurementMethod: 'Compare error logs before and after',
+          targetValue: '50% reduction',
+          frequency: 'monthly',
+          category: 'quality',
+        },
+        {
+          name: 'Cost Savings Realized',
+          description: 'Actual cost savings from efficiency gains',
+          measurementMethod: 'Track labor hours saved × hourly cost',
+          targetValue: `$${((context?.coiEstimate || 100000) * 0.3).toLocaleString()} annually`,
+          frequency: 'quarterly',
+          category: 'financial',
+        },
+      ],
+      baselineSuggestions: [
+        'Measure current process time for key workflows',
+        'Document current error rates and exceptions',
+        'Survey current user satisfaction levels',
+      ],
+      measurementPlan: 'Establish baseline metrics 2-4 weeks before go-live. Track weekly during initial rollout, then monthly for ongoing monitoring.',
+      generatedAt: Date.now(),
+    }
+  }
 }
