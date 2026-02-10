@@ -12,4 +12,5 @@ import "./functions/chat";
 import "./functions/earnings";
 import "./functions/health";
 import "./functions/rss-feeds";
+import "./functions/regulatory-feeds";
 import "./functions/ocr";

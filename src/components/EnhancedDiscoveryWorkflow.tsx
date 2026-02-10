@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue, CustomerJourney, type MicrosoftProductFamily, type EntityType } from '@/lib/types'
+import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue, CustomerJourney, type MicrosoftProductFamily, type EntityType, type RegulatoryAssessment, type ComplianceEnforcement } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { industryLabels } from '@/lib/discovery-questions'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
+import { ComplianceReviewStep } from '@/components/ComplianceReviewStep'
 import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -92,6 +93,8 @@ interface WorkflowUseCase {
   }>
   // Customer journey / engagement roadmap
   customerJourney?: CustomerJourney
+  // Regulatory compliance assessment
+  regulatoryAssessment?: RegulatoryAssessment
 }
 
 function calculateWorkflowRICEScore(useCase: WorkflowUseCase): number {
@@ -136,7 +139,7 @@ interface EnhancedDiscoveryWorkflowProps {
   onCancel: () => void
 }
 
-type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'summary' | 'save-confirm'
+type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'compliance-review' | 'summary' | 'save-confirm'
 
 export function EnhancedDiscoveryWorkflow({
   session,
@@ -332,10 +335,21 @@ export function EnhancedDiscoveryWorkflow({
     if (currentUseCaseIndex < selectedUseCases.length - 1) {
       setCurrentUseCaseIndex(currentUseCaseIndex + 1)
     } else {
-      // Move directly to summary after all RICE scoring is complete (Threadlight moved to Tools tab)
+      // Move to compliance review after all RICE scoring is complete
       setCurrentUseCaseIndex(0)
-      handleCompleteDiscovery()
+      handleStepWithSave('compliance-review')
     }
+  }
+
+  // Handle compliance review completion — attach assessments to use cases
+  const handleComplianceComplete = (assessments: Map<string, RegulatoryAssessment>) => {
+    setUseCases(prev =>
+      prev.map(uc => {
+        const assessment = assessments.get(uc.id)
+        return assessment ? { ...uc, regulatoryAssessment: assessment } : uc
+      })
+    )
+    handleCompleteDiscovery()
   }
 
   const handleCompleteDiscovery = async () => {
@@ -439,6 +453,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
       })),
       referenceArchitecture: uc.referenceArchitecture,
       customerJourney: uc.customerJourney,
+      regulatoryAssessment: uc.regulatoryAssessment,
       costOfInaction: uc.manualCOI
         ? { ...uc.manualCOI }
         : (uc.coiEstimate
@@ -658,6 +673,23 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                 companyName: session.customerName,
                 annualRevenue,
                 entityType: session.entityType
+              }}
+            />
+          )}
+
+          {step === 'compliance-review' && (
+            <ComplianceReviewStep
+              session={session}
+              useCases={selectedUseCases.map(uc => ({
+                id: uc.id,
+                title: uc.title,
+                description: uc.description,
+              }))}
+              enforcement={(session.complianceEnforcement as ComplianceEnforcement) || 'advisory'}
+              onComplete={handleComplianceComplete}
+              onBack={() => {
+                setCurrentUseCaseIndex(selectedUseCases.length - 1)
+                setStep('rice')
               }}
             />
           )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import '@/lib/openai-service' // Initialize OpenAI service
 import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType } from '@/lib/types'
@@ -8,31 +8,22 @@ import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { getTopUseCases, getRankedUseCases } from '@/lib/scoring'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { useCustomers } from '@/hooks/use-customers'
-import { UseCaseCard } from '@/components/UseCaseCard'
-import { UseCaseDialog } from '@/components/UseCaseDialog'
-import { TableExportView } from '@/components/TableExportView'
-import { PrioritizationMatrix } from '@/components/PrioritizationMatrix'
-import { TopRecommendations } from '@/components/TopRecommendations'
-import { EmptyState } from '@/components/EmptyState'
-import { CustomerMetadata as CustomerMetadataComponent } from '@/components/CustomerMetadata'
-import { ExecutiveSummary } from '@/components/ExecutiveSummary'
-import { ExecutiveSummaryGeneratorDialog } from '@/components/ExecutiveSummaryGeneratorDialog'
-import { DiscoveryLauncher } from '@/components/DiscoveryLauncher'
-import { DiscoveryWizard } from '@/components/DiscoveryWizard'
-import { DiscoveryResults } from '@/components/DiscoveryResults'
-import { DiscoveryNotesInput } from '@/components/DiscoveryNotesInput'
-import { AIAssessmentWorkflow } from '@/components/AIAssessmentWorkflow'
-import { EnhancedDiscoveryWorkflow } from '@/components/EnhancedDiscoveryWorkflow'
-import { LiveDiscoveryMode } from '@/components/LiveDiscoveryMode'
-import { LiveDiscoverySetup } from '@/components/LiveDiscoverySetup'
-import { SessionManager } from '@/components/SessionManager'
-import { SessionComparison } from '@/components/SessionComparison'
-import { SessionMetadataForm } from '@/components/SessionMetadataForm'
-import { CustomerSelector } from '@/components/CustomerSelector'
-import { EnterpriseDiscoveryOrchestrator } from '@/components/enterprise-discovery/EnterpriseDiscoveryOrchestrator'
-import { Disclaimer } from '@/components/Disclaimer'
 import { LandingPage } from '@/components/LandingPage'
 import { NavigationHeader } from '@/components/NavigationHeader'
+import { EmptyState } from '@/components/EmptyState'
+import { DemoModeBanner } from '@/components/DemoModeBanner'
+import { Disclaimer } from '@/components/Disclaimer'
+import { SectionErrorBoundary } from '@/components/SectionErrorBoundary'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar, ShieldCheck } from '@phosphor-icons/react'
+import { Toaster, toast } from 'sonner'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Footer } from '@/components/ui/footer'
+import { assessPortfolio, detectJurisdictions } from '@/lib/regulatory-engine'
 import { 
   DEMO_DISCOVERY_SESSION, 
   DEMO_USE_CASES, 
@@ -45,20 +36,42 @@ import {
   DEMO_FINANCIAL_ENTERPRISE_SESSION,
 } from '@/lib/demo-data'
 import type { DemoIndustry } from '@/lib/demo-data'
-import { DemoModeBanner } from '@/components/DemoModeBanner'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar } from '@phosphor-icons/react'
-import { FinancialImpactTab } from '@/components/FinancialImpactTab'
-import { Toaster, toast } from 'sonner'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Footer } from '@/components/ui/footer'
-import { ImportUseCasesDialog } from '@/components/ImportUseCasesDialog'
 import type { ExtractedUseCase } from '@/lib/use-case-extraction'
 import type { DiscoveryTrack } from '@/lib/discovery-questions'
+
+// ── Code-split heavy / dialog / secondary-view components ─────────────────
+const UseCaseCard = lazy(() => import('@/components/UseCaseCard').then(m => ({ default: m.UseCaseCard })))
+const UseCaseDialog = lazy(() => import('@/components/UseCaseDialog').then(m => ({ default: m.UseCaseDialog })))
+const TableExportView = lazy(() => import('@/components/TableExportView').then(m => ({ default: m.TableExportView })))
+const PrioritizationMatrix = lazy(() => import('@/components/PrioritizationMatrix').then(m => ({ default: m.PrioritizationMatrix })))
+const TopRecommendations = lazy(() => import('@/components/TopRecommendations').then(m => ({ default: m.TopRecommendations })))
+const CustomerMetadataComponent = lazy(() => import('@/components/CustomerMetadata').then(m => ({ default: m.CustomerMetadata })))
+const ExecutiveSummary = lazy(() => import('@/components/ExecutiveSummary').then(m => ({ default: m.ExecutiveSummary })))
+const ExecutiveSummaryGeneratorDialog = lazy(() => import('@/components/ExecutiveSummaryGeneratorDialog').then(m => ({ default: m.ExecutiveSummaryGeneratorDialog })))
+const DiscoveryLauncher = lazy(() => import('@/components/DiscoveryLauncher').then(m => ({ default: m.DiscoveryLauncher })))
+const DiscoveryWizard = lazy(() => import('@/components/DiscoveryWizard').then(m => ({ default: m.DiscoveryWizard })))
+const DiscoveryResults = lazy(() => import('@/components/DiscoveryResults').then(m => ({ default: m.DiscoveryResults })))
+const DiscoveryNotesInput = lazy(() => import('@/components/DiscoveryNotesInput').then(m => ({ default: m.DiscoveryNotesInput })))
+const AIAssessmentWorkflow = lazy(() => import('@/components/AIAssessmentWorkflow').then(m => ({ default: m.AIAssessmentWorkflow })))
+const EnhancedDiscoveryWorkflow = lazy(() => import('@/components/EnhancedDiscoveryWorkflow').then(m => ({ default: m.EnhancedDiscoveryWorkflow })))
+const LiveDiscoveryMode = lazy(() => import('@/components/LiveDiscoveryMode').then(m => ({ default: m.LiveDiscoveryMode })))
+const LiveDiscoverySetup = lazy(() => import('@/components/LiveDiscoverySetup').then(m => ({ default: m.LiveDiscoverySetup })))
+const SessionManager = lazy(() => import('@/components/SessionManager').then(m => ({ default: m.SessionManager })))
+const SessionComparison = lazy(() => import('@/components/SessionComparison').then(m => ({ default: m.SessionComparison })))
+const SessionMetadataForm = lazy(() => import('@/components/SessionMetadataForm').then(m => ({ default: m.SessionMetadataForm })))
+const CustomerSelector = lazy(() => import('@/components/CustomerSelector').then(m => ({ default: m.CustomerSelector })))
+const EnterpriseDiscoveryOrchestrator = lazy(() => import('@/components/enterprise-discovery/EnterpriseDiscoveryOrchestrator').then(m => ({ default: m.EnterpriseDiscoveryOrchestrator })))
+const FinancialImpactTab = lazy(() => import('@/components/FinancialImpactTab').then(m => ({ default: m.FinancialImpactTab })))
+const ImportUseCasesDialog = lazy(() => import('@/components/ImportUseCasesDialog').then(m => ({ default: m.ImportUseCasesDialog })))
+
+/** Fallback spinner for lazy-loaded components */
+function LazyFallback() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+    </div>
+  )
+}
 
 type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'ai-assessment' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
 
@@ -308,6 +321,27 @@ function App() {
 
   const handleOpenTableExport = () => {
     setTableExportOpen(true)
+  }
+
+  /** Re-assess all use cases in the current session against regulatory frameworks */
+  const handleReassessCompliance = () => {
+    if (!selectedSession || useCasesList.length === 0) return
+    const jurisdictions = detectJurisdictions(selectedSession.innovationHubLocation || '')
+    if (jurisdictions.length === 0) {
+      toast.warning('No jurisdiction detected from session location — cannot assess')
+      return
+    }
+    const enforcement = (selectedSession as any).complianceEnforcement || 'advisory'
+    const assessed = assessPortfolio(useCasesList, jurisdictions, selectedSession.industry, enforcement)
+    
+    // Update all assessed use cases
+    setUseCases((current) =>
+      (current || []).map((uc) => {
+        const updated = assessed.find((a) => a.id === uc.id)
+        return updated || uc
+      })
+    )
+    toast.success(`Re-assessed ${assessed.length} use cases against ${jurisdictions.join(', ')} frameworks`)
   }
 
   const resetPendingDiscoveryDraft = () => {
@@ -719,6 +753,8 @@ function App() {
       )}
       
       {/* Main content wrapper with padding when demo mode is active */}
+      <SectionErrorBoundary section="Application">
+      <Suspense fallback={<LazyFallback />}>
       <div className={isDemoMode ? 'pt-12' : ''}>
       
       {currentView === 'landing' && (
@@ -1198,6 +1234,16 @@ function App() {
                       <FileArrowUp size={20} weight="bold" />
                       Import
                     </Button>
+                    <Button
+                      onClick={handleReassessCompliance}
+                      variant="outline"
+                      className="gap-2 flex-1 sm:flex-initial"
+                      disabled={useCasesList.length === 0}
+                      title="Re-assess all use cases against regulatory frameworks"
+                    >
+                      <ShieldCheck size={20} weight="bold" />
+                      Re-assess
+                    </Button>
                     <Button onClick={handleOpenAddDialog} className="gap-2 flex-1 sm:flex-initial">
                       <Plus size={20} weight="bold" />
                       Add Use Case
@@ -1487,6 +1533,9 @@ function App() {
             onOpenChange={handleDialogOpenChange}
             onSave={handleSaveEdit}
             editingUseCase={editingUseCase}
+            sessionLocation={selectedSession?.innovationHubLocation}
+            sessionIndustry={selectedSession?.industry}
+            complianceEnforcement={(selectedSession as any)?.complianceEnforcement || 'advisory'}
           />
 
           <TableExportView
@@ -1512,6 +1561,9 @@ function App() {
             onOpenChange={setImportDialogOpen}
             onImport={handleImportUseCases}
             discoverySessionId={selectedSessionId || undefined}
+            sessionLocation={selectedSession?.innovationHubLocation}
+            sessionIndustry={selectedSession?.industry}
+            complianceEnforcement={(selectedSession as any)?.complianceEnforcement || 'advisory'}
           />
 
           {selectedSession && (
@@ -1562,6 +1614,8 @@ function App() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </Suspense>
+      </SectionErrorBoundary>
       <Footer />
     </>
   )

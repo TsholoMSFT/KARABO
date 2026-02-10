@@ -1,4 +1,5 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { makeCorsHeaders, safeErrorMessage } from "../lib/xml-utils";
 
 /**
  * Azure Function Proxy for Azure OpenAI
@@ -68,12 +69,7 @@ interface ChatRequest {
   systemPrompt?: string;
 }
 
-// CORS headers
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+const corsHeaders = makeCorsHeaders("POST, OPTIONS");
 
 async function chatHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   // Handle preflight
@@ -186,7 +182,7 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
     return {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: { error: "Internal server error", details: error.message },
+      jsonBody: { error: safeErrorMessage(error) },
     };
   }
 }

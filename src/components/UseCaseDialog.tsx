@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { UseCase, AIRegulationFramework, SecurityRequirement, DataClassification, AIRiskLevel } from '@/lib/types'
+import { useState, useEffect, useMemo } from 'react'
+import { UseCase, AIRegulationFramework, SecurityRequirement, DataClassification, AIRiskLevel, type ComplianceEnforcement, type RegulatoryAssessment, type Industry } from '@/lib/types'
 import {
   Dialog,
   DialogContent,
@@ -18,16 +18,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { KPISelector } from '@/components/KPISelector'
 import { REGULATION_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS, RISK_LEVEL_LABELS } from '@/lib/demo-data'
-import { Scales, ShieldCheck, CaretDown, X } from '@phosphor-icons/react'
+import { assessUseCaseRisk, RISK_LEVEL_CONFIG, detectJurisdictions } from '@/lib/regulatory-engine'
+import { Scales, ShieldCheck, CaretDown, X, Warning, ShieldWarning } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 
 interface UseCaseDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSave: (useCase: Partial<UseCase>) => void
   editingUseCase?: UseCase | null
+  /** Session context for automatic compliance assessment */
+  sessionLocation?: string
+  sessionIndustry?: Industry
+  complianceEnforcement?: ComplianceEnforcement
 }
 
-export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: UseCaseDialogProps) {
+export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase, sessionLocation, sessionIndustry, complianceEnforcement = 'advisory' }: UseCaseDialogProps) {
   const [title, setTitle] = useState(editingUseCase?.title || '')
   const [description, setDescription] = useState(editingUseCase?.description || '')
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(editingUseCase?.kpis || [])
@@ -59,6 +65,17 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
     editingUseCase?.cybersecurity?.securityNotes || ''
   )
   const [newJurisdiction, setNewJurisdiction] = useState('')
+
+  // Live compliance assessment preview
+  const liveAssessment = useMemo<RegulatoryAssessment | null>(() => {
+    if (!title.trim() || !sessionLocation) return null
+    const detectedJurisdictions = detectJurisdictions(sessionLocation)
+    if (detectedJurisdictions.length === 0) return null
+    const fakeUC = { id: 'preview', title: title.trim(), description: description.trim() } as UseCase
+    return assessUseCaseRisk(fakeUC, detectedJurisdictions, sessionIndustry, complianceEnforcement)
+  }, [title, description, sessionLocation, sessionIndustry, complianceEnforcement])
+
+  const isBlocked = complianceEnforcement === 'strict' && liveAssessment?.gateStatus === 'blocked'
 
   useEffect(() => {
     if (editingUseCase) {
@@ -93,6 +110,20 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
   const handleSave = () => {
     if (!title.trim()) return
 
+    // Block if strict mode and use case is blocked
+    if (isBlocked) {
+      toast.error('Cannot save — this use case is classified as blocked under strict compliance mode. Please adjust the description or switch to advisory mode.')
+      return
+    }
+
+    // Warn if high risk in advisory mode
+    if (liveAssessment && (liveAssessment.overallRisk === 'high' || liveAssessment.overallRisk === 'unacceptable')) {
+      toast.warning(`Use case has ${RISK_LEVEL_CONFIG[liveAssessment.overallRisk].label} risk classification`, {
+        description: 'Review the compliance section for applicable frameworks and remediations.',
+        duration: 5000,
+      })
+    }
+
     const hasAiRegulations = selectedFrameworks.length > 0 || riskLevel || jurisdictions.length > 0 || complianceNotes
     const hasCybersecurity = selectedSecurityReqs.length > 0 || dataClassification || securityNotes
 
@@ -105,10 +136,16 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
       microsoftAccountable: microsoftAccountable.trim() || undefined,
       aiRegulations: hasAiRegulations ? {
         applicableFrameworks: selectedFrameworks,
-        riskClassification: riskLevel || undefined,
+        riskClassification: (riskLevel || liveAssessment?.overallRisk) || undefined,
         jurisdictions: jurisdictions.length > 0 ? jurisdictions : undefined,
         complianceNotes: complianceNotes || undefined,
-      } : undefined,
+      } : (liveAssessment ? {
+        applicableFrameworks: liveAssessment.frameworkAssessments.map(fa => fa.framework),
+        riskClassification: liveAssessment.overallRisk,
+        jurisdictions: sessionLocation ? detectJurisdictions(sessionLocation) : undefined,
+        complianceNotes: `Auto-assessed: ${RISK_LEVEL_CONFIG[liveAssessment.overallRisk].description}`,
+      } : undefined),
+      regulatoryAssessment: liveAssessment || undefined,
       cybersecurity: hasCybersecurity ? {
         securityRequirements: selectedSecurityReqs,
         dataClassification: dataClassification || undefined,
@@ -389,13 +426,39 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase }: Us
               </div>
             </CollapsibleContent>
           </Collapsible>
+
+          {/* Live compliance assessment preview */}
+          {liveAssessment && title.trim() && (
+            <div className={`flex items-start gap-2 p-3 rounded-lg border ${RISK_LEVEL_CONFIG[liveAssessment.overallRisk].bgColor} ${RISK_LEVEL_CONFIG[liveAssessment.overallRisk].borderColor}`}>
+              <span className="text-base">{RISK_LEVEL_CONFIG[liveAssessment.overallRisk].icon}</span>
+              <div className="flex-1 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={`font-semibold ${RISK_LEVEL_CONFIG[liveAssessment.overallRisk].color}`}>
+                    {RISK_LEVEL_CONFIG[liveAssessment.overallRisk].label} Risk
+                  </span>
+                  <span className="text-muted-foreground">
+                    ({liveAssessment.frameworkAssessments.length} frameworks assessed)
+                  </span>
+                </div>
+                <p className="text-muted-foreground mt-0.5">
+                  {RISK_LEVEL_CONFIG[liveAssessment.overallRisk].description}
+                </p>
+                {isBlocked && (
+                  <p className="text-red-600 dark:text-red-400 font-medium mt-1 flex items-center gap-1">
+                    <ShieldWarning size={12} />
+                    Blocked — cannot save in strict compliance mode
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!title.trim()}>
-            {editingUseCase ? 'Save Changes' : 'Add Use Case'}
+          <Button onClick={handleSave} disabled={!title.trim() || isBlocked}>
+            {isBlocked ? 'Blocked by Compliance' : editingUseCase ? 'Save Changes' : 'Add Use Case'}
           </Button>
         </DialogFooter>
       </DialogContent>

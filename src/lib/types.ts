@@ -52,12 +52,60 @@ export type AIRegulationFramework =
   | 'dmre'                    // Dept of Mineral Resources (mining)
   | 'sahpra'                  // SA Health Products Regulatory Authority
   
+  // EU Sector-Specific
+  | 'dora'                    // Digital Operational Resilience Act (EU financial)
+  | 'nis2'                    // NIS2 Directive (EU critical infrastructure)
+
+  // US Sector-Specific
+  | 'fedramp'                 // FedRAMP (US federal cloud)
+  | 'finra'                   // Financial Industry Regulatory Authority
+  | 'cpra'                    // California Privacy Rights Act (supersedes CCPA)
+  | 'fda-samd'                // FDA Software as Medical Device
+
+  // International Standards
+  | 'soc2'                    // SOC 2 Type II
+  | 'iso-27001'               // ISO/IEC 27001 Information Security
+
   // Industry-Specific
   | 'msha'                    // Mine Safety and Health (mining)
   | 'epa'                     // Environmental Protection
   | 'osha'                    // Occupational Safety
   | 'nerc-cip'                // Energy sector cybersecurity
   | 'pci-dss'                 // Payment Card Industry
+  
+  // Australia
+  | 'au-ai-ethics-framework'  // Australia AI Ethics Framework
+  
+  // Brazil
+  | 'brazil-lgpd'             // Lei Geral de Proteção de Dados
+  | 'brazil-ai-bill'          // Brazil AI Regulation Bill
+  
+  // Singapore
+  | 'singapore-ai-governance' // Singapore Model AI Governance Framework
+  
+  // United Kingdom
+  | 'uk-ai-regulation'        // UK Pro-innovation AI Regulation
+  
+  // Canada
+  | 'canada-aida'             // Artificial Intelligence and Data Act
+  
+  // Japan
+  | 'japan-ai-strategy'       // Japan AI Strategy
+  
+  // India
+  | 'india-dpdp'              // Digital Personal Data Protection Act
+  
+  // UAE
+  | 'uae-ai-strategy'         // UAE National AI Strategy 2031
+  
+  // Kenya
+  | 'kenya-dpa'               // Kenya Data Protection Act
+  
+  // Nigeria
+  | 'nigeria-ndpr'            // Nigeria Data Protection Regulation
+  
+  // China
+  | 'china-ai-regulations'    // China AI Regulations (Deep Synthesis / Generative AI)
   
   // Microsoft & Technology
   | 'ms-responsible-ai'       // Microsoft Responsible AI Standard
@@ -149,6 +197,92 @@ export interface CybersecurityInfo {
 }
 
 // ============================================================================
+// REGULATORY STAGE-GATE TYPES
+// ============================================================================
+
+/** Enforcement mode for compliance gating — configurable per session */
+export type ComplianceEnforcement = 'strict' | 'advisory'
+
+/** Per-framework risk assessment result */
+export interface FrameworkAssessment {
+  framework: AIRegulationFramework
+  risk: AIRiskLevel
+  reason: string
+  articles?: string[]     // e.g., ["Art. 5(1)(a)", "Art. 6"]
+}
+
+/** A concrete remediation action to reduce risk */
+export interface RemediationOption {
+  id: string
+  framework: AIRegulationFramework
+  action: string
+  priority: 'critical' | 'recommended' | 'optional'
+  description: string
+  acknowledged?: boolean  // User has reviewed / accepted this remediation
+  acknowledgedAt?: number
+  acknowledgedBy?: string
+}
+
+/** Aggregate regulatory assessment attached to a use case */
+export interface RegulatoryAssessment {
+  overallRisk: AIRiskLevel
+  frameworkAssessments: FrameworkAssessment[]
+  remediations: RemediationOption[]
+  gateStatus: 'blocked' | 'warning' | 'clear'
+  signOffRequired: boolean
+  signedOff?: boolean
+  signedOffBy?: string
+  signedOffAt?: number
+  overrideJustification?: string  // If facilitator overrides risk
+  assessedAt: number
+}
+
+/** A regulatory news item from the regulatory-feeds endpoint */
+export interface RegulatoryNewsItem {
+  id: string
+  title: string
+  description: string
+  source: string
+  publishedDate: string
+  jurisdiction: string
+  url: string
+  relevanceScore?: number
+}
+
+/** A violation / enforcement case ranked by AI for similarity */
+export interface ViolationCase {
+  id: string
+  headline: string
+  jurisdiction: string
+  framework: string
+  penaltyAmount?: string
+  date: string
+  relevanceSummary: string
+  lessonsLearned: string
+  sourceUrl: string
+  severity: 'major' | 'moderate' | 'minor'
+}
+
+/** Manual financial context for non-public entities */
+export interface ManualFinancialContext {
+  annualRevenue?: number        // Or annual budget for government
+  employeeCount?: number
+  itBudget?: number
+  keyFinancialMetrics?: string  // Freeform text
+  financialSource?: 'manual' | 'document-extraction' | 'industry-benchmark'
+}
+
+/** Industry benchmark data (used as fallback when no financials available) */
+export interface IndustryBenchmark {
+  industry: Industry
+  revenuePerEmployee?: { min: number; median: number; max: number }
+  itSpendPercent?: { min: number; median: number; max: number }
+  operationalCostPercent?: number
+  source: string
+  year: number
+}
+
+// ============================================================================
 // COST OF INACTION (COI) TYPES
 // ============================================================================
 
@@ -194,6 +328,8 @@ export interface UseCase {
   // AI Regulations & Cybersecurity (footnote-level considerations)
   aiRegulations?: AIRegulationsInfo
   cybersecurity?: CybersecurityInfo
+  // Regulatory stage-gate assessment (populated by regulatory engine)
+  regulatoryAssessment?: RegulatoryAssessment
   // Data sources that informed this use case
   dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[]
   // AI-powered effort estimation (cached)
@@ -795,6 +931,8 @@ export interface DiscoverySession {
   primaryStakeholder: string
   stockTicker?: string // For public companies - enables earnings/financial analysis
   entityType?: EntityType // Type of organization (public, private, government, non-profit)
+  complianceEnforcement?: ComplianceEnforcement // Strict or advisory gate mode
+  manualFinancials?: ManualFinancialContext     // Manual financial data for non-public entities
   executiveSummary?: string
   creationSource?: DiscoverySessionCreationSource
   responses: DiscoveryResponse[]

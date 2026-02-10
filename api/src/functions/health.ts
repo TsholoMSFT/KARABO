@@ -1,10 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { makeCorsHeaders } from "../lib/xml-utils";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+const corsHeaders = makeCorsHeaders("GET, OPTIONS");
 
 async function healthHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   // Handle preflight

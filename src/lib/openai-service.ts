@@ -11,21 +11,13 @@
 
 import type { EntityType } from './types'
 
-// API endpoint for the Azure Function proxy
+// API endpoint for the Azure Function proxy (never call AI services directly from the browser)
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || '/api'
 
-// Azure OpenAI configuration (for local development)
-const AZURE_OPENAI_ENDPOINT = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT
-const AZURE_OPENAI_API_KEY = import.meta.env.VITE_AZURE_OPENAI_API_KEY
-
-// Fallback to direct OpenAI for local development only
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
-const OPENAI_ORG_ID = import.meta.env.VITE_OPENAI_ORG_ID
-
-// Determine which API to use
-const USE_AZURE_DIRECT = !!AZURE_OPENAI_ENDPOINT && !!AZURE_OPENAI_API_KEY
-const USE_OPENAI_DIRECT = !!OPENAI_API_KEY && !USE_AZURE_DIRECT
-const USE_PROXY = !USE_AZURE_DIRECT && !USE_OPENAI_DIRECT
+// All AI calls route through the serverside proxy — no keys in the browser.
+// The VITE_AZURE_OPENAI_* / VITE_OPENAI_* env vars have been intentionally removed
+// to prevent accidental key exposure in the client bundle.
+const USE_PROXY = true
 
 // ============================================================================
 // RESPONSE CACHING
@@ -211,129 +203,7 @@ async function callViaProxy(
 }
 
 /**
- * Call Azure OpenAI directly (for local development)
- * Note: Only supports GPT models, AI Hub models use proxy
- */
-async function callAzureOpenAI(
-  prompt: string,
-  model: ModelType = 'gpt-4o-mini',
-  expectJson: boolean = false
-): Promise<string> {
-  if (!AZURE_OPENAI_ENDPOINT || !AZURE_OPENAI_API_KEY) {
-    throw new Error('Azure OpenAI not configured. Please add VITE_AZURE_OPENAI_ENDPOINT and VITE_AZURE_OPENAI_API_KEY to your .env file.')
-  }
-
-  // For AI Hub models, fall back to proxy (can't call directly from browser)
-  if (model === 'phi-4-mini-instruct' || model === 'gpt-5-nano') {
-    console.log(`Model ${model} requires proxy, falling back to gpt-4o-mini for direct call`)
-    model = 'gpt-4o-mini'
-  }
-
-  const deploymentName = model // deployment name matches model name
-  const apiVersion = '2024-02-15-preview'
-  const url = `${AZURE_OPENAI_ENDPOINT}openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
-
-  const requestBody: any = {
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.7,
-    max_tokens: 2000,
-  }
-
-  if (expectJson) {
-    requestBody.response_format = { type: 'json_object' }
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'api-key': AZURE_OPENAI_API_KEY,
-    },
-    body: JSON.stringify(requestBody),
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(
-      `Azure OpenAI API error: ${response.status} ${response.statusText}. ${
-        errorData.error?.message || ''
-      }`
-    )
-  }
-
-  const data = await response.json()
-  const content = data.choices[0]?.message?.content
-
-  if (!content) {
-    throw new Error('No content in Azure OpenAI response')
-  }
-
-  return content
-}
-
-/**
- * Call OpenAI directly (for local development only)
- * Note: Only supports OpenAI models, Phi/AI Hub models use proxy
- */
-async function callDirectOpenAI(
-  prompt: string,
-  model: ModelType = 'gpt-4o-mini',
-  expectJson: boolean = false
-): Promise<string> {
-  if (!OPENAI_API_KEY) {
-    throw new Error('OpenAI API key not configured. Please add VITE_OPENAI_API_KEY to your .env file.')
-  }
-
-  // For AI Hub models, fall back to gpt-4o-mini (OpenAI doesn't have Phi)
-  let openaiModel = model
-  if (model === 'phi-4-mini-instruct' || model === 'gpt-5-nano') {
-    console.log(`Model ${model} not available on OpenAI, using gpt-4o-mini`)
-    openaiModel = 'gpt-4o-mini'
-  }
-
-  const requestBody: any = {
-    model: openaiModel,
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.7,
-    max_tokens: 2000,
-  }
-
-  if (expectJson) {
-    requestBody.response_format = { type: 'json_object' }
-  }
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-      ...(OPENAI_ORG_ID ? { 'OpenAI-Organization': OPENAI_ORG_ID } : {}),
-    },
-    body: JSON.stringify(requestBody),
-  })
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(
-      `OpenAI API error: ${response.status} ${response.statusText}. ${
-        errorData.error?.message || ''
-      }`
-    )
-  }
-
-  const data = await response.json()
-  const content = data.choices[0]?.message?.content
-
-  if (!content) {
-    throw new Error('No content in OpenAI response')
-  }
-
-  return content
-}
-
-/**
- * Call AI - automatically uses proxy in production, direct API in development
- * Priority: Azure OpenAI Direct > OpenAI Direct > Proxy
+ * Call AI - routes all requests through the secure Azure Function proxy.
  * Features: Response caching with 5-minute TTL
  * @param prompt - The user prompt
  * @param model - Model to use
@@ -357,18 +227,8 @@ export async function callOpenAI(
   cacheMisses++
 
   try {
-    let result: string
-    
-    if (USE_AZURE_DIRECT) {
-      console.log(`Using Azure OpenAI direct API (${model})`)
-      result = await callAzureOpenAI(prompt, model, expectJson)
-    } else if (USE_OPENAI_DIRECT) {
-      console.log(`Using OpenAI direct API (${model})`)
-      result = await callDirectOpenAI(prompt, model, expectJson)
-    } else {
-      console.log(`Using proxy API at ${API_ENDPOINT} (${model})`)
-      result = await callViaProxy(prompt, model, expectJson, systemPrompt)
-    }
+    console.log(`Using proxy API at ${API_ENDPOINT} (${model})`)
+    const result = await callViaProxy(prompt, model, expectJson, systemPrompt)
 
     // Cache the successful response
     setCache(cacheKey, result, model)

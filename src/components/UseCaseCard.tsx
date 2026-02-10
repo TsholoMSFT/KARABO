@@ -14,6 +14,7 @@ import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, Car
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
 import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
+import { RISK_LEVEL_CONFIG } from '@/lib/regulatory-engine'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getServiceLabel, COMPLEXITY_INDICATORS } from '@/lib/microsoft-solutions'
 
@@ -170,11 +171,21 @@ export function UseCaseCard({
               <p className="text-sm text-muted-foreground leading-relaxed">{useCase.description}</p>
             )}
             {/* Data Source Badges */}
-            {useCase.dataSources && useCase.dataSources.length > 0 && (
-              <div className="mt-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {useCase.dataSources && useCase.dataSources.length > 0 && (
                 <UseCaseSourceBadges dataSources={useCase.dataSources as any} />
-              </div>
-            )}
+              )}
+              {/* Regulatory Risk Badge */}
+              {useCase.regulatoryAssessment && (
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] px-1.5 py-0 border ${RISK_LEVEL_CONFIG[useCase.regulatoryAssessment.overallRisk].borderColor} ${RISK_LEVEL_CONFIG[useCase.regulatoryAssessment.overallRisk].bgColor} ${RISK_LEVEL_CONFIG[useCase.regulatoryAssessment.overallRisk].color}`}
+                >
+                  {RISK_LEVEL_CONFIG[useCase.regulatoryAssessment.overallRisk].icon}{' '}
+                  {RISK_LEVEL_CONFIG[useCase.regulatoryAssessment.overallRisk].label}
+                </Badge>
+              )}
+            </div>
             {useCase.kpis && useCase.kpis.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {useCase.kpis.map((kpiId) => {

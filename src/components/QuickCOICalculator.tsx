@@ -32,7 +32,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Info, Target, Scales, Clock } from '@phosphor-icons/react'
+import { Info, Target } from '@phosphor-icons/react'
 
 /**
  * Why COI (Cost of Inaction) matters:

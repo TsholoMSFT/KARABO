@@ -14,6 +14,7 @@ import {
   OpportunityStageData,
   ResourcesStageData
 } from './types'
+import { JURISDICTION_FRAMEWORK_MAP } from './regulatory-engine'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 
 // ============================================================================
@@ -43,14 +44,10 @@ export const MINING_REGULATIONS: AIRegulationFramework[] = [
   'iso-42001',  // AI Management
 ]
 
-export const JURISDICTION_REGULATIONS: Record<string, AIRegulationFramework[]> = {
-  'South Africa': ['popia', 'dmre'],
-  'European Union': ['gdpr', 'eu-ai-act'],
-  'United States': ['ccpa', 'nist-ai-rmf', 'white-house-eo', 'msha', 'osha', 'epa'],
-  'United Kingdom': ['gdpr'],
-  'Australia': ['gdpr'],  // Similar framework
-  'Canada': ['gdpr'],     // PIPEDA similar
-}
+// Derived from the canonical JURISDICTION_FRAMEWORK_MAP in regulatory-engine.ts
+export const JURISDICTION_REGULATIONS: Record<string, AIRegulationFramework[]> = Object.fromEntries(
+  Object.entries(JURISDICTION_FRAMEWORK_MAP).map(([k, v]) => [k, v.frameworks])
+)
 
 export const INDUSTRY_SECURITY_REQUIREMENTS: Record<Industry, SecurityRequirement[]> = {
   general: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging'],
@@ -1311,6 +1308,20 @@ export const REGULATION_LABELS: Record<AIRegulationFramework, string> = {
   'dmre': 'DMRE (SA Mining)',
   'sahpra': 'SAHPRA',
   
+  // EU Sector-Specific
+  'dora': 'DORA',
+  'nis2': 'NIS2 Directive',
+
+  // US Sector-Specific
+  'fedramp': 'FedRAMP',
+  'finra': 'FINRA',
+  'cpra': 'CPRA',
+  'fda-samd': 'FDA SaMD',
+
+  // International Standards
+  'soc2': 'SOC 2',
+  'iso-27001': 'ISO 27001',
+
   // Industry-Specific
   'msha': 'MSHA',
   'epa': 'EPA',
@@ -1318,6 +1329,40 @@ export const REGULATION_LABELS: Record<AIRegulationFramework, string> = {
   'nerc-cip': 'NERC CIP',
   'pci-dss': 'PCI DSS',
   
+  // Australia
+  'au-ai-ethics-framework': 'AU AI Ethics Framework',
+
+  // Brazil
+  'brazil-lgpd': 'Brazil LGPD',
+  'brazil-ai-bill': 'Brazil AI Bill',
+
+  // Singapore
+  'singapore-ai-governance': 'Singapore AI Governance',
+
+  // United Kingdom
+  'uk-ai-regulation': 'UK AI Regulation',
+
+  // Canada
+  'canada-aida': 'Canada AIDA',
+
+  // Japan
+  'japan-ai-strategy': 'Japan AI Strategy',
+
+  // India
+  'india-dpdp': 'India DPDP Act',
+
+  // UAE
+  'uae-ai-strategy': 'UAE AI Strategy',
+
+  // Kenya
+  'kenya-dpa': 'Kenya DPA',
+
+  // Nigeria
+  'nigeria-ndpr': 'Nigeria NDPR',
+
+  // China
+  'china-ai-regulations': 'China AI Regulations',
+
   // Microsoft & Technology
   'ms-responsible-ai': 'MS Responsible AI',
   'ms-ai-principles': 'MS AI Principles',

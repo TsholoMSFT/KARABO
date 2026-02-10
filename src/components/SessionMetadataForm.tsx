@@ -10,8 +10,8 @@ import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { useCustomers } from '@/hooks/use-customers'
 import { lookupTickerSymbol, TickerLookupResult } from '@/lib/earnings-service'
-import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS } from '@/lib/types'
-import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info } from '@phosphor-icons/react'
+import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext } from '@/lib/types'
+import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info, ShieldCheck, CurrencyDollar, Buildings } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DEMO_SESSION_METADATA_BY_INDUSTRY } from '@/lib/demo-data'
@@ -26,6 +26,8 @@ export interface SessionMetadata {
   solutionEngineer: string
   stockTicker?: string // Optional stock ticker for public companies
   entityType?: EntityType // Type of organization
+  complianceEnforcement?: ComplianceEnforcement // Strict or advisory gate mode
+  manualFinancials?: ManualFinancialContext // Manual financial data for non-public entities
 }
 
 interface SessionMetadataFormProps {
@@ -87,6 +89,9 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
     innovationHubLocation: initialMetadata?.innovationHubLocation || '',
     solutionEngineer: initialMetadata?.solutionEngineer || '',
     stockTicker: initialMetadata?.stockTicker || '',
+    entityType: initialMetadata?.entityType || 'public-company',
+    complianceEnforcement: initialMetadata?.complianceEnforcement || 'advisory',
+    manualFinancials: initialMetadata?.manualFinancials || {},
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [tickerSuggestions, setTickerSuggestions] = useState<TickerLookupResult[]>([])
@@ -293,6 +298,43 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
               </div>
 
               <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="entity-type" className="flex items-center gap-2">
+                  <Buildings size={16} />
+                  Organization Type
+                </Label>
+                <Select
+                  value={metadata.entityType || 'public-company'}
+                  onValueChange={(value) => {
+                    const entityType = value as EntityType
+                    setMetadata((current) => ({
+                      ...current,
+                      entityType,
+                      // Clear ticker when switching away from public company
+                      stockTicker: entityType === 'public-company' ? current.stockTicker : '',
+                    }))
+                    setTickerAutoPopulated(false)
+                  }}
+                >
+                  <SelectTrigger id="entity-type">
+                    <SelectValue placeholder="Select organization type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(ENTITY_TYPE_LABELS) as EntityType[]).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        <div className="flex flex-col">
+                          <span>{ENTITY_TYPE_LABELS[type]}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {ENTITY_TYPE_DESCRIPTIONS[metadata.entityType || 'public-company']}
+                </p>
+              </div>
+
+              {metadata.entityType === 'public-company' && (
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="stock-ticker" className="flex items-center gap-2">
                   <ChartLine size={16} />
                   Stock Ticker (Optional)
@@ -398,6 +440,132 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+              )}
+
+              {/* Manual Financial Context — for non-public entities or supplementary data */}
+              {metadata.entityType && metadata.entityType !== 'public-company' && (
+              <div className="space-y-4 md:col-span-2 border rounded-lg p-4 bg-muted/20">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <CurrencyDollar size={16} />
+                  Financial Context (Optional)
+                </div>
+                <p className="text-xs text-muted-foreground -mt-2">
+                  {metadata.entityType === 'government' 
+                    ? 'Provide annual budget and headcount to improve cost-of-inaction and ROI estimates.'
+                    : 'Provide financial metrics to improve cost-of-inaction and ROI estimates.'}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="annual-revenue" className="text-xs">
+                      {metadata.entityType === 'government' ? 'Annual Budget (USD)' : 'Annual Revenue (USD)'}
+                    </Label>
+                    <Input
+                      id="annual-revenue"
+                      type="number"
+                      placeholder={metadata.entityType === 'government' ? 'e.g., 50000000' : 'e.g., 100000000'}
+                      value={metadata.manualFinancials?.annualRevenue || ''}
+                      onChange={(e) => setMetadata((current) => ({
+                        ...current,
+                        manualFinancials: {
+                          ...current.manualFinancials,
+                          annualRevenue: e.target.value ? Number(e.target.value) : undefined,
+                          financialSource: 'manual',
+                        },
+                      }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="employee-count" className="text-xs">
+                      Number of Employees
+                    </Label>
+                    <Input
+                      id="employee-count"
+                      type="number"
+                      placeholder="e.g., 5000"
+                      value={metadata.manualFinancials?.employeeCount || ''}
+                      onChange={(e) => setMetadata((current) => ({
+                        ...current,
+                        manualFinancials: {
+                          ...current.manualFinancials,
+                          employeeCount: e.target.value ? Number(e.target.value) : undefined,
+                          financialSource: 'manual',
+                        },
+                      }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="it-budget" className="text-xs">
+                      IT Budget (USD, optional)
+                    </Label>
+                    <Input
+                      id="it-budget"
+                      type="number"
+                      placeholder="e.g., 5000000"
+                      value={metadata.manualFinancials?.itBudget || ''}
+                      onChange={(e) => setMetadata((current) => ({
+                        ...current,
+                        manualFinancials: {
+                          ...current.manualFinancials,
+                          itBudget: e.target.value ? Number(e.target.value) : undefined,
+                          financialSource: 'manual',
+                        },
+                      }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="financial-notes" className="text-xs">
+                      Key Financial Context
+                    </Label>
+                    <Input
+                      id="financial-notes"
+                      placeholder="e.g., 15% YoY growth, R&D heavy"
+                      value={metadata.manualFinancials?.keyFinancialMetrics || ''}
+                      onChange={(e) => setMetadata((current) => ({
+                        ...current,
+                        manualFinancials: {
+                          ...current.manualFinancials,
+                          keyFinancialMetrics: e.target.value || undefined,
+                          financialSource: 'manual',
+                        },
+                      }))}
+                    />
+                  </div>
+                </div>
+              </div>
+              )}
+
+              {/* Compliance Enforcement Mode */}
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="compliance-enforcement" className="flex items-center gap-2">
+                  <ShieldCheck size={16} />
+                  Compliance Gate Mode
+                </Label>
+                <Select
+                  value={metadata.complianceEnforcement || 'advisory'}
+                  onValueChange={(value) => handleChange('complianceEnforcement', value)}
+                >
+                  <SelectTrigger id="compliance-enforcement">
+                    <SelectValue placeholder="Select compliance mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="advisory">
+                      Advisory — Show warnings, never block
+                    </SelectItem>
+                    <SelectItem value="strict">
+                      Strict — Block high/unacceptable risk until remediation
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <Info size={14} className="mt-0.5 flex-shrink-0" />
+                  <span>
+                    {metadata.complianceEnforcement === 'strict'
+                      ? 'Use cases classified as high or unacceptable risk will require sign-off before saving. Unacceptable risk use cases are blocked until remediation is acknowledged.'
+                      : 'Risk assessments are shown as warnings. All use cases can proceed regardless of risk level.'
+                    }
+                  </span>
+                </div>
               </div>
             </div>
 

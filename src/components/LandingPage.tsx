@@ -19,9 +19,12 @@ import {
   ShoppingCart,
   Bank,
   FileText,
-  TreeStructure
+  TreeStructure,
+  ShieldCheck,
+  CaretDown,
+  CaretUp
 } from '@phosphor-icons/react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 import type { DemoIndustry } from '@/lib/demo-data'
 
@@ -57,6 +60,7 @@ export function LandingPage({
 }: LandingPageProps) {
   const hasExistingCustomers = customers.length > 0
   const [showTemplates, setShowTemplates] = useState(false)
+  const [showSecurityNotice, setShowSecurityNotice] = useState(false)
 
   return (
     <>
@@ -128,6 +132,76 @@ export function LandingPage({
             </Badge>
           </motion.div>
         </div>
+
+        {/* ── Security & Compliance Notice ─────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
+          className="mb-6"
+        >
+          <button
+            onClick={() => setShowSecurityNotice(prev => !prev)}
+            className="mx-auto flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ShieldCheck size={18} weight="duotone" className="text-green-600 dark:text-green-400" />
+            Security &amp; Compliance
+            {showSecurityNotice ? <CaretUp size={14} /> : <CaretDown size={14} />}
+          </button>
+
+          <AnimatePresence>
+            {showSecurityNotice && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="overflow-hidden"
+              >
+                <Card className="mt-3 border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20">
+                  <CardContent className="pt-5 pb-4 text-sm leading-relaxed space-y-3">
+                    <p className="font-semibold text-base text-foreground">Security Hardening Measures</p>
+
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-muted-foreground">
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                        <span><strong>Server-side AI Proxy</strong> — All AI calls route through a secure Azure Function; no API keys are exposed in the browser bundle.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                        <span><strong>CORS Restricted</strong> — API endpoints only accept requests from the allowed origin (no wildcard *).</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                        <span><strong>Error Sanitization</strong> — Server error messages are redacted before reaching the client to prevent information leakage.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                        <span><strong>Prompt Injection Guard</strong> — User-supplied text is scrubbed of injection patterns before being interpolated into AI prompts.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                        <span><strong>Code Splitting</strong> — Heavy components are lazily loaded with React.lazy + Suspense, wrapped in error boundaries per section.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                        <span><strong>Regulatory Engine</strong> — 20+ frameworks (EU AI Act, GDPR, DORA, NIS2, FedRAMP, FINRA, SOC 2, ISO 27001, …) with word-boundary keyword matching and industry-aware risk modulation.</span>
+                      </li>
+                    </ul>
+
+                    <Separator />
+
+                    <p className="text-xs text-muted-foreground">
+                      KARABO follows the <strong>Microsoft Responsible AI Principles</strong>. 
+                      All regulatory assessments are deterministic (no AI hallucination). 
+                      Data remains in your Azure tenant; no third-party analytics or tracking is used.
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Quick Discovery Card */}

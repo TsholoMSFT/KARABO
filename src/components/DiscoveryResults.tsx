@@ -3,6 +3,10 @@ import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, Earnin
 import { useDiscovery } from '@/hooks/use-discovery'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
 import { getRegulationsForIndustry, getSecurityRequirementsForIndustry, getRegulationsForJurisdiction, getFallbackUseCasesForIndustry } from '@/lib/demo-data'
+import { detectJurisdictions, getApplicableFrameworks, getRegulationDisplayInfo } from '@/lib/regulatory-engine'
+import { formatRegulatoryContext } from '@/lib/regulatory-news-service'
+import { fetchRegulatoryNews } from '@/lib/regulatory-news-service'
+import { sanitizePromptInput } from '@/lib/sanitize'
 import { 
   searchEarningsTranscripts, 
   analyzeTranscriptsWithAI, 
@@ -144,16 +148,34 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
         ? `\n\nINDUSTRY CONTEXT: The organization operates in the ${industryLabels[session.industry]} sector. Tailor your suggestions to be relevant to this industry's specific challenges and opportunities.`
         : ''
 
-      // Determine jurisdiction from location
-      const jurisdiction = session.innovationHubLocation?.toLowerCase().includes('johannesburg') ||
-        session.innovationHubLocation?.toLowerCase().includes('south africa') ||
-        session.innovationHubLocation?.toLowerCase().includes('cape town')
-        ? 'South Africa'
-        : session.innovationHubLocation?.toLowerCase().includes('london') || session.innovationHubLocation?.toLowerCase().includes('uk')
-        ? 'United Kingdom'
-        : session.innovationHubLocation?.toLowerCase().includes('europe') || session.innovationHubLocation?.toLowerCase().includes('eu')
-        ? 'European Union'
-        : 'United States'
+      // Determine jurisdiction from location (enhanced with regulatory engine)
+      const detectedJurisdictions = detectJurisdictions(session.innovationHubLocation || '')
+      const jurisdiction = detectedJurisdictions.length > 0 ? detectedJurisdictions[0] : 'United States'
+      
+      // Get applicable regulatory frameworks for this session
+      const applicableFrameworkCodes = getApplicableFrameworks(detectedJurisdictions, session.industry)
+      const regulatoryFrameworkContext = applicableFrameworkCodes.length > 0
+        ? `\n\nAPPLICABLE REGULATORY FRAMEWORKS (${detectedJurisdictions.join(', ')}):
+${applicableFrameworkCodes.map(code => {
+  const info = getRegulationDisplayInfo(code)
+  return `- ${info.shortName} (${info.jurisdiction}): ${info.displayName}`
+}).join('\n')}
+IMPORTANT: When assessing each use case, consider these frameworks for risk classification and compliance notes.
+Enforcement mode: ${session.complianceEnforcement || 'advisory'}`
+        : ''
+
+      // Fetch live regulatory news context (non-blocking)
+      let regulatoryNewsContext = ''
+      try {
+        const newsItems = await fetchRegulatoryNews(detectedJurisdictions, session.industry?.toString())
+        if (newsItems.length > 0) {
+          regulatoryNewsContext = `\n\nRECENT REGULATORY NEWS & ENFORCEMENT (live):
+${formatRegulatoryContext(newsItems)}
+Consider these recent developments when assessing use case risk and compliance.`
+        }
+      } catch {
+        // Non-critical — continue without live news
+      }
 
       // Fetch all data sources (earnings, financials, news, industry research)
       const dataSources: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery')[] = ['discovery']
@@ -324,17 +346,24 @@ IMPORTANT: Ensure use cases align with industry standards and address key trends
 
       setGenerationPhase('generating')
 
+      // Sanitize user-supplied values before prompt interpolation
+      const safeCustomerName = sanitizePromptInput(session.customerName || '')
+      const safeLocation = sanitizePromptInput(session.innovationHubLocation || '')
+      const safeResponsesText = sanitizePromptInput(responsesText || '')
+
       const useCasesPromptText = `You are an innovation consultant at Microsoft using the Innovation Hub Methodology to help identify high-value use cases for Microsoft technologies and AI solutions.
 
 DISCOVERY SESSION CONTEXT:
-Customer: ${session.customerName}
+Customer: ${safeCustomerName}
 Industry: ${session.industry ? industryLabels[session.industry] : 'General'}
-Location: ${session.innovationHubLocation}
+Location: ${safeLocation}
 Primary Jurisdiction: ${jurisdiction}
-${session.stockTicker ? `Stock Ticker: ${session.stockTicker} (Public Company)` : ''}
+All Jurisdictions: ${detectedJurisdictions.join(', ')}
+Entity Type: ${session.entityType || 'public-company'}
+${session.stockTicker ? `Stock Ticker: ${sanitizePromptInput(session.stockTicker)} (Public Company)` : 'No stock ticker (non-public entity)'}
 
 DISCOVERY RESPONSES:
-${responsesText}${industryContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}${companyResearchContext}
+${safeResponsesText}${industryContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}${companyResearchContext}${regulatoryFrameworkContext}${regulatoryNewsContext}
 
 TASK: Using the Microsoft Innovation Hub Methodology, analyze ALL available data sources to suggest 5-8 high-value use cases. For each use case, apply both Business Envisioning (the WHY and HOW) and Solution Envisioning (the WHAT and WITH WHAT).
 

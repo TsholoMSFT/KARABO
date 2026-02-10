@@ -42,8 +42,9 @@ import {
 import { parseDocument, type ParsedUseCase, type DocumentParseResult } from '@/lib/document-parser'
 import { matchKPI, type KPIMatchResult } from '@/lib/kpi-matcher'
 import { suggestKPIIdsForUseCase } from '@/lib/kpi-suggestions'
-import type { UseCase, UseCaseCOI, KPI } from '@/lib/types'
+import type { UseCase, UseCaseCOI, KPI, Industry, ComplianceEnforcement } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { assessUseCaseRisk, detectJurisdictions, RISK_LEVEL_CONFIG } from '@/lib/regulatory-engine'
 
 // Re-export AVAILABLE_KPIS from the actual location
 import { AVAILABLE_KPIS as KPI_LIST } from '@/lib/kpis'
@@ -53,6 +54,10 @@ interface ImportUseCasesDialogProps {
   onOpenChange: (open: boolean) => void
   onImport: (useCases: Partial<UseCase>[]) => void
   discoverySessionId?: string
+  /** Session context for auto-assessment */
+  sessionLocation?: string
+  sessionIndustry?: Industry
+  complianceEnforcement?: ComplianceEnforcement
 }
 
 type ImportStep = 'upload' | 'preview' | 'kpi-mapping' | 'benefits-mapping' | 'confirm'
@@ -79,6 +84,9 @@ export function ImportUseCasesDialog({
   onOpenChange,
   onImport,
   discoverySessionId,
+  sessionLocation,
+  sessionIndustry,
+  complianceEnforcement = 'advisory',
 }: ImportUseCasesDialogProps) {
   const [step, setStep] = useState<ImportStep>('upload')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -233,6 +241,9 @@ export function ImportUseCasesDialog({
   const handleImport = useCallback(() => {
     const selectedUseCases = enrichedUseCases.filter(uc => uc.selected)
     
+    // Resolve jurisdictions for compliance assessment
+    const jurisdictions = sessionLocation ? detectJurisdictions(sessionLocation) : []
+
     const useCasesToImport: Partial<UseCase>[] = selectedUseCases.map(uc => {
       const coi: UseCaseCOI | undefined = uc.benefitsMode === 'structured' && uc.structuredBenefits
         ? {
@@ -245,12 +256,25 @@ export function ImportUseCasesDialog({
           }
         : undefined
       
+      // Auto-assess imported use cases against applicable regulatory frameworks
+      const fakeUseCase = { id: uc.name, title: uc.name, description: uc.problemStatement } as UseCase
+      const regulatoryAssessment = jurisdictions.length > 0
+        ? assessUseCaseRisk(fakeUseCase, jurisdictions, sessionIndustry, complianceEnforcement)
+        : undefined
+
       return {
         title: uc.name,
         description: uc.problemStatement,
         kpis: uc.finalKPIs,
         costOfInaction: coi,
         dataSources: ['manual'] as const,
+        regulatoryAssessment,
+        aiRegulations: regulatoryAssessment ? {
+          applicableFrameworks: regulatoryAssessment.frameworkAssessments.map(fa => fa.framework),
+          riskClassification: regulatoryAssessment.overallRisk,
+          jurisdictions: jurisdictions.length > 0 ? jurisdictions : undefined,
+          complianceNotes: `Auto-assessed on import: ${RISK_LEVEL_CONFIG[regulatoryAssessment.overallRisk].description}`,
+        } : undefined,
         // Store qualitative benefits if not structured
         earningsContext: uc.benefitsMode === 'qualitative' && uc.qualitativeNotes
           ? [`Expected Benefits: ${uc.qualitativeNotes}`]

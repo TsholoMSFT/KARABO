@@ -1,4 +1,5 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { makeCorsHeaders, safeErrorMessage } from "../lib/xml-utils";
 
 /**
  * Azure Function for Earnings Transcript Search
@@ -29,12 +30,7 @@ interface SearchRequest {
   region?: "US" | "ZA" | "EU" | "GLOBAL";
 }
 
-// CORS headers
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+const corsHeaders = makeCorsHeaders("POST, OPTIONS");
 
 // SEC EDGAR Search (US Companies - Free, no key needed)
 async function searchSECEdgar(companyName: string, ticker?: string): Promise<EarningsTranscript[]> {
@@ -443,7 +439,7 @@ async function earningsHandler(req: HttpRequest, context: InvocationContext): Pr
     return {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: { error: "Search failed", details: error.message },
+      jsonBody: { error: "Search failed", details: safeErrorMessage(error, "Search failed") },
     };
   }
 }
@@ -697,7 +693,7 @@ async function tickerLookupHandler(req: HttpRequest, context: InvocationContext)
     return {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: { error: "Ticker lookup failed", details: error.message },
+      jsonBody: { error: "Ticker lookup failed", details: safeErrorMessage(error, "Ticker lookup failed") },
     };
   }
 }
@@ -796,7 +792,7 @@ async function financialsHandler(req: HttpRequest, context: InvocationContext): 
     return {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: { error: "Failed to fetch financials", details: error.message },
+      jsonBody: { error: "Failed to fetch financials", details: safeErrorMessage(error, "Failed to fetch financials") },
     };
   }
 }
@@ -883,7 +879,7 @@ async function newsHandler(req: HttpRequest, context: InvocationContext): Promis
     return {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: { error: "Failed to fetch news", details: error.message },
+      jsonBody: { error: "Failed to fetch news", details: safeErrorMessage(error, "Failed to fetch news") },
     };
   }
 }
@@ -974,7 +970,7 @@ async function industryResearchHandler(req: HttpRequest, context: InvocationCont
     return {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: { error: "Failed to fetch industry research", details: error.message },
+      jsonBody: { error: "Failed to fetch industry research", details: safeErrorMessage(error, "Failed to fetch industry research") },
     };
   }
 }

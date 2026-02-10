@@ -1,10 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
+import { makeCorsHeaders, safeErrorMessage } from '../lib/xml-utils'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-}
+const corsHeaders = makeCorsHeaders('POST, OPTIONS')
 
 const DOC_INTELLIGENCE_ENDPOINT = process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
 const DOC_INTELLIGENCE_KEY = process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY
@@ -180,7 +177,7 @@ async function ocrHandler(req: HttpRequest, context: InvocationContext): Promise
     return {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      jsonBody: { error: 'Internal server error', details: error?.message },
+      jsonBody: { error: safeErrorMessage(error) },
     }
   }
 }
