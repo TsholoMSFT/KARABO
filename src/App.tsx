@@ -466,7 +466,7 @@ function App() {
   const handleEnterpriseSessionPause = (session: AnyEnterpriseSession) => {
     handleEnterpriseSessionSave(session)
     toast.info('Discovery session paused', {
-      description: 'You can resume from the Enterprise Discovery tab.',
+      description: 'You can resume from the Strategic Assessment tab.',
     })
     setCurrentView('dashboard')
     setCurrentEnterpriseSession(null)
@@ -485,7 +485,7 @@ function App() {
 
   const handleEnterpriseSessionComplete = (session: AnyEnterpriseSession) => {
     handleEnterpriseSessionSave(session)
-    toast.success('Enterprise Discovery completed successfully!')
+    toast.success('Strategic Assessment completed successfully!')
     setCurrentView('dashboard')
     setCurrentEnterpriseSession(null)
   }
@@ -1454,14 +1454,14 @@ function App() {
                         handleStartEnterpriseDiscovery()
                       }}
                     >
-                      Proceed to Enterprise Discovery
+                      Proceed to Strategic Assessment
                     </Button>
                     <Button
                       className="flex-1"
                       variant="outline"
                       onClick={() => {
                         toast.success('Portfolio step concluded', {
-                          description: 'You can proceed to Enterprise Discovery anytime from the launcher.',
+                          description: 'You can proceed to Strategic Assessment anytime from the launcher.',
                         })
                       }}
                     >
@@ -1586,7 +1586,7 @@ function App() {
       <Dialog open={postQuickDiscoveryGateOpen} onOpenChange={setPostQuickDiscoveryGateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Quick Discovery complete</DialogTitle>
+            <DialogTitle>Discovery complete</DialogTitle>
             <DialogDescription>
               Decide whether to proceed to AI Assessment Lite (recommended) or conclude here.
             </DialogDescription>
@@ -1604,7 +1604,7 @@ function App() {
               variant="outline"
               onClick={() => {
                 setPostQuickDiscoveryGateOpen(false)
-                toast.info('Concluded after Quick Discovery', {
+                toast.info('Concluded after Discovery', {
                   description: 'You’re in the Portfolio/Matrix view. You can continue later.',
                 })
               }}

@@ -43,7 +43,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
             <TabsList className="grid w-[680px] grid-cols-4">
               <TabsTrigger value="quick" className="gap-2">
                 <Rocket size={16} />
-                Quick Discovery
+                Discovery
               </TabsTrigger>
               <TabsTrigger value="ai-assessment" className="gap-2">
                 <Sparkle size={16} weight="fill" />
@@ -51,7 +51,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
               </TabsTrigger>
               <TabsTrigger value="enterprise" className="gap-2">
                 <Briefcase size={16} />
-                Enterprise Discovery
+                Strategic Assessment
               </TabsTrigger>
               <TabsTrigger value="tools" className="gap-2">
                 <Toolbox size={16} />
@@ -73,10 +73,10 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                 <div className="space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
                     <MagnifyingGlass size={28} weight="bold" className="text-primary" />
-                    Quick Use Case Discovery
+                    Use Case Discovery
                   </CardTitle>
                   <CardDescription className="text-base">
-                    Fast-track discovery with AI-powered insights. Perfect for rapid use case identification and validation.
+                    AI-powered discovery with guided questions. Identify, validate, and prioritize use cases.
                   </CardDescription>
                   <div className="flex items-center gap-2 pt-1">
                     <Badge variant="outline" className="gap-1.5 bg-background">
@@ -154,7 +154,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                     AI Assessment Lite
                   </CardTitle>
                   <CardDescription className="text-base">
-                    Structured process analysis to identify and refine agent opportunities, then feed your portfolio and enterprise discovery.
+                    Structured process analysis to identify and refine agent opportunities, then feed your portfolio and strategic assessment.
                   </CardDescription>
                   <div className="flex items-center gap-2 pt-1">
                     <Badge variant="outline" className="gap-1.5 bg-background">
@@ -243,10 +243,10 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                 <div className="space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
                     <Briefcase size={28} weight="bold" className="text-brand-blue" />
-                    Enterprise Discovery Process
+                    Strategic Assessment Process
                   </CardTitle>
                   <CardDescription className="text-base">
-                    Comprehensive 8-stage discovery framework with financial modeling, stakeholder mapping, and ROI analysis.
+                    Comprehensive 5-stage assessment framework with financial modeling, stakeholder mapping, and ROI analysis.
                   </CardDescription>
                   <div className="flex items-center gap-2 pt-1">
                     <Badge variant="outline" className="gap-1.5 bg-background">
@@ -270,7 +270,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                     className="gap-2 bg-brand-blue hover:bg-brand-blue/90 text-brand-blue-foreground"
                   >
                     <Briefcase size={20} weight="fill" />
-                    Start Enterprise Discovery
+                    Start Strategic Assessment
                   </Button>
                   {onStartLiveDiscovery && (
                     <Button 
@@ -280,7 +280,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                       className="gap-2 text-white border-white/30 hover:bg-white/10"
                     >
                       <Microphone size={20} weight="fill" />
-                      Live Enterprise Discovery
+                      Live Strategic Assessment
                     </Button>
                   )}
                 </div>
@@ -295,7 +295,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                   <div>
                     <h4 className="font-semibold text-sm mb-1">Discover & Analyze</h4>
                     <p className="text-xs text-muted-foreground">
-                      Identify opportunities, map stakeholders, and assess resources across 8 comprehensive stages
+                      Identify opportunities, map stakeholders, and assess resources across 5 comprehensive stages
                     </p>
                   </div>
                 </div>

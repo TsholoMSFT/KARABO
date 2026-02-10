@@ -43,7 +43,7 @@ export function DiscoverySettingsDialog({ open, onOpenChange }: DiscoverySetting
                 Enable AI Assistance
               </Label>
               <p className="text-sm text-muted-foreground">
-                Master toggle for all AI-powered features across Quick and Enterprise Discovery modes.
+                Master toggle for all AI-powered features across Discovery and Strategic Assessment modes.
               </p>
             </div>
             <Switch
@@ -58,11 +58,11 @@ export function DiscoverySettingsDialog({ open, onOpenChange }: DiscoverySetting
 
           <Separator />
 
-          {/* Quick Discovery Section */}
+          {/* Discovery Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Lightning size={18} weight="duotone" className="text-primary" />
-              <h3 className="font-semibold text-sm">Quick Discovery</h3>
+              <h3 className="font-semibold text-sm">Discovery</h3>
             </div>
 
             <div className={`space-y-4 ${!settings.enableAIAssist ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -116,7 +116,7 @@ export function DiscoverySettingsDialog({ open, onOpenChange }: DiscoverySetting
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Sparkle size={18} weight="duotone" className="text-primary" />
-              <h3 className="font-semibold text-sm">Enterprise Discovery</h3>
+              <h3 className="font-semibold text-sm">Strategic Assessment</h3>
             </div>
 
             <div className={`space-y-4 ${!settings.enableAIAssist ? 'opacity-50 pointer-events-none' : ''}`}>

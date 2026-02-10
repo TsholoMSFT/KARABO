@@ -653,7 +653,7 @@ RULES
                   <ArrowRight size={16} />
                 </Button>
                 <Button type="button" onClick={onProceedToEnterprise} className="gap-2">
-                  Enterprise Discovery
+                  Strategic Assessment
                   <ArrowRight size={16} />
                 </Button>
               </div>

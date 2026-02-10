@@ -233,7 +233,7 @@ export function EnterpriseDiscoveryOrchestratorMVP({
     } else {
       // Completed all stages
       updated.completedAt = Date.now()
-      toast.success('Enterprise Discovery Completed!')
+      toast.success('Strategic Assessment Completed!')
       onComplete(updated)
       return
     }
@@ -340,7 +340,7 @@ export function EnterpriseDiscoveryOrchestratorMVP({
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-[#0078D4]">Enterprise Discovery</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-[#0078D4]">Strategic Assessment</h1>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
               <Sparkles className="h-3 w-3" />
               MVP

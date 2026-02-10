@@ -194,7 +194,7 @@ export function SessionManager({ open, onOpenChange, onViewSession, onCompareSes
                     <TabsList className="grid w-full grid-cols-2">
                       <TabsTrigger value="quick" className="gap-2">
                         <FolderOpen size={16} />
-                        Quick Discovery ({sortedSessions.length})
+                        Discovery ({sortedSessions.length})
                       </TabsTrigger>
                       <TabsTrigger value="enterprise" className="gap-2">
                         <Briefcase size={16} />
@@ -322,7 +322,7 @@ export function SessionManager({ open, onOpenChange, onViewSession, onCompareSes
                         <Briefcase size={64} className="mx-auto text-muted-foreground mb-4" weight="duotone" />
                         <h3 className="text-lg font-semibold text-foreground mb-2">No Enterprise Sessions</h3>
                         <p className="text-muted-foreground">
-                          Start an Enterprise Discovery to see sessions here
+                          Start a Strategic Assessment to see sessions here
                         </p>
                       </div>
                     ) : (
