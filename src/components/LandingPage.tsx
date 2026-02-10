@@ -25,6 +25,7 @@ import {
   CaretUp
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { AboutSection } from '@/components/AboutSection'
 
 import type { DemoIndustry } from '@/lib/demo-data'
 
@@ -100,7 +101,7 @@ export function LandingPage({
             transition={{ delay: 0.3 }}
             className="text-5xl font-bold tracking-tight"
           >
-            Microsoft Innovation Hub
+            ID-8
           </motion.h1>
           
           <motion.p
@@ -399,6 +400,16 @@ export function LandingPage({
             </div>
           </motion.div>
         </div>
+
+        {/* About ID-8 Section */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="mt-8"
+        >
+          <AboutSection />
+        </motion.div>
 
         {/* Try Demo Section */}
         {(onStartDemo || onStartEnterpriseDemo || onEnterDemoMode) && (
