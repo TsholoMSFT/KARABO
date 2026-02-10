@@ -113,7 +113,7 @@ export type AzureAIService =
   | 'azure-ai-language'
   | 'azure-ai-document-intelligence'
   | 'azure-machine-learning'
-  | 'azure-ai-studio'
+  | 'azure-ai-foundry'
   | 'azure-ai-content-safety'
   | 'azure-bot-service'
 
@@ -153,9 +153,9 @@ export const AZURE_AI_SERVICES: Record<AzureAIService, { label: string; descript
     description: 'End-to-end ML platform for training and deploying models',
     complexity: 'high',
   },
-  'azure-ai-studio': { 
-    label: 'Azure AI Studio', 
-    description: 'Unified platform for building generative AI applications',
+  'azure-ai-foundry': { 
+    label: 'Azure AI Foundry', 
+    description: 'Unified platform for building AI applications and agents — the AI App & Agent Factory',
     complexity: 'medium',
   },
   'azure-ai-content-safety': { 
@@ -691,7 +691,7 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     label: 'Developer Productivity & Code Assistant',
     description: 'Accelerate software development with AI-powered code completion and assistance',
     primaryProducts: ['microsoft-365', 'azure-ai'],
-    typicalServices: ['github-copilot', 'azure-openai', 'azure-ai-studio'],
+    typicalServices: ['github-copilot', 'azure-openai', 'azure-ai-foundry'],
     industries: ['telecommunications', 'financial-services', 'retail', 'manufacturing'],
     complexity: 'low',
     agenticPotential: 'high',
@@ -702,7 +702,7 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     label: 'Agentic AI / Autonomous Agents',
     description: 'Build autonomous AI agents that can reason, plan, and execute multi-step tasks with tool use',
     primaryProducts: ['azure-ai', 'power-platform'],
-    typicalServices: ['azure-openai', 'azure-ai-studio', 'copilot-studio', 'azure-functions'],
+    typicalServices: ['azure-openai', 'azure-ai-foundry', 'copilot-studio', 'azure-functions'],
     industries: ['financial-services', 'retail', 'healthcare', 'manufacturing'],
     complexity: 'high',
     agenticPotential: 'high',
@@ -828,4 +828,53 @@ export function getAgenticArchitectures(): ReferenceArchitectureInfo[] {
   return Object.values(REFERENCE_ARCHITECTURES).filter(arch => 
     arch.agenticPotential === 'high'
   )
+}
+
+// ============================================================================
+// ATM PILLAR MAPPING
+// ============================================================================
+
+export type ATMPillar = 'ai' | 'apps' | 'data'
+
+const PRODUCT_FAMILY_TO_PILLAR: Record<MicrosoftProductFamily, ATMPillar | null> = {
+  'azure-ai': 'ai',
+  'azure-data': 'data',
+  'azure-infrastructure': 'apps',
+  'power-platform': 'apps',
+  'microsoft-365': 'apps',
+  'dynamics-365': 'apps',
+  'microsoft-fabric': 'data',
+  'microsoft-security': null,   // Cross-cutting — contributes to Enterprise-Grade, not pillar count
+}
+
+export const ATM_PILLAR_LABELS: Record<ATMPillar, string> = {
+  ai: 'AI (Foundry)',
+  apps: 'Apps (AKS / App Service / Power Platform)',
+  data: 'Data (Databases / Fabric)',
+}
+
+export const ATM_PILLAR_COLORS: Record<ATMPillar, string> = {
+  ai: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  apps: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+  data: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+}
+
+/**
+ * Map a Microsoft product family to its ATM pillar.
+ * Returns null for cross-cutting services (e.g., Security).
+ */
+export function mapFamilyToPillar(family: MicrosoftProductFamily): ATMPillar | null {
+  return PRODUCT_FAMILY_TO_PILLAR[family] ?? null
+}
+
+/**
+ * Get the set of ATM pillars covered by a use case's solution mappings.
+ */
+export function getPillarCoverage(solutions: Array<{ productFamily: MicrosoftProductFamily }>): Set<ATMPillar> {
+  const pillars = new Set<ATMPillar>()
+  for (const sol of solutions) {
+    const pillar = mapFamilyToPillar(sol.productFamily)
+    if (pillar) pillars.add(pillar)
+  }
+  return pillars
 }

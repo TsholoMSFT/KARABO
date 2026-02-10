@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { UseCase, ScoringMethod } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { UseCaseSourceBadges } from '@/components/ui/use-case-source-badge'
 import { REFERENCE_ARCHITECTURES } from '@/lib/microsoft-solutions'
+import { calculateATMScore } from '@/lib/atm-scoring'
+import { ATMBadge } from '@/components/ATMBadge'
 import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
@@ -43,6 +45,7 @@ export function UseCaseCard({
   const riceScore = calculateRICEScore(useCase)
   const impactFeasScore = useCase.impact * useCase.feasibility
   const quadrant = getQuadrant(useCase.impact, useCase.feasibility)
+  const atmScore = useMemo(() => calculateATMScore(useCase), [useCase])
 
   const hasComplianceInfo = useCase.aiRegulations || useCase.cybersecurity
   const hasCOIInfo = useCase.costOfInaction || useCase.expectedValue
@@ -185,6 +188,8 @@ export function UseCaseCard({
                   {RISK_LEVEL_CONFIG[useCase.regulatoryAssessment.overallRisk].label}
                 </Badge>
               )}
+              {/* ATM Qualification Badge */}
+              {atmScore && <ATMBadge atmScore={atmScore} />}
             </div>
             {useCase.kpis && useCase.kpis.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">

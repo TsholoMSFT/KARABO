@@ -370,6 +370,168 @@ export interface UseCase {
 
   // Customer Journey / Engagement Roadmap
   customerJourney?: CustomerJourney
+
+  // Apps That Matter (ATM) Qualification Score (computed, not persisted)
+  atmScore?: ATMScore
+}
+
+// ============================================================================
+// APPS THAT MATTER (ATM) QUALIFICATION SCORING
+// ============================================================================
+
+/**
+ * ATM Qualification Tier — maps to Microsoft's FY26 "Apps That Matter" initiative.
+ * 
+ * NOTE: This is KARABO's quantified interpretation of ATM's qualitative checklist.
+ * The official ATM criteria are pass/fail; this model provides a numerical assessment 
+ * to help systematically strengthen opportunities before tagging them as ATM in pipeline.
+ */
+export type ATMTier = 'platinum' | 'gold' | 'silver' | 'not-qualified' | 'insufficient-data'
+
+/**
+ * The three ATM pillars for multi-pillar assessment.
+ * ATM defines qualifying opportunities should span AI + Apps + Data.
+ */
+export type ATMPillar = 'ai' | 'apps' | 'data'
+
+export const ATM_PILLAR_LABELS: Record<ATMPillar, string> = {
+  ai: 'AI',
+  apps: 'Apps',
+  data: 'Data',
+}
+
+export const ATM_TIER_CONFIG: Record<ATMTier, {
+  label: string
+  description: string
+  color: string
+  bgColor: string
+  borderColor: string
+  icon: string
+  minScore: number
+}> = {
+  'platinum': {
+    label: 'Platinum',
+    description: 'Fully ATM-qualified — ready for pipeline tagging',
+    color: 'text-purple-300',
+    bgColor: 'bg-purple-500/15',
+    borderColor: 'border-purple-500/40',
+    icon: '✦',
+    minScore: 80,
+  },
+  'gold': {
+    label: 'Gold',
+    description: 'Strong ATM candidate — minor gaps to address',
+    color: 'text-amber-300',
+    bgColor: 'bg-amber-500/15',
+    borderColor: 'border-amber-500/40',
+    icon: '◆',
+    minScore: 60,
+  },
+  'silver': {
+    label: 'Silver',
+    description: 'Promising but needs development in 1-2 dimensions',
+    color: 'text-slate-300',
+    bgColor: 'bg-slate-400/15',
+    borderColor: 'border-slate-400/40',
+    icon: '●',
+    minScore: 40,
+  },
+  'not-qualified': {
+    label: 'Not Yet Qualified',
+    description: 'Significant gaps — review recommendations to elevate',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted/50',
+    borderColor: 'border-muted',
+    icon: '○',
+    minScore: 0,
+  },
+  'insufficient-data': {
+    label: 'Insufficient Data',
+    description: 'Complete more assessments to receive an ATM qualification',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted/30',
+    borderColor: 'border-muted',
+    icon: '…',
+    minScore: 0,
+  },
+}
+
+/**
+ * Status of a single scoring component — distinguishes "scored low" from "not assessed"
+ */
+export type ATMComponentStatus = 'scored' | 'partial' | 'not-assessed'
+
+/**
+ * A single component within a dimension's scoring breakdown
+ */
+export interface ATMComponentScore {
+  name: string
+  maxPoints: number
+  earnedPoints: number
+  status: ATMComponentStatus
+  explanation: string           // Human-readable explanation of how points were earned
+  sourceFields: string[]        // Which data fields contributed (for transparency)
+  recommendation?: string       // If not full points, what to do (actionable)
+}
+
+/**
+ * Score for a single ATM dimension (e.g., Business Impact)
+ */
+export interface ATMDimensionScore {
+  dimension: ATMDimension
+  label: string
+  weight: number                // 0-1, sums to 1.0 across all dimensions
+  rawScore: number              // 0-100 (normalised against assessed components)
+  componentsAssessed: number
+  componentsTotal: number
+  components: ATMComponentScore[]
+  topRecommendation?: string    // Single most impactful action for this dimension
+}
+
+export type ATMDimension = 
+  | 'business-impact'
+  | 'innovation-agentic'
+  | 'enterprise-grade'
+  | 'multi-pillar'
+  | 'repeatability'
+
+export const ATM_DIMENSION_LABELS: Record<ATMDimension, string> = {
+  'business-impact': 'Business Impact',
+  'innovation-agentic': 'Innovation & Agentic',
+  'enterprise-grade': 'Enterprise-Grade',
+  'multi-pillar': 'Multi-Pillar',
+  'repeatability': 'Repeatability',
+}
+
+export const ATM_DIMENSION_DESCRIPTIONS: Record<ATMDimension, string> = {
+  'business-impact': 'Solves real business problems with measurable value',
+  'innovation-agentic': 'Leverages agentic AI — autonomous, reasoning, adaptive',
+  'enterprise-grade': 'Production-ready with security, compliance, governance',
+  'multi-pillar': 'Spans AI + Apps + Data pillars for bigger, stickier deals',
+  'repeatability': 'Built on proven blueprints and solution patterns',
+}
+
+/**
+ * Complete ATM qualification score for a use case
+ */
+export interface ATMScore {
+  compositeScore: number        // 0-100 weighted average
+  tier: ATMTier
+  confidence: number            // 0-100% — how many components have data
+  dimensions: ATMDimensionScore[]
+  pillarsCovered: ATMPillar[]   // Which of the 3 pillars are present
+  gapRecommendations: ATMGapRecommendation[]   // Ordered by impact
+  calculatedAt: number          // Timestamp
+}
+
+/**
+ * A single actionable recommendation to improve the ATM score
+ */
+export interface ATMGapRecommendation {
+  dimension: ATMDimension
+  action: string                // Human-readable action, e.g. "Complete the regulatory assessment"
+  potentialPointsGain: number   // How many composite points this could add
+  priority: 'high' | 'medium' | 'low'
 }
 
 // ============================================================================
