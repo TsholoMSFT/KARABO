@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Info, Target } from '@phosphor-icons/react'
+import { InlineDisclaimer } from '@/components/Disclaimer'
 
 /**
  * Why COI (Cost of Inaction) matters:
@@ -271,6 +272,7 @@ export function QuickCOICalculator({
   const [copied, setCopied] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isAutoFilling, setIsAutoFilling] = useState(false)
+  const [showAutoFillDisclaimer, setShowAutoFillDisclaimer] = useState(false)
 
   const totalCOI = useMemo(() => 
     directCosts + opportunityCosts + riskCosts,
@@ -358,6 +360,7 @@ ${notes ? `\nNotes: ${notes}` : ''}
       ].filter(Boolean).join('\n')
 
       setNotes((prev) => (prev && prev.trim().length > 0 ? prev : aiNotes))
+      setShowAutoFillDisclaimer(true)
       toast.success('COI auto-filled from AI')
     } catch (error) {
       console.error('COI auto-fill failed:', error)
@@ -446,7 +449,18 @@ ${notes ? `\nNotes: ${notes}` : ''}
             Delaying action costs approximately <strong>{formatCurrency(totalCOI / 12)}/month</strong>
           </p>
         )}
+        <p className="text-[10px] text-muted-foreground mt-1">
+          Total COI = Direct Costs + Opportunity Costs + Risk Costs (simple sum, no weighting applied)
+        </p>
       </motion.div>
+
+      {/* AI auto-fill disclaimer */}
+      {showAutoFillDisclaimer && (
+        <InlineDisclaimer
+          icon="ai"
+          text="Values estimated by AI based on use case description, industry, and company context. Review and adjust as needed."
+        />
+      )}
 
       {/* Notes Section */}
       <div className="space-y-2">

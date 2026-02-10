@@ -30,6 +30,7 @@ import {
   ShieldWarning,
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { InlineDisclaimer } from '@/components/Disclaimer'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -251,6 +252,12 @@ export function RegulatoryAwarenessPanel({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <InlineDisclaimer
+        text="Regulatory information is for awareness only and may not be current. Consult qualified legal professionals for compliance decisions."
+        icon="legal"
+        className="mt-3"
+      />
     </div>
   )
 }

@@ -16,6 +16,7 @@ import {
 } from '@phosphor-icons/react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import {
   Select,
   SelectContent,
@@ -60,12 +61,40 @@ export default function LandingZoneAssessment({ value, onChange, readOnly = fals
     if (!readOnly) onChange({ ...value, ...patch })
   }
 
+  // Calculate completion progress
+  const totalFields = 9 // hasAILandingZone, networkModel, privateEndpoints, eslzCompliant, subscriptionTopology, managementGroups, policyBaseline, environmentSeparation, drStrategy
+  const completedFields = [
+    value.hasAILandingZone,
+    value.networkModel,
+    value.privateEndpoints,
+    value.eslzCompliant,
+    value.subscriptionTopology,
+    value.managementGroups,
+    value.policyBaseline,
+    value.environmentSeparation,
+    value.drStrategy,
+  ].filter(Boolean).length
+  const completionPct = Math.round((completedFields / totalFields) * 100)
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Cloud weight="duotone" className="h-4 w-4" />
         <span>AI Landing Zone Readiness</span>
+      </div>
+
+      {/* Context note */}
+      <p className="text-xs text-muted-foreground">
+        An AI Landing Zone is a pre-configured Azure environment with networking, identity, and
+        governance guardrails for AI workloads. It ensures secure, compliant deployment aligned
+        with the Cloud Adoption Framework.
+      </p>
+
+      {/* Completion progress */}
+      <div className="flex items-center gap-3">
+        <Progress value={completionPct} className="flex-1 h-2" />
+        <span className="text-xs text-muted-foreground whitespace-nowrap">{completedFields}/{totalFields} configured</span>
       </div>
 
       {/* Toggle grid */}

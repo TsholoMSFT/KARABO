@@ -16,9 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
 import { ComplianceReviewStep } from '@/components/ComplianceReviewStep'
-import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X } from '@phosphor-icons/react'
+import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, Info } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
+import { InlineDisclaimer } from '@/components/Disclaimer'
 import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { fetchFinancialStatements } from '@/lib/earnings-service'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
@@ -503,7 +504,8 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                     Review & Add Use Cases
                   </CardTitle>
                   <CardDescription>
-                    Review the suggested use cases and add any additional ones you'd like to explore
+                    Review the suggested use cases and add any additional ones you'd like to explore.
+                    These may come from AI analysis, prior sessions, or manual entry.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -590,7 +592,8 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                 <CardHeader>
                   <CardTitle>Select Use Cases to Score</CardTitle>
                   <CardDescription>
-                    Choose which use cases you want to evaluate with Impact/Feasibility and RICE scoring
+                    Choose which use cases you want to evaluate with Impact/Feasibility and RICE scoring.
+                    Only selected use cases will proceed through the scoring pipeline.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -765,6 +768,11 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
 
                   <div>
                     <h3 className="text-lg font-semibold text-foreground mb-3">Executive Summary</h3>
+                    <InlineDisclaimer
+                      text="This executive summary was AI-generated from your discovery data. Review before sharing."
+                      icon="ai"
+                      className="mb-2"
+                    />
                     <div className="p-4 bg-muted/30 rounded-lg">
                       <p className="text-sm text-foreground whitespace-pre-wrap">{executiveSummary}</p>
                     </div>
@@ -1306,7 +1314,7 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
             <ListNumbers size={24} weight="duotone" className="text-primary" />
           </div>
           <CardTitle>RICE Scoring</CardTitle>
-          <CardDescription>Calculate the RICE score for detailed prioritization</CardDescription>
+          <CardDescription>Calculate the RICE score for detailed prioritization. RICE is an industry-standard framework for comparing opportunities objectively.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="p-4 bg-accent/10 rounded-lg">
@@ -1322,6 +1330,12 @@ function RiceStep({ useCase, currentIndex, totalCount, onSave, onBack, context }
             <p className="text-xs text-muted-foreground mt-2">
               (Reach × Impact × Confidence) ÷ Effort
             </p>
+            <div className="mt-2 text-[11px] text-muted-foreground space-y-0.5">
+              <p><strong>Reach</strong>: Users impacted per month ({reach.toFixed(0)})</p>
+              <p><strong>Impact</strong>: Effect per user (0.25× minimal → 3× massive)</p>
+              <p><strong>Confidence</strong>: How certain you are ({confidence}%)</p>
+              <p><strong>Effort</strong>: Person-weeks to implement ({effort})</p>
+            </div>
           </div>
 
           <div className="space-y-6">

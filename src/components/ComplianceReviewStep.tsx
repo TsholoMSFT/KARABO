@@ -45,9 +45,11 @@ import {
   Prohibit,
   LinkSimple,
   Signature,
+  Info,
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
+import { Disclaimer } from '@/components/Disclaimer'
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -230,6 +232,20 @@ export function ComplianceReviewStep({
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* Methodology note */}
+          <div className="flex items-start gap-2 text-xs text-muted-foreground p-3 rounded-md border border-muted bg-muted/20">
+            <Info size={14} weight="fill" className="text-blue-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="mb-1">
+                <span className="font-medium text-foreground/80">How risk levels are determined:</span> Each use case is
+                checked against applicable regulatory frameworks (e.g. EU AI Act, POPIA, HIPAA) using keyword and
+                category matching. Risk levels follow the EU AI Act classification:
+              </p>
+              <p><strong>Unacceptable</strong> — prohibited uses (social scoring, real-time biometrics). <strong>High</strong> — requires conformity assessment. <strong>Limited</strong> — transparency obligations. <strong>Minimal</strong> — no specific requirements.</p>
+              <p className="mt-1 italic text-[10px]">This is a preliminary screening tool, not a legal assessment. Consult qualified legal counsel for compliance decisions.</p>
+            </div>
+          </div>
+
           {/* Summary bar */}
           <div className="flex flex-wrap gap-3">
             {RISK_ORDER.map((level) => {
@@ -461,6 +477,8 @@ export function ComplianceReviewStep({
               </AnimatePresence>
             </div>
           </ScrollArea>
+
+          <Disclaimer variant="compact" showLegalDisclaimer showAIDisclaimer={false} />
         </CardContent>
 
         <CardFooter className="flex justify-between items-center">

@@ -18,6 +18,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
+import { AIDataDisclosure } from '@/components/AIDataDisclosure'
 
 export type ExecutiveSummaryPreset = 'standard' | 'stakeholder-email' | 'meeting-notes'
 
@@ -25,6 +27,12 @@ const PRESET_LABELS: Record<ExecutiveSummaryPreset, string> = {
   standard: 'Standard Summary',
   'stakeholder-email': 'Stakeholder Email',
   'meeting-notes': 'Meeting Notes',
+}
+
+const PRESET_DESCRIPTIONS: Record<ExecutiveSummaryPreset, string> = {
+  standard: 'Structured executive summary with headings, findings, and next steps',
+  'stakeholder-email': 'Crisp email format for C-suite or sponsors — easy to skim',
+  'meeting-notes': 'Structured notes with bullets and assigned action items',
 }
 
 interface ExecutiveSummaryGeneratorDialogProps {
@@ -255,11 +263,15 @@ export function ExecutiveSummaryGeneratorDialog({
                 variant={preset === p ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setPreset(p)}
+                title={PRESET_DESCRIPTIONS[p]}
               >
                 {PRESET_LABELS[p]}
               </Button>
             ))}
           </div>
+          {PRESET_DESCRIPTIONS[preset] && (
+            <p className="text-xs text-muted-foreground">{PRESET_DESCRIPTIONS[preset]}</p>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="exec-summary-paste">Paste notes / transcript (optional)</Label>
@@ -317,7 +329,17 @@ export function ExecutiveSummaryGeneratorDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-3 sm:flex-col">
+          <AIDataDisclosure
+            fields={['customer name', 'industry', 'session name', 'use cases (up to 12)', 'pasted notes', 'attachment text']}
+            model="gpt-4o-mini"
+            note="Your inputs are sent to generate the executive summary. No data is stored beyond this request."
+          />
+          <InlineDisclaimer
+            text="The generated summary is AI-produced. Review and edit before sharing with stakeholders."
+            icon="ai"
+          />
+          <div className="flex justify-end gap-2 w-full">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -329,6 +351,7 @@ export function ExecutiveSummaryGeneratorDialog({
           >
             {isGenerating ? 'Generating…' : 'Generate & Save'}
           </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

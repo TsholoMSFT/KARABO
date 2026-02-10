@@ -17,6 +17,8 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   FileText,
   TrendingUp,
@@ -30,6 +32,9 @@ import {
   Clock,
   Percent,
   PiggyBank,
+  HelpCircle,
+  Settings2,
+  RotateCcw,
 } from 'lucide-react'
 import { FinancialStatementView } from '../FinancialStatementView'
 import { MetricHierarchyView } from '../MetricHierarchyView'
@@ -48,7 +53,15 @@ import {
   formatCurrency,
   formatPercentage,
   formatMonths,
+  type FinancialAssumptions,
 } from '@/lib/financial-calculations'
+import {
+  DEFAULT_ASSUMPTIONS,
+  ASSUMPTION_LABELS,
+  ASSUMPTION_DESCRIPTIONS,
+  formatAssumptionValue,
+} from '@/lib/financial-assumptions'
+import { Disclaimer } from '@/components/Disclaimer'
 import { mapToIncomeStatement, createEmptyMetricHierarchy } from '@/lib/financial-mapping'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
 import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
@@ -142,6 +155,15 @@ export function Stage8Communicate({
     }
     return 100000
   })
+
+  // Editable financial assumptions
+  const [assumptions, setAssumptions] = useState<FinancialAssumptions>({ ...DEFAULT_ASSUMPTIONS })
+  const [assumptionsOpen, setAssumptionsOpen] = useState(false)
+
+  const updateAssumption = <K extends keyof FinancialAssumptions>(key: K, value: FinancialAssumptions[K]) => {
+    setAssumptions(prev => ({ ...prev, [key]: value }))
+  }
+  const resetAssumptions = () => setAssumptions({ ...DEFAULT_ASSUMPTIONS })
   
   // Calculate annual benefit from Stage 5 data, with fallback to Stage 1 COI
   const annualBenefit = useMemo(() => {
@@ -172,9 +194,9 @@ export function Stage8Communicate({
   
   // Generate all financial outputs
   const financialOutputs = useMemo(() => {
-    const plImpact = calculatePLImpact(annualBenefit, investment)
-    const investmentAnalysis = generateInvestmentAnalysis(investment, annualBenefit)
-    const sensitivityAnalysis = generateSensitivityAnalysis(investment, annualBenefit)
+    const plImpact = calculatePLImpact(annualBenefit, investment, assumptions)
+    const investmentAnalysis = generateInvestmentAnalysis(investment, annualBenefit, assumptions)
+    const sensitivityAnalysis = generateSensitivityAnalysis(investment, annualBenefit, assumptions)
     
     // Three-statement model
     const revenueImpact = solutionScopeData?.revenueImpact?.totalAnnualRevenue || 0
@@ -189,21 +211,21 @@ export function Stage8Communicate({
     
     const threeStatementModel = {
       incomeStatement: {
-        revenue: { year1: revenueImpact * 0.5, year2: revenueImpact, year3: revenueImpact },
-        cogs: { year1: cogsImpact * 0.5, year2: cogsImpact, year3: cogsImpact },
+        revenue: { year1: revenueImpact * assumptions.year1RealizationFactor, year2: revenueImpact, year3: revenueImpact },
+        cogs: { year1: cogsImpact * assumptions.year1RealizationFactor, year2: cogsImpact, year3: cogsImpact },
         grossProfit: { 
-          year1: (revenueImpact + cogsImpact) * 0.5, 
+          year1: (revenueImpact + cogsImpact) * assumptions.year1RealizationFactor, 
           year2: revenueImpact + cogsImpact, 
           year3: revenueImpact + cogsImpact 
         },
         opex: {
           salesMarketing: { year1: 0, year2: 0, year3: 0 },
           rAndD: { year1: 0, year2: 0, year3: 0 },
-          gAndA: { year1: opexImpact * 0.5, year2: opexImpact, year3: opexImpact },
-          total: { year1: opexImpact * 0.5 - investment, year2: opexImpact, year3: opexImpact },
+          gAndA: { year1: opexImpact * assumptions.year1RealizationFactor, year2: opexImpact, year3: opexImpact },
+          total: { year1: opexImpact * assumptions.year1RealizationFactor - investment, year2: opexImpact, year3: opexImpact },
         },
         ebit: { 
-          year1: annualBenefit * 0.5 - investment, 
+          year1: annualBenefit * assumptions.year1RealizationFactor - investment, 
           year2: annualBenefit, 
           year3: annualBenefit 
         },
@@ -219,13 +241,13 @@ export function Stage8Communicate({
       },
       cashFlow: {
         operatingCashFlow: { 
-          year1: annualBenefit * 0.5 + workingCapitalImpact, 
+          year1: annualBenefit * assumptions.year1RealizationFactor + workingCapitalImpact, 
           year2: annualBenefit, 
           year3: annualBenefit 
         },
         investingCashFlow: { year1: -investment, year2: 0, year3: 0 },
         netCashFlow: { 
-          year1: annualBenefit * 0.5 + workingCapitalImpact - investment, 
+          year1: annualBenefit * assumptions.year1RealizationFactor + workingCapitalImpact - investment, 
           year2: annualBenefit, 
           year3: annualBenefit 
         },
@@ -243,7 +265,7 @@ export function Stage8Communicate({
       valueDriversByPLLine,
       metricHierarchy,
     }
-  }, [annualBenefit, investment, solutionScopeData])
+  }, [annualBenefit, investment, solutionScopeData, assumptions])
   
   const handleComplete = () => {
     const data: CommunicateStageData = {
@@ -320,7 +342,17 @@ export function Stage8Communicate({
                   <PiggyBank className="h-6 w-6 text-green-600" />
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">Annual Benefit</p>
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                Annual Benefit
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Sum of revenue impact, cost savings, and risk mitigation value from selected use cases.
+                  </TooltipContent>
+                </Tooltip>
+              </p>
               <p className="text-2xl font-bold text-green-600">
                 {formatCurrency(annualBenefit, 'USD')}
               </p>
@@ -333,7 +365,17 @@ export function Stage8Communicate({
                   <Clock className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">Payback Period</p>
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                Payback Period
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Investment ÷ Annual Benefit × 12 months. Shows how quickly the investment pays for itself.
+                  </TooltipContent>
+                </Tooltip>
+              </p>
               <p className="text-2xl font-bold text-blue-600">
                 {formatMonths(financialOutputs.investmentAnalysis.simplePaybackMonths)}
               </p>
@@ -346,7 +388,17 @@ export function Stage8Communicate({
                   <Percent className="h-6 w-6 text-purple-600" />
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">3-Year ROI</p>
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                {assumptions.projectionYears}-Year ROI
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    ((Annual Benefit × {assumptions.projectionYears} − Investment) ÷ Investment) × 100%.
+                  </TooltipContent>
+                </Tooltip>
+              </p>
               <p className="text-2xl font-bold text-purple-600">
                 {formatPercentage(financialOutputs.investmentAnalysis.roi3Year)}
               </p>
@@ -359,7 +411,17 @@ export function Stage8Communicate({
                   <Calculator className="h-6 w-6 text-[#0078D4]" />
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">NPV (10%)</p>
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                NPV ({(assumptions.discountRate * 100).toFixed(0)}%)
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Net Present Value of {assumptions.projectionYears}-year cash flows at {(assumptions.discountRate * 100).toFixed(0)}% discount rate. A positive NPV means the investment creates value above the discount threshold.
+                  </TooltipContent>
+                </Tooltip>
+              </p>
               <p className="text-2xl font-bold text-[#0078D4]">
                 {formatCurrency(financialOutputs.investmentAnalysis.npv10Percent, 'USD')}
               </p>
@@ -372,7 +434,156 @@ export function Stage8Communicate({
             <span className="font-bold text-[#0078D4]">
               {formatPercentage(financialOutputs.investmentAnalysis.irr)}
             </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="inline h-3.5 w-3.5 ml-1.5 text-muted-foreground/50 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-xs">
+                The discount rate at which NPV equals zero. A higher IRR means the investment generates more return relative to its cost.
+              </TooltipContent>
+            </Tooltip>
           </div>
+
+          {/* Collapsible Assumptions Panel */}
+          <Collapsible open={assumptionsOpen} onOpenChange={setAssumptionsOpen} className="mt-4">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground hover:text-foreground gap-2 h-auto py-2">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4" />
+                  <span className="text-xs">Financial Assumptions & Methodology</span>
+                </div>
+                <Badge variant="outline" className="text-[10px]">
+                  {assumptionsOpen ? 'Hide' : 'Show'}
+                </Badge>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="mt-3 p-4 bg-muted/20 rounded-lg border space-y-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-sm font-semibold">Model Assumptions</h5>
+                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={resetAssumptions}>
+                    <RotateCcw className="h-3 w-3" /> Reset defaults
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  These assumptions drive all KPI, P&amp;L, NPV, and sensitivity calculations. Adjust to match your organization's context.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* Discount Rate */}
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">{ASSUMPTION_LABELS.discountRate}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min={0} max={100} step={1}
+                        className="h-7 text-xs font-mono w-20"
+                        value={Math.round(assumptions.discountRate * 100)}
+                        onChange={e => updateAssumption('discountRate', (Number(e.target.value) || 0) / 100)}
+                      />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  {/* Projection Years */}
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">{ASSUMPTION_LABELS.projectionYears}</Label>
+                    <Input
+                      type="number" min={1} max={10} step={1}
+                      className="h-7 text-xs font-mono w-20"
+                      value={assumptions.projectionYears}
+                      onChange={e => updateAssumption('projectionYears', Number(e.target.value) || 3)}
+                    />
+                  </div>
+                  {/* Y1 Realization */}
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">{ASSUMPTION_LABELS.year1RealizationFactor}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min={0} max={100} step={5}
+                        className="h-7 text-xs font-mono w-20"
+                        value={Math.round(assumptions.year1RealizationFactor * 100)}
+                        onChange={e => updateAssumption('year1RealizationFactor', (Number(e.target.value) || 0) / 100)}
+                      />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  {/* Revenue allocation */}
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">{ASSUMPTION_LABELS.revenueAllocation}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min={0} max={100} step={5}
+                        className="h-7 text-xs font-mono w-20"
+                        value={Math.round(assumptions.revenueAllocation * 100)}
+                        onChange={e => updateAssumption('revenueAllocation', (Number(e.target.value) || 0) / 100)}
+                      />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  {/* COGS allocation */}
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">{ASSUMPTION_LABELS.cogsAllocation}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min={0} max={100} step={5}
+                        className="h-7 text-xs font-mono w-20"
+                        value={Math.round(assumptions.cogsAllocation * 100)}
+                        onChange={e => updateAssumption('cogsAllocation', (Number(e.target.value) || 0) / 100)}
+                      />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  {/* OpEx allocation */}
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">{ASSUMPTION_LABELS.opexAllocation}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min={0} max={100} step={5}
+                        className="h-7 text-xs font-mono w-20"
+                        value={Math.round(assumptions.opexAllocation * 100)}
+                        onChange={e => updateAssumption('opexAllocation', (Number(e.target.value) || 0) / 100)}
+                      />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  {/* Risk adjustment */}
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">{ASSUMPTION_LABELS.riskAdjustmentFactor}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number" min={0} max={100} step={5}
+                        className="h-7 text-xs font-mono w-20"
+                        value={Math.round(assumptions.riskAdjustmentFactor * 100)}
+                        onChange={e => updateAssumption('riskAdjustmentFactor', (Number(e.target.value) || 0) / 100)}
+                      />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  {/* Sensitivity scenarios */}
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">{ASSUMPTION_LABELS.sensitivityMultipliers}</Label>
+                    <div className="flex items-center gap-1">
+                      {assumptions.sensitivityMultipliers.map((v, i) => (
+                        <Input
+                          key={i}
+                          type="number" min={0} max={300} step={5}
+                          className="h-7 text-xs font-mono w-14"
+                          value={Math.round(v * 100)}
+                          onChange={e => {
+                            const next = [...assumptions.sensitivityMultipliers] as [number, number, number]
+                            next[i] = (Number(e.target.value) || 0) / 100
+                            updateAssumption('sensitivityMultipliers', next)
+                          }}
+                        />
+                      ))}
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  Changes recalculate all KPIs, P&amp;L projections, and sensitivity scenarios in real time.
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
       
@@ -509,11 +720,22 @@ export function Stage8Communicate({
                   </CardContent>
                 </Card>
               </div>
+              {/* Sensitivity methodology */}
+              <div className="mt-4 bg-muted/20 rounded p-3 text-[11px] text-muted-foreground space-y-1">
+                <h5 className="font-semibold text-foreground text-xs">How Sensitivity Analysis Works</h5>
+                <p>
+                  Each scenario applies a multiplier to the base annual benefit: Conservative ({(assumptions.sensitivityMultipliers[0] * 100).toFixed(0)}%), 
+                  Base ({(assumptions.sensitivityMultipliers[1] * 100).toFixed(0)}%), and Optimistic ({(assumptions.sensitivityMultipliers[2] * 100).toFixed(0)}%). 
+                  The investment amount remains constant. Payback, ROI, and NPV are recalculated for each scenario using 
+                  a {(assumptions.discountRate * 100).toFixed(0)}% discount rate over {assumptions.projectionYears} years.
+                </p>
+                <p className="italic text-[10px]">
+                  Adjust multipliers and discount rate in the "Financial Assumptions" panel above the KPI cards.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
-        
-        {/* Metric Hierarchy Tab */}
         <TabsContent value="hierarchy">
           <MetricHierarchyView data={financialOutputs.metricHierarchy} />
         </TabsContent>
@@ -656,6 +878,9 @@ export function Stage8Communicate({
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Financial Disclaimer */}
+      <Disclaimer variant="compact" showFinancialDisclaimer showAIDisclaimer={false} showLegalDisclaimer={false} />
       
       {/* Navigation */}
       <div className="flex justify-between pt-4">

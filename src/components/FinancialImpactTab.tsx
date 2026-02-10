@@ -9,6 +9,7 @@ import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components
 import { calculatePaybackPeriod, calculateROI } from '@/lib/financial-calculations'
 import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { Calculator, TrendUp, WarningCircle, Target } from '@phosphor-icons/react'
+import { InlineDisclaimer } from '@/components/Disclaimer'
 
 const DEFAULT_COST_PER_WEEK_USD = 8000
 
@@ -356,6 +357,11 @@ export function FinancialImpactTab({
                     <CardDescription>These values are what will appear in executive exports.</CardDescription>
                   </CardHeader>
                   <CardContent className="text-sm text-muted-foreground space-y-1">
+                    <InlineDisclaimer
+                      icon="info"
+                      text="Values below are auto-derived from COI, effort estimates, and industry multipliers. Review and adjust before saving."
+                      className="mb-3"
+                    />
                     <div className="flex justify-between"><span>Total annual value</span><span className="text-foreground">{formatMoney(selectedROIResult.totalAnnualValue)}/yr</span></div>
                     <div className="flex justify-between"><span>Implementation cost</span><span className="text-foreground">{formatMoney(selectedROIInputs.implementationCost)}</span></div>
                     <div className="flex justify-between"><span>Payback (months)</span><span className="text-foreground">{Number.isFinite(selectedROIResult.paybackMonths) ? Math.round(selectedROIResult.paybackMonths) : '—'}</span></div>

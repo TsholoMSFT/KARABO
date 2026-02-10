@@ -5,6 +5,9 @@ import type {
   InvestmentAnalysis,
   SensitivityScenario,
 } from './types'
+import { DEFAULT_ASSUMPTIONS, type FinancialAssumptions } from './financial-assumptions'
+
+export { DEFAULT_ASSUMPTIONS, type FinancialAssumptions } from './financial-assumptions'
 
 /**
  * Calculate total annual Cost of Inaction (COI)
@@ -45,10 +48,13 @@ export function calculateTotalAnnualValue(valueDrivers: ValueDriver[]): number {
 }
 
 /**
- * Calculate risk-adjusted value (conservative 80% adjustment)
+ * Calculate risk-adjusted value (conservative adjustment)
  */
-export function calculateRiskAdjustedValue(totalAnnualValue: number): number {
-  return totalAnnualValue * 0.8
+export function calculateRiskAdjustedValue(
+  totalAnnualValue: number,
+  assumptions: FinancialAssumptions = DEFAULT_ASSUMPTIONS
+): number {
+  return totalAnnualValue * assumptions.riskAdjustmentFactor
 }
 
 /**
@@ -75,12 +81,14 @@ export function calculatePaybackPeriod(
 export function calculateNPV(
   investment: number,
   annualBenefit: number,
-  discountRate: number = 0.1
+  discountRate?: number,
+  assumptions: FinancialAssumptions = DEFAULT_ASSUMPTIONS
 ): number {
+  const rate = discountRate ?? assumptions.discountRate
   let npv = -investment
 
-  for (let year = 1; year <= 3; year++) {
-    npv += annualBenefit / Math.pow(1 + discountRate, year)
+  for (let year = 1; year <= assumptions.projectionYears; year++) {
+    npv += annualBenefit / Math.pow(1 + rate, year)
   }
 
   return npv
@@ -128,10 +136,11 @@ export function calculateIRR(
  */
 export function calculateROI(
   investment: number,
-  annualBenefit: number
+  annualBenefit: number,
+  assumptions: FinancialAssumptions = DEFAULT_ASSUMPTIONS
 ): number {
   if (investment <= 0) return 0
-  const totalBenefit = annualBenefit * 3
+  const totalBenefit = annualBenefit * assumptions.projectionYears
   return ((totalBenefit - investment) / investment) * 100
 }
 
@@ -141,44 +150,43 @@ export function calculateROI(
  */
 export function calculatePLImpact(
   annualBenefit: number,
-  investment: number
+  investment: number,
+  assumptions: FinancialAssumptions = DEFAULT_ASSUMPTIONS
 ): PLImpactSummary {
-  // Simplified model: 
-  // - Year 1: Full investment in OPEX, 50% of benefits realized
-  // - Year 2: Full benefits, no additional investment
-  // - Year 3: Full benefits, no additional investment
+  const { year1RealizationFactor, revenueAllocation, cogsAllocation, opexAllocation } = assumptions
+  const grossMarginShare = revenueAllocation + cogsAllocation
 
-  const year1Benefit = annualBenefit * 0.5
+  const year1Benefit = annualBenefit * year1RealizationFactor
   const year2Benefit = annualBenefit
   const year3Benefit = annualBenefit
 
   return {
     year1: {
-      revenueImpact: year1Benefit * 0.6, // 60% flows to revenue
-      cogsImpact: year1Benefit * 0.1, // 10% COGS reduction
-      grossMarginImpact: year1Benefit * 0.7,
-      opexImpact: year1Benefit * 0.3 - investment, // 30% opex savings minus investment
+      revenueImpact: year1Benefit * revenueAllocation,
+      cogsImpact: year1Benefit * cogsAllocation,
+      grossMarginImpact: year1Benefit * grossMarginShare,
+      opexImpact: year1Benefit * opexAllocation - investment,
       ebitImpact: year1Benefit - investment,
     },
     year2: {
-      revenueImpact: year2Benefit * 0.6,
-      cogsImpact: year2Benefit * 0.1,
-      grossMarginImpact: year2Benefit * 0.7,
-      opexImpact: year2Benefit * 0.3,
+      revenueImpact: year2Benefit * revenueAllocation,
+      cogsImpact: year2Benefit * cogsAllocation,
+      grossMarginImpact: year2Benefit * grossMarginShare,
+      opexImpact: year2Benefit * opexAllocation,
       ebitImpact: year2Benefit,
     },
     year3: {
-      revenueImpact: year3Benefit * 0.6,
-      cogsImpact: year3Benefit * 0.1,
-      grossMarginImpact: year3Benefit * 0.7,
-      opexImpact: year3Benefit * 0.3,
+      revenueImpact: year3Benefit * revenueAllocation,
+      cogsImpact: year3Benefit * cogsAllocation,
+      grossMarginImpact: year3Benefit * grossMarginShare,
+      opexImpact: year3Benefit * opexAllocation,
       ebitImpact: year3Benefit,
     },
     total: {
-      revenueImpact: (year1Benefit + year2Benefit + year3Benefit) * 0.6,
-      cogsImpact: (year1Benefit + year2Benefit + year3Benefit) * 0.1,
-      grossMarginImpact: (year1Benefit + year2Benefit + year3Benefit) * 0.7,
-      opexImpact: (year1Benefit + year2Benefit + year3Benefit) * 0.3 - investment,
+      revenueImpact: (year1Benefit + year2Benefit + year3Benefit) * revenueAllocation,
+      cogsImpact: (year1Benefit + year2Benefit + year3Benefit) * cogsAllocation,
+      grossMarginImpact: (year1Benefit + year2Benefit + year3Benefit) * grossMarginShare,
+      opexImpact: (year1Benefit + year2Benefit + year3Benefit) * opexAllocation - investment,
       ebitImpact: year1Benefit + year2Benefit + year3Benefit - investment,
     },
   }
@@ -189,14 +197,15 @@ export function calculatePLImpact(
  */
 export function generateInvestmentAnalysis(
   investment: number,
-  annualBenefit: number
+  annualBenefit: number,
+  assumptions: FinancialAssumptions = DEFAULT_ASSUMPTIONS
 ): InvestmentAnalysis {
   return {
     totalInvestmentYear1: investment,
     totalAnnualBenefit: annualBenefit,
     simplePaybackMonths: calculatePaybackPeriod(investment, annualBenefit),
-    roi3Year: calculateROI(investment, annualBenefit),
-    npv10Percent: calculateNPV(investment, annualBenefit, 0.1),
+    roi3Year: calculateROI(investment, annualBenefit, assumptions),
+    npv10Percent: calculateNPV(investment, annualBenefit, undefined, assumptions),
     irr: calculateIRR(investment, annualBenefit),
   }
 }
@@ -206,27 +215,30 @@ export function generateInvestmentAnalysis(
  */
 export function generateSensitivityAnalysis(
   investment: number,
-  annualBenefit: number
+  annualBenefit: number,
+  assumptions: FinancialAssumptions = DEFAULT_ASSUMPTIONS
 ): SensitivityScenario {
+  const [cMul, bMul, oMul] = assumptions.sensitivityMultipliers
+
   const conservative = {
-    annualBenefit: annualBenefit * 0.7,
-    paybackMonths: calculatePaybackPeriod(investment, annualBenefit * 0.7),
-    roi3Year: calculateROI(investment, annualBenefit * 0.7),
-    npv: calculateNPV(investment, annualBenefit * 0.7, 0.1),
+    annualBenefit: annualBenefit * cMul,
+    paybackMonths: calculatePaybackPeriod(investment, annualBenefit * cMul),
+    roi3Year: calculateROI(investment, annualBenefit * cMul, assumptions),
+    npv: calculateNPV(investment, annualBenefit * cMul, undefined, assumptions),
   }
 
   const base = {
-    annualBenefit: annualBenefit,
-    paybackMonths: calculatePaybackPeriod(investment, annualBenefit),
-    roi3Year: calculateROI(investment, annualBenefit),
-    npv: calculateNPV(investment, annualBenefit, 0.1),
+    annualBenefit: annualBenefit * bMul,
+    paybackMonths: calculatePaybackPeriod(investment, annualBenefit * bMul),
+    roi3Year: calculateROI(investment, annualBenefit * bMul, assumptions),
+    npv: calculateNPV(investment, annualBenefit * bMul, undefined, assumptions),
   }
 
   const optimistic = {
-    annualBenefit: annualBenefit * 1.3,
-    paybackMonths: calculatePaybackPeriod(investment, annualBenefit * 1.3),
-    roi3Year: calculateROI(investment, annualBenefit * 1.3),
-    npv: calculateNPV(investment, annualBenefit * 1.3, 0.1),
+    annualBenefit: annualBenefit * oMul,
+    paybackMonths: calculatePaybackPeriod(investment, annualBenefit * oMul),
+    roi3Year: calculateROI(investment, annualBenefit * oMul, assumptions),
+    npv: calculateNPV(investment, annualBenefit * oMul, undefined, assumptions),
   }
 
   return { conservative, base, optimistic }
@@ -291,16 +303,16 @@ export const INDUSTRY_VALUE_MULTIPLIERS: Record<string, number> = {
  * Complexity to effort weeks mapping
  */
 export const COMPLEXITY_EFFORT_WEEKS: Record<string, number> = {
-  'low': 4,
-  'medium': 8,
-  'high': 16,
-  'very-high': 24,
+  'low': DEFAULT_ASSUMPTIONS.complexityEffortWeeks.low,
+  'medium': DEFAULT_ASSUMPTIONS.complexityEffortWeeks.medium,
+  'high': DEFAULT_ASSUMPTIONS.complexityEffortWeeks.high,
+  'very-high': DEFAULT_ASSUMPTIONS.complexityEffortWeeks.veryHigh,
 }
 
 /**
  * Default cost per person-week (USD)
  */
-export const DEFAULT_COST_PER_WEEK_USD = 8000
+export const DEFAULT_COST_PER_WEEK_USD = DEFAULT_ASSUMPTIONS.costPerPersonWeek
 
 /**
  * Context for auto-populating ROI inputs
@@ -441,14 +453,15 @@ export function inferROIFromContext(context: ROIAutoContext): InferredROIInputs 
       baseValue = annualRevenue * (0.001 * impactScore) * industryMultiplier
       sources.push(`Revenue-based estimate ($${(annualRevenue / 1e9).toFixed(1)}B × ${(0.1 * impactScore).toFixed(1)}%)`)
     } else {
-      // Fallback baseline: $500K adjusted by industry and impact
-      baseValue = 500000 * industryMultiplier * (impactScore / 5)
+      // Fallback baseline adjusted by industry and impact
+      baseValue = DEFAULT_ASSUMPTIONS.fallbackBaselineValue * industryMultiplier * (impactScore / 5)
       sources.push(`Baseline estimate (impact ${impactScore}/10 × ${industryMultiplier}x industry)`)
     }
 
-    revenueImpact = Math.round(baseValue * 0.4)
-    costSavings = Math.round(baseValue * 0.4)
-    riskMitigation = Math.round(baseValue * 0.2)
+    const [revSplit, costSplit, riskSplit] = DEFAULT_ASSUMPTIONS.valueSplit
+    revenueImpact = Math.round(baseValue * revSplit)
+    costSavings = Math.round(baseValue * costSplit)
+    riskMitigation = Math.round(baseValue * riskSplit)
   }
 
   // Build notes

@@ -149,11 +149,32 @@ export function PrioritizationMatrix({
                   }}
                   style={{ filter: isSelected ? 'drop-shadow(0 0 8px oklch(0.65 0.20 310 / 0.5))' : 'none' }}
                 />
-                <title>{useCase.title}</title>
+                <title>{`${useCase.title}\nImpact: ${useCase.impact}/10 · Feasibility: ${useCase.feasibility}/10\nScore: ${useCase.impact * useCase.feasibility} · Quadrant: ${getQuadrant(useCase.impact, useCase.feasibility)}`}</title>
               </motion.g>
             )
           })}
         </svg>
+      </div>
+
+      {/* Dot color legend */}
+      <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground px-1">
+        <span className="font-medium text-foreground/70">Dot color (Impact × Feasibility):</span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-full" style={{ background: 'oklch(0.58 0.18 195)' }} />
+          ≥ 70 (Strong)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-full" style={{ background: 'oklch(0.60 0.18 250)' }} />
+          40–69 (Moderate)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-full" style={{ background: 'oklch(0.65 0.20 310)' }} />
+          20–39 (Low)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-full" style={{ background: 'oklch(0.55 0.15 270)' }} />
+          &lt; 20 (Minimal)
+        </span>
       </div>
 
       <div className="bg-muted/30 rounded-lg border border-border overflow-hidden">

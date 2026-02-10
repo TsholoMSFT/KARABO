@@ -13,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { CircleNotch, Sparkle, ArrowRight, CheckCircle, TreeStructure } from '@phosphor-icons/react'
+import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
+import { AIDataDisclosure } from '@/components/AIDataDisclosure'
 import { calculateRICEScore, getTopUseCases } from '@/lib/scoring'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
 import { CustomerJourneyView } from '@/components/CustomerJourneyView'
@@ -485,6 +487,12 @@ RULES
 
               <Separator />
 
+              <AIDataDisclosure
+                fields={['tech maturity', 'data maturity', 'cloud readiness', 'AI usage', 'process candidates', 'process notes', 'constraints', 'selected use cases']}
+                model="gpt-4o-mini"
+                note="Your inputs are sent to generate process analysis and refine use cases."
+              />
+
               <div className="space-y-2">
                 <Label>Process candidates</Label>
                 <Textarea
@@ -522,7 +530,7 @@ RULES
               <div className="flex items-start gap-3 p-4 rounded-lg border bg-accent/10">
                 <CheckCircle size={22} className="text-accent" />
                 <div>
-                  <p className="font-medium">AI Assessment Lite complete</p>
+                  <p className="font-medium flex items-center gap-2">AI Assessment Lite complete <AIBadge /></p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Your process analysis is saved to this session and your portfolio use cases were updated.
                   </p>
@@ -535,7 +543,7 @@ RULES
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Card>
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">Business Processes</CardTitle>
+                        <CardTitle className="text-sm flex items-center gap-1.5">Business Processes <AIBadge /></CardTitle>
                       </CardHeader>
                       <CardContent className="text-sm text-muted-foreground">
                         {generatedBusinessEnvisioning.businessProcesses?.length || 0} mapped
@@ -543,7 +551,7 @@ RULES
                     </Card>
                     <Card>
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">Business Outcomes</CardTitle>
+                        <CardTitle className="text-sm flex items-center gap-1.5">Business Outcomes <AIBadge /></CardTitle>
                       </CardHeader>
                       <CardContent className="text-sm text-muted-foreground">
                         {generatedBusinessEnvisioning.businessOutcomes?.length || 0} captured
@@ -559,6 +567,7 @@ RULES
                   <div className="flex items-center gap-2">
                     <TreeStructure size={20} weight="duotone" className="text-brand-orange" />
                     <Label className="text-sm font-medium">Customer Journeys</Label>
+                    <AIBadge />
                   </div>
                   <ScrollArea className="h-[400px]">
                     <div className="space-y-4 pr-4">

@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileMagnifyingGlass, SkipForward } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
+import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
 import { CompanyResearch } from '@/components/CompanyResearch'
 import { CompanyInsight } from '@/lib/company-research-service'
 
@@ -1059,11 +1060,18 @@ Keep questions conversational, specific to their answer, and focused on discover
                               ) : (
                                 <div className="text-foreground">
                                   {aiSuggestionItems.length > 0 ? (
-                                    <ol className="list-decimal pl-5 space-y-1">
-                                      {aiSuggestionItems.map((q, idx) => (
-                                        <li key={`${idx}-${q}`}>{q}</li>
-                                      ))}
-                                    </ol>
+                                    <>
+                                      <ol className="list-decimal pl-5 space-y-1">
+                                        {aiSuggestionItems.map((q, idx) => (
+                                          <li key={`${idx}-${q}`}>{q}</li>
+                                        ))}
+                                      </ol>
+                                      <InlineDisclaimer
+                                        text="AI-generated suggestions based on your industry and prior answers. Use as starting points."
+                                        icon="ai"
+                                        className="mt-2"
+                                      />
+                                    </>
                                   ) : (
                                     <span className="text-muted-foreground">No suggestions available.</span>
                                   )}

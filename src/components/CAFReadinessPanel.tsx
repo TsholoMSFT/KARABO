@@ -5,8 +5,8 @@
  * Uses inline SVG for the radar (no external chart library dependency).
  */
 
-import { useMemo } from 'react'
-import { Compass, ChartPolar, ArrowRight } from '@phosphor-icons/react'
+import { useMemo, useState } from 'react'
+import { Compass, ChartPolar, ArrowRight, Info, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import {
@@ -207,6 +207,7 @@ export default function CAFReadinessPanel({
   onMaturityChange,
   readOnly = false,
 }: Props) {
+  const [showMethodology, setShowMethodology] = useState(false)
   const assessedCount = Object.keys(cafCapabilityMaturity).length
   const avgMaturity = assessedCount > 0
     ? (Object.values(cafCapabilityMaturity).reduce((sum, lvl) => sum + getMaturityNumeric(lvl as CAFMaturityLevel), 0) / assessedCount).toFixed(1)
@@ -221,6 +222,40 @@ export default function CAFReadinessPanel({
         <Badge variant="outline" className="ml-auto text-[10px]">
           {assessedCount}/{CAF_PILLARS.length} assessed · avg {avgMaturity}/5
         </Badge>
+      </div>
+
+      {/* Methodology explainer */}
+      <div className="rounded-md border border-muted">
+        <button
+          type="button"
+          onClick={() => setShowMethodology(!showMethodology)}
+          className="flex items-center gap-2 w-full px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Info size={14} weight="fill" className="text-blue-500 flex-shrink-0" />
+          <span className="flex-1 text-left">About CAF Readiness Assessment</span>
+          {showMethodology ? <CaretUp size={12} /> : <CaretDown size={12} />}
+        </button>
+        {showMethodology && (
+          <div className="px-3 pb-3 space-y-2 text-[11px] text-muted-foreground border-t border-muted pt-2">
+            <p>
+              The <span className="font-medium text-foreground/80">Cloud Adoption Framework (CAF)</span> is Microsoft's
+              proven guidance for cloud adoption. This assessment evaluates readiness across 7 pillars:
+            </p>
+            <ul className="space-y-1 ml-4 list-disc">
+              <li><span className="font-medium">Strategy</span> — Business justification and expected outcomes</li>
+              <li><span className="font-medium">Plan</span> — Actionable adoption plan aligned to business outcomes</li>
+              <li><span className="font-medium">Ready</span> — Azure environment preparation (landing zones)</li>
+              <li><span className="font-medium">Adopt</span> — Migration and innovation workload deployment</li>
+              <li><span className="font-medium">Govern</span> — Governance policies, cost management, security baseline</li>
+              <li><span className="font-medium">Manage</span> — Operations management and monitoring</li>
+              <li><span className="font-medium">Secure</span> — Security controls, identity, and threat protection</li>
+            </ul>
+            <p className="italic text-[10px]">
+              Maturity levels: 1 (Initial) → 5 (Optimizing). The radar chart visualises the current maturity profile.
+              Scores are self-assessed and should be validated with technical stakeholders.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Lifecycle stage */}

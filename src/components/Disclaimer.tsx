@@ -203,18 +203,18 @@ export function Disclaimer({
   )
 }
 
-// AI Attribution Badge for use with AI-generated content
+// Subtle AI attribution indicator for AI-generated content
 export function AIBadge({ className }: { className?: string }) {
   return (
     <Badge 
       variant="outline" 
       className={cn(
-        "gap-1 text-xs bg-primary/10 border-primary/30 text-primary",
+        "gap-0.5 text-[10px] py-0 px-1.5 h-5 bg-primary/5 border-primary/20 text-primary/70",
         className
       )}
     >
-      <Robot size={12} weight="fill" />
-      AI Generated
+      <Robot size={10} weight="fill" />
+      AI
     </Badge>
   )
 }

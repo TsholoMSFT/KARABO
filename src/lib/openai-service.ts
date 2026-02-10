@@ -919,10 +919,9 @@ Focus on metrics that are:
 4. Tied to business value`
 
   try {
-    const response = await callAI(prompt, {
+    const response = await callAIForTask('analysis', prompt, {
       systemPrompt: 'You are a business analyst expert at defining KPIs and success metrics for technology initiatives. Return only valid JSON.',
-      temperature: 0.5,
-      maxTokens: 1500,
+      expectJson: true,
     })
 
     const result = JSON.parse(response)
