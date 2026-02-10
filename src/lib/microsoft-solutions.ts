@@ -4,6 +4,15 @@
  * for Solution Envisioning in the Innovation Hub Methodology
  */
 
+import type {
+  ArchitectureLayer,
+  ArchitecturePrinciple,
+  ArchitectureComponent,
+  DeploymentChannel,
+  DeploymentModelInfo,
+  InteropProtocol,
+} from './types'
+
 // ============================================================================
 // MICROSOFT PRODUCT FAMILIES
 // ============================================================================
@@ -562,6 +571,13 @@ export interface ReferenceArchitectureInfo {
   complexity: ImplementationComplexity
   agenticPotential: 'low' | 'medium' | 'high'
   msLearnUrl?: string
+  // ── Enhanced architecture fields ──
+  layers: ArchitectureLayer[]
+  principlesApplied: ArchitecturePrinciple[]
+  channels: DeploymentChannel[]
+  componentTopology?: ArchitectureComponent[]
+  interopProtocols?: InteropProtocol[]
+  deploymentModel?: DeploymentModelInfo
 }
 
 export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, ReferenceArchitectureInfo> = {
@@ -575,6 +591,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'medium',
     agenticPotential: 'high',
     msLearnUrl: 'https://learn.microsoft.com/azure/architecture/ai-ml/architecture/conversational-bot',
+    layers: ['engagement', 'enterprise-capabilities', 'foundry-ai-services', 'ai-landing-zone'],
+    principlesApplied: ['availability', 'scalability', 'security-compliance', 'interoperability'],
+    channels: ['copilot', 'teams', 'bot-service', 'app-service'],
+    componentTopology: [
+      { serviceId: 'azure-bot-service', layer: 'engagement', role: 'primary', dataFlows: [{ to: 'azure-openai', protocol: 'REST', description: 'User query → LLM inference' }] },
+      { serviceId: 'copilot-studio', layer: 'enterprise-capabilities', role: 'primary', dataFlows: [{ to: 'azure-ai-search', protocol: 'REST', description: 'RAG retrieval' }] },
+      { serviceId: 'azure-openai', layer: 'foundry-ai-services', role: 'primary', dataFlows: [{ to: 'azure-ai-search', protocol: 'SDK', description: 'Embedding + search' }] },
+      { serviceId: 'azure-ai-search', layer: 'ai-landing-zone', role: 'supporting', securityBoundary: 'private-endpoint' },
+    ],
   },
   'document-processing': {
     pattern: 'document-processing',
@@ -586,6 +611,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'medium',
     agenticPotential: 'medium',
     msLearnUrl: 'https://learn.microsoft.com/azure/architecture/ai-ml/architecture/automate-document-processing',
+    layers: ['engagement', 'foundry-ai-services', 'ai-landing-zone'],
+    principlesApplied: ['data-resilience', 'security-compliance', 'scalability', 'cost-optimization'],
+    channels: ['app-service', 'power-bi'],
+    componentTopology: [
+      { serviceId: 'power-automate', layer: 'engagement', role: 'primary', dataFlows: [{ to: 'azure-ai-document-intelligence', protocol: 'REST', description: 'Document submission' }] },
+      { serviceId: 'azure-ai-document-intelligence', layer: 'foundry-ai-services', role: 'primary', dataFlows: [{ to: 'azure-openai', protocol: 'REST', description: 'Extracted text → summarization' }] },
+      { serviceId: 'azure-openai', layer: 'foundry-ai-services', role: 'supporting' },
+      { serviceId: 'azure-ai-vision', layer: 'foundry-ai-services', role: 'supporting' },
+    ],
   },
   'predictive-analytics': {
     pattern: 'predictive-analytics',
@@ -597,6 +631,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'high',
     agenticPotential: 'medium',
     msLearnUrl: 'https://learn.microsoft.com/azure/architecture/ai-ml/idea/predictive-maintenance',
+    layers: ['engagement', 'foundry-ai-services', 'ai-landing-zone', 'lz-capabilities'],
+    principlesApplied: ['data-resilience', 'scalability', 'observability', 'cost-optimization'],
+    channels: ['power-bi', 'app-service'],
+    componentTopology: [
+      { serviceId: 'power-bi', layer: 'engagement', role: 'primary', dataFlows: [{ to: 'azure-synapse', protocol: 'DirectQuery', description: 'Dashboard queries' }] },
+      { serviceId: 'azure-machine-learning', layer: 'foundry-ai-services', role: 'primary', dataFlows: [{ to: 'azure-synapse', protocol: 'SDK', description: 'Training data ingestion' }] },
+      { serviceId: 'azure-synapse', layer: 'ai-landing-zone', role: 'supporting', securityBoundary: 'private-endpoint' },
+      { serviceId: 'fabric-data-science', layer: 'ai-landing-zone', role: 'supporting' },
+    ],
   },
   'iot-telemetry': {
     pattern: 'iot-telemetry',
@@ -608,6 +651,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'high',
     agenticPotential: 'medium',
     msLearnUrl: 'https://learn.microsoft.com/azure/architecture/reference-architectures/iot',
+    layers: ['engagement', 'enterprise-capabilities', 'ai-landing-zone', 'lz-capabilities'],
+    principlesApplied: ['availability', 'scalability', 'data-resilience', 'observability'],
+    channels: ['power-bi', 'app-service'],
+    componentTopology: [
+      { serviceId: 'power-bi', layer: 'engagement', role: 'primary' },
+      { serviceId: 'azure-stream-analytics', layer: 'enterprise-capabilities', role: 'primary', dataFlows: [{ to: 'azure-event-hubs', protocol: 'Event', description: 'Stream processing' }] },
+      { serviceId: 'azure-iot-hub', layer: 'ai-landing-zone', role: 'primary', dataFlows: [{ to: 'azure-event-hubs', protocol: 'AMQP', description: 'Device telemetry ingestion' }] },
+      { serviceId: 'azure-event-hubs', layer: 'ai-landing-zone', role: 'supporting' },
+    ],
   },
   'digital-twin': {
     pattern: 'digital-twin',
@@ -619,6 +671,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'very-high',
     agenticPotential: 'high',
     msLearnUrl: 'https://learn.microsoft.com/azure/architecture/solution-ideas/articles/digital-twins-manufacturing',
+    layers: ['engagement', 'enterprise-capabilities', 'foundry-ai-services', 'ai-landing-zone', 'lz-capabilities'],
+    principlesApplied: ['availability', 'data-resilience', 'scalability', 'observability', 'interoperability'],
+    channels: ['app-service', 'power-bi'],
+    componentTopology: [
+      { serviceId: 'power-bi', layer: 'engagement', role: 'primary' },
+      { serviceId: 'azure-digital-twins', layer: 'enterprise-capabilities', role: 'primary', dataFlows: [{ to: 'azure-iot-hub', protocol: 'REST', description: 'Twin graph updates' }] },
+      { serviceId: 'azure-machine-learning', layer: 'foundry-ai-services', role: 'supporting', dataFlows: [{ to: 'azure-digital-twins', protocol: 'SDK', description: 'Predictive model outputs' }] },
+      { serviceId: 'azure-iot-hub', layer: 'ai-landing-zone', role: 'primary', securityBoundary: 'vnet-injected' },
+    ],
   },
   'knowledge-mining': {
     pattern: 'knowledge-mining',
@@ -630,6 +691,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'medium',
     agenticPotential: 'high',
     msLearnUrl: 'https://learn.microsoft.com/azure/architecture/ai-ml/architecture/knowledge-mining-content-moderator',
+    layers: ['engagement', 'foundry-ai-services', 'ai-landing-zone'],
+    principlesApplied: ['data-resilience', 'security-compliance', 'scalability', 'cloud-native'],
+    channels: ['app-service', 'copilot', 'teams'],
+    componentTopology: [
+      { serviceId: 'sharepoint', layer: 'ai-landing-zone', role: 'supporting', dataFlows: [{ to: 'azure-ai-search', protocol: 'Indexer', description: 'Content ingestion' }] },
+      { serviceId: 'azure-ai-search', layer: 'foundry-ai-services', role: 'primary', dataFlows: [{ to: 'azure-openai', protocol: 'REST', description: 'RAG context retrieval' }], securityBoundary: 'private-endpoint' },
+      { serviceId: 'azure-openai', layer: 'foundry-ai-services', role: 'primary' },
+      { serviceId: 'azure-ai-document-intelligence', layer: 'foundry-ai-services', role: 'supporting' },
+    ],
   },
   'process-automation': {
     pattern: 'process-automation',
@@ -641,6 +711,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'low',
     agenticPotential: 'high',
     msLearnUrl: 'https://learn.microsoft.com/power-automate/guidance/planning/introduction',
+    layers: ['engagement', 'enterprise-capabilities', 'ai-landing-zone'],
+    principlesApplied: ['interoperability', 'cost-optimization', 'cloud-native', 'security-compliance'],
+    channels: ['app-service', 'teams'],
+    componentTopology: [
+      { serviceId: 'power-apps', layer: 'engagement', role: 'primary', dataFlows: [{ to: 'dataverse', protocol: 'SDK', description: 'CRUD operations' }] },
+      { serviceId: 'power-automate', layer: 'enterprise-capabilities', role: 'primary', dataFlows: [{ to: 'azure-openai', protocol: 'REST', description: 'AI-assisted decision' }] },
+      { serviceId: 'azure-openai', layer: 'enterprise-capabilities', role: 'supporting' },
+      { serviceId: 'dataverse', layer: 'ai-landing-zone', role: 'supporting' },
+    ],
   },
   'customer-360': {
     pattern: 'customer-360',
@@ -652,6 +731,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'high',
     agenticPotential: 'high',
     msLearnUrl: 'https://learn.microsoft.com/dynamics365/customer-insights/',
+    layers: ['engagement', 'foundry-ai-services', 'ai-landing-zone', 'lz-capabilities'],
+    principlesApplied: ['data-resilience', 'security-compliance', 'scalability', 'observability'],
+    channels: ['power-bi', 'app-service', 'outlook'],
+    componentTopology: [
+      { serviceId: 'power-bi', layer: 'engagement', role: 'primary' },
+      { serviceId: 'd365-customer-insights', layer: 'engagement', role: 'primary', dataFlows: [{ to: 'azure-synapse', protocol: 'SDK', description: 'Customer data unification' }] },
+      { serviceId: 'azure-machine-learning', layer: 'foundry-ai-services', role: 'supporting', dataFlows: [{ to: 'azure-synapse', protocol: 'SDK', description: 'Segmentation models' }] },
+      { serviceId: 'azure-synapse', layer: 'ai-landing-zone', role: 'primary', securityBoundary: 'private-endpoint' },
+    ],
   },
   'supply-chain-optimization': {
     pattern: 'supply-chain-optimization',
@@ -663,6 +751,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'very-high',
     agenticPotential: 'medium',
     msLearnUrl: 'https://learn.microsoft.com/dynamics365/supply-chain/',
+    layers: ['engagement', 'foundry-ai-services', 'ai-landing-zone', 'lz-capabilities'],
+    principlesApplied: ['data-resilience', 'scalability', 'observability', 'cost-optimization'],
+    channels: ['power-bi', 'app-service'],
+    componentTopology: [
+      { serviceId: 'power-bi', layer: 'engagement', role: 'primary' },
+      { serviceId: 'd365-supply-chain', layer: 'engagement', role: 'primary' },
+      { serviceId: 'azure-machine-learning', layer: 'foundry-ai-services', role: 'primary', dataFlows: [{ to: 'azure-synapse', protocol: 'SDK', description: 'Demand forecasting models' }] },
+      { serviceId: 'azure-synapse', layer: 'ai-landing-zone', role: 'supporting', securityBoundary: 'private-endpoint' },
+    ],
   },
   'fraud-detection': {
     pattern: 'fraud-detection',
@@ -674,6 +771,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'high',
     agenticPotential: 'medium',
     msLearnUrl: 'https://learn.microsoft.com/azure/architecture/example-scenario/ai/fraud-detection',
+    layers: ['engagement', 'foundry-ai-services', 'ai-landing-zone', 'lz-capabilities'],
+    principlesApplied: ['availability', 'data-resilience', 'security-compliance', 'observability'],
+    channels: ['power-bi', 'app-service'],
+    componentTopology: [
+      { serviceId: 'power-bi', layer: 'engagement', role: 'primary' },
+      { serviceId: 'azure-stream-analytics', layer: 'foundry-ai-services', role: 'primary', dataFlows: [{ to: 'azure-synapse', protocol: 'Event', description: 'Real-time anomaly stream' }] },
+      { serviceId: 'azure-machine-learning', layer: 'foundry-ai-services', role: 'primary', dataFlows: [{ to: 'azure-synapse', protocol: 'SDK', description: 'Fraud model training' }] },
+      { serviceId: 'azure-synapse', layer: 'ai-landing-zone', role: 'supporting', securityBoundary: 'private-endpoint' },
+    ],
   },
   'content-generation': {
     pattern: 'content-generation',
@@ -685,6 +791,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'medium',
     agenticPotential: 'high',
     msLearnUrl: 'https://learn.microsoft.com/azure/ai-services/openai/concepts/use-cases',
+    layers: ['engagement', 'foundry-ai-services'],
+    principlesApplied: ['interoperability', 'scalability', 'security-compliance', 'cloud-native'],
+    channels: ['copilot', 'teams', 'outlook', 'app-service'],
+    componentTopology: [
+      { serviceId: 'm365-copilot', layer: 'engagement', role: 'primary', dataFlows: [{ to: 'azure-openai', protocol: 'REST', description: 'Content generation requests' }] },
+      { serviceId: 'azure-openai', layer: 'foundry-ai-services', role: 'primary' },
+      { serviceId: 'azure-ai-language', layer: 'foundry-ai-services', role: 'supporting' },
+    ],
+    interopProtocols: ['openapi', 'graphql'],
   },
   'code-assistant': {
     pattern: 'code-assistant',
@@ -696,6 +811,15 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'low',
     agenticPotential: 'high',
     msLearnUrl: 'https://docs.github.com/copilot',
+    layers: ['engagement', 'foundry-ai-services'],
+    principlesApplied: ['interoperability', 'security-compliance', 'cloud-native'],
+    channels: ['copilot'],
+    componentTopology: [
+      { serviceId: 'github-copilot', layer: 'engagement', role: 'primary', dataFlows: [{ to: 'azure-openai', protocol: 'REST', description: 'Code completion inference' }] },
+      { serviceId: 'azure-openai', layer: 'foundry-ai-services', role: 'primary' },
+      { serviceId: 'azure-ai-foundry', layer: 'foundry-ai-services', role: 'supporting' },
+    ],
+    interopProtocols: ['mcp', 'openapi'],
   },
   'agentic-ai': {
     pattern: 'agentic-ai',
@@ -707,6 +831,22 @@ export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, Refer
     complexity: 'high',
     agenticPotential: 'high',
     msLearnUrl: 'https://learn.microsoft.com/azure/ai-studio/concepts/agents',
+    layers: ['engagement', 'enterprise-capabilities', 'foundry-ai-services', 'ai-landing-zone'],
+    principlesApplied: ['availability', 'scalability', 'security-compliance', 'interoperability', 'observability'],
+    channels: ['copilot', 'teams', 'app-service', 'bot-service'],
+    componentTopology: [
+      { serviceId: 'copilot-studio', layer: 'engagement', role: 'primary', dataFlows: [{ to: 'azure-openai', protocol: 'REST', description: 'Agent orchestration' }] },
+      { serviceId: 'azure-ai-foundry', layer: 'enterprise-capabilities', role: 'primary', dataFlows: [{ to: 'azure-openai', protocol: 'SDK', description: 'Model management' }] },
+      { serviceId: 'azure-openai', layer: 'foundry-ai-services', role: 'primary', dataFlows: [{ to: 'azure-functions', protocol: 'REST', description: 'Tool execution' }] },
+      { serviceId: 'azure-functions', layer: 'ai-landing-zone', role: 'supporting' },
+    ],
+    interopProtocols: ['mcp', 'a2a', 'openapi'],
+    deploymentModel: {
+      primary: 'Azure AI Foundry',
+      fallback: 'Azure Container Apps',
+      regions: ['Multi-region'],
+      haModel: 'active-passive',
+    },
   },
 }
 

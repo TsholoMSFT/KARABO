@@ -404,6 +404,10 @@ For each use case, provide:
      - Human oversight level: none, approval, review, supervision
      - Automation level: assisted, semi-autonomous, autonomous
      - Tools/APIs the agent would use
+     - Orchestration pattern (e.g., supervisor, swarm, routing, sequential)
+     - Orchestration framework (e.g., semantic-kernel, autogen, langchain, custom)
+     - Interop protocols the agent supports: mcp, a2a, openapi, graphql, grpc
+     - Hosting target: azure-ai-foundry, azure-container-apps, azure-functions, copilot-studio
 
 5. IMPLEMENTATION COMPLEXITY:
    - Level: low, medium, high, very-high
@@ -476,7 +480,11 @@ Return a valid JSON object with structure:
         "capabilities": ["reasoning", "planning", "tool-use", "memory", "multi-step-execution", "human-in-loop"],
         "humanOversight": "none | approval | review | supervision",
         "automationLevel": "assisted | semi-autonomous | autonomous",
-        "tools": ["string"]
+        "tools": ["string"],
+        "orchestrationPattern": "supervisor | swarm | routing | sequential (optional)",
+        "orchestrationFramework": "semantic-kernel | autogen | langchain | custom (optional)",
+        "interopProtocols": ["mcp", "a2a", "openapi"] ,
+        "hostingTarget": "azure-ai-foundry | azure-container-apps | azure-functions | copilot-studio (optional)"
       },
       "implementationComplexity": {
         "level": "low | medium | high | very-high",

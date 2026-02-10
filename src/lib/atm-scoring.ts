@@ -34,6 +34,8 @@ import type {
   ATMPillar,
   ATMDimension,
   MicrosoftProductFamily,
+  CAFCapability,
+  CAFMaturityLevel,
 } from './types'
 import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from './microsoft-solutions'
 import { calculateRICEScore } from './scoring'
@@ -448,6 +450,50 @@ function scoreInnovationAgentic(useCase: UseCase): ATMDimensionScore {
     components.push({ name: 'Process AI Opportunities', maxPoints: 20, earnedPoints: points, status, explanation, sourceFields, recommendation })
   }
 
+  // 6. Interop & Orchestration (max 15)
+  {
+    let points = 0
+    let status: ATMComponentStatus = 'not-assessed'
+    let explanation = ''
+    const sourceFields: string[] = []
+    let recommendation: string | undefined
+
+    const agents = useCase.agenticOpportunities ?? []
+    const withInterop = agents.filter(a => a.interopProtocols && a.interopProtocols.length > 0)
+    const withOrchestration = agents.filter(a => a.orchestrationPattern)
+
+    if (withInterop.length > 0 || withOrchestration.length > 0) {
+      status = 'scored'
+      // Interop protocols: MCP/A2A are highest value
+      const allProtocols = new Set(withInterop.flatMap(a => a.interopProtocols ?? []))
+      let interopPts = 0
+      if (allProtocols.has('mcp') || allProtocols.has('a2a')) interopPts = 8
+      else if (allProtocols.size >= 2) interopPts = 5
+      else if (allProtocols.size === 1) interopPts = 3
+      if (withInterop.length > 0) sourceFields.push('agenticOpportunities[].interopProtocols')
+
+      // Orchestration pattern
+      let orchPts = 0
+      if (withOrchestration.length > 0) {
+        sourceFields.push('agenticOpportunities[].orchestrationPattern')
+        const patterns = new Set(withOrchestration.map(a => a.orchestrationPattern))
+        orchPts = patterns.size >= 2 ? 7 : 4
+      }
+
+      points = Math.min(interopPts + orchPts, 15)
+      explanation = `Protocols: ${[...allProtocols].join(', ') || 'none'} (${interopPts}pts) + ${withOrchestration.length} orchestration pattern${withOrchestration.length !== 1 ? 's' : ''} (${orchPts}pts)`
+      if (!allProtocols.has('mcp')) recommendation = 'Add MCP protocol support for cutting-edge agent interoperability'
+    } else if (agents.length > 0) {
+      status = 'partial'
+      explanation = 'Agents defined but no interop protocols or orchestration patterns specified'
+      recommendation = 'Add interop protocols (MCP, A2A) and orchestration patterns to agentic opportunities'
+    } else {
+      explanation = 'No agentic opportunities — cannot assess interop'
+    }
+
+    components.push({ name: 'Interop & Orchestration', maxPoints: 15, earnedPoints: points, status, explanation, sourceFields, recommendation })
+  }
+
   return buildDimensionScore('innovation-agentic', 'Innovation & Agentic', components)
 }
 
@@ -641,6 +687,75 @@ function scoreEnterpriseGrade(useCase: UseCase, session?: DiscoverySession | nul
     }
 
     components.push({ name: 'Customer Maturity', maxPoints: 15, earnedPoints: points, status, explanation, sourceFields, recommendation })
+  }
+
+  // 6. Landing Zone Readiness (max 20)
+  {
+    let points = 0
+    let status: ATMComponentStatus = 'not-assessed'
+    let explanation = ''
+    const sourceFields: string[] = []
+    let recommendation: string | undefined
+
+    const lz = session?.businessEnvisioning?.currentState?.landingZone
+    if (lz) {
+      status = 'scored'
+      sourceFields.push('businessEnvisioning.currentState.landingZone')
+      if (lz.hasAILandingZone) points += 5
+      if (lz.eslzCompliant) points += 4
+      if (lz.privateEndpoints) points += 3
+      if (lz.networkModel === 'hub-spoke' || lz.networkModel === 'vwan') points += 3
+      else if (lz.networkModel === 'hybrid') points += 2
+      else if (lz.networkModel) points += 1
+      if (lz.environmentSeparation) points += 3
+      if (lz.managementGroups) points += 2
+      points = Math.min(points, 20)
+      const checks = [
+        lz.hasAILandingZone ? 'AI LZ' : null,
+        lz.eslzCompliant ? 'ESLZ' : null,
+        lz.privateEndpoints ? 'PE' : null,
+        lz.networkModel,
+        lz.environmentSeparation ? 'env-sep' : null,
+        lz.managementGroups ? 'mgmt-groups' : null,
+      ].filter(Boolean)
+      explanation = `Landing zone: ${checks.join(', ')} → ${points} points`
+      if (!lz.hasAILandingZone) recommendation = 'Deploy an AI Landing Zone to gain +5 points'
+      else if (!lz.eslzCompliant) recommendation = 'Align to Enterprise-Scale Landing Zone for +4 points'
+    } else {
+      explanation = 'No landing zone assessment provided (session-level data)'
+      recommendation = 'Complete the Landing Zone readiness assessment to gain up to 20 points'
+    }
+
+    components.push({ name: 'Landing Zone Readiness', maxPoints: 20, earnedPoints: points, status, explanation, sourceFields, recommendation })
+  }
+
+  // 7. WAF Assessment (max 15)
+  {
+    let points = 0
+    let status: ATMComponentStatus = 'not-assessed'
+    let explanation = ''
+    const sourceFields: string[] = []
+    let recommendation: string | undefined
+
+    const waf = session?.businessEnvisioning?.currentState?.wafAssessment
+    if (waf && waf.length > 0) {
+      status = 'scored'
+      sourceFields.push('businessEnvisioning.currentState.wafAssessment')
+      const avgScore = Math.round(waf.reduce((sum, p) => sum + p.score, 0) / waf.length)
+      // Scale: avg 80+ → 15pts, 60-79 → 10, 40-59 → 6, <40 → 3
+      if (avgScore >= 80) points = 15
+      else if (avgScore >= 60) points = 10
+      else if (avgScore >= 40) points = 6
+      else points = 3
+      explanation = `WAF: ${waf.length} pillars assessed, avg score ${avgScore}% → ${points} points`
+      const weak = waf.filter(p => p.score < 60)
+      if (weak.length > 0) recommendation = `Improve WAF pillar${weak.length > 1 ? 's' : ''}: ${weak.map(p => p.pillar).join(', ')}  (score < 60%)`
+    } else {
+      explanation = 'No Well-Architected Framework assessment provided'
+      recommendation = 'Complete a WAF assessment to gain up to 15 points'
+    }
+
+    components.push({ name: 'WAF Assessment', maxPoints: 15, earnedPoints: points, status, explanation, sourceFields, recommendation })
   }
 
   return buildDimensionScore('enterprise-grade', 'Enterprise-Grade', components)
@@ -870,6 +985,79 @@ function scoreRepeatability(useCase: UseCase, session?: DiscoverySession | null)
     }
 
     components.push({ name: 'Solution Play Tagging', maxPoints: 15, earnedPoints: points, status, explanation, sourceFields, recommendation })
+  }
+
+  // 5. CAF Maturity (max 20)
+  {
+    let points = 0
+    let status: ATMComponentStatus = 'not-assessed'
+    let explanation = ''
+    const sourceFields: string[] = []
+    let recommendation: string | undefined
+
+    const cafStage = session?.businessEnvisioning?.currentState?.cafStage
+    const cafMaturity = session?.businessEnvisioning?.currentState?.cafCapabilityMaturity
+
+    if (cafStage || cafMaturity) {
+      status = 'scored'
+      // CAF lifecycle stage
+      let stagePts = 0
+      if (cafStage) {
+        sourceFields.push('businessEnvisioning.currentState.cafStage')
+        const stageScores: Record<string, number> = { 'define': 2, 'plan': 4, 'ready': 7, 'adopt': 10, 'govern-manage': 10 }
+        stagePts = stageScores[cafStage] ?? 2
+      }
+      // CAF pillar maturity — average across assessed pillars
+      let maturityPts = 0
+      if (cafMaturity) {
+        sourceFields.push('businessEnvisioning.currentState.cafCapabilityMaturity')
+        const entries = Object.entries(cafMaturity) as [CAFCapability, CAFMaturityLevel][]
+        if (entries.length > 0) {
+          const maturityScores: Record<string, number> = { 'initial': 1, 'developing': 2, 'defined': 4, 'managed': 7, 'optimizing': 10 }
+          const avgMaturity = entries.reduce((sum, [, lvl]) => sum + (maturityScores[lvl] ?? 1), 0) / entries.length
+          maturityPts = Math.round(avgMaturity)
+        }
+      }
+      points = Math.min(stagePts + maturityPts, 20)
+      explanation = `CAF stage: ${cafStage ?? 'N/A'} (${stagePts}pts) + pillar maturity avg (${maturityPts}pts)`
+      if (!cafStage) recommendation = 'Set the CAF lifecycle stage for the customer'
+      else if (stagePts < 7) recommendation = 'Progress the customer through CAF lifecycle toward Ready/Adopt phase'
+    } else {
+      explanation = 'No CAF assessment provided (session-level data)'
+      recommendation = 'Complete the CAF readiness assessment to gain up to 20 points'
+    }
+
+    components.push({ name: 'CAF Maturity', maxPoints: 20, earnedPoints: points, status, explanation, sourceFields, recommendation })
+  }
+
+  // 6. Architecture Layer Coverage (max 15)
+  {
+    let points = 0
+    let status: ATMComponentStatus = 'not-assessed'
+    let explanation = ''
+    const sourceFields: string[] = []
+    let recommendation: string | undefined
+
+    if (useCase.referenceArchitecture) {
+      const archInfo = REFERENCE_ARCHITECTURES[useCase.referenceArchitecture as ReferenceArchitecturePattern]
+      if (archInfo?.layers && archInfo.layers.length > 0) {
+        status = 'scored'
+        sourceFields.push('referenceArchitecture (layers)')
+        // 5 layers maximum → 3pts per layer
+        points = Math.min(archInfo.layers.length * 3, 15)
+        explanation = `Covers ${archInfo.layers.length}/5 architecture layers: ${archInfo.layers.join(', ')} → ${points} points`
+        if (archInfo.layers.length < 4) recommendation = `Architecture spans ${archInfo.layers.length} layers — a broader solution may strengthen repeatability`
+      } else if (archInfo) {
+        status = 'partial'
+        points = 5
+        explanation = 'Reference architecture selected but layers not mapped → 5 base points'
+        recommendation = 'Architecture layer mapping improves repeatability assessment'
+      }
+    } else {
+      explanation = 'No reference architecture — layer coverage cannot be assessed'
+    }
+
+    components.push({ name: 'Architecture Layer Coverage', maxPoints: 15, earnedPoints: points, status, explanation, sourceFields, recommendation })
   }
 
   return buildDimensionScore('repeatability', 'Repeatability', components)

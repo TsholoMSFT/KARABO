@@ -898,6 +898,123 @@ export type TechStackMaturity = 'legacy' | 'modernizing' | 'modern' | 'cloud-nat
 export type DataMaturity = 'siloed' | 'integrated' | 'governed' | 'ai-ready'
 export type CloudReadiness = 'on-premises' | 'hybrid' | 'cloud-first' | 'cloud-native'
 
+// ============================================================================
+// ARCHITECTURE LAYERS & PRINCIPLES (Conceptual Reference Architecture)
+// ============================================================================
+
+/**
+ * 5-layer AI conceptual architecture model.
+ * Each layer represents a distinct responsibility zone in an enterprise AI deployment.
+ * Derived from the AI Engagement → AI Landing Zone → LZ Capabilities stack.
+ */
+export type ArchitectureLayer =
+  | 'engagement'              // User-facing interfaces — apps, dashboards, Copilot, Bot Service
+  | 'enterprise-capabilities' // Orchestration — Conversational AI, AI Agents, Agent Protocols, Automation Workflows
+  | 'foundry-ai-services'    // Core AI engine — models, tools, agents, AI pipelines
+  | 'ai-landing-zone'        // Foundation — AI/Gen AI Landing Zone, R&D sandbox, analytics/viz
+  | 'lz-capabilities'        // Cross-cutting — LLMOps, DevOps, Monitoring, Logging
+
+export const ARCHITECTURE_LAYER_LABELS: Record<ArchitectureLayer, string> = {
+  'engagement': 'AI Engagement Layer',
+  'enterprise-capabilities': 'AI Enterprise Capabilities',
+  'foundry-ai-services': 'Foundry Models & AI Services',
+  'ai-landing-zone': 'AI Landing Zone',
+  'lz-capabilities': 'Other Landing Zone Capabilities',
+}
+
+/**
+ * 8 architectural principles for AI solutions.
+ * Extends the standard WAF 5 pillars with AI-specific concerns.
+ */
+export type ArchitecturePrinciple =
+  | 'availability'
+  | 'data-resilience'
+  | 'cloud-native'
+  | 'scalability'
+  | 'observability'
+  | 'security-compliance'
+  | 'interoperability'
+  | 'cost-optimization'
+
+/**
+ * Cloud Adoption Framework (CAF) capability pillars.
+ * 7 structured capability areas for secure and efficient cloud adoption.
+ */
+export type CAFCapability =
+  | 'strategy-governance'
+  | 'architecture'
+  | 'data-handling'
+  | 'technology-engineering'
+  | 'security'
+  | 'operations'
+  | 'risk-management'
+
+export type CAFLifecycleStage = 'plan' | 'design' | 'develop-implement' | 'operate' | 'govern-assure'
+
+export type CAFMaturityLevel = 'none' | 'emerging' | 'defined' | 'managed' | 'optimized'
+
+/**
+ * Well-Architected / Principle assessment score (1-5 per principle).
+ */
+export interface WAFPillarScore {
+  pillar: ArchitecturePrinciple
+  score: number               // 1–5
+  notes?: string
+}
+
+/**
+ * Landing Zone readiness — assesses the customer's foundational infrastructure.
+ * Covers ESLZ compliance, network model, policy baseline, and subscription topology.
+ */
+export interface LandingZoneReadiness {
+  hasAILandingZone: boolean
+  networkModel: 'flat' | 'hub-spoke' | 'vwan' | 'unknown'
+  privateEndpoints: boolean
+  eslzCompliant: boolean
+  subscriptionTopology?: string          // e.g., "Dedicated AI subscription under Corp MG"
+  managementGroups: boolean
+  policyBaseline: boolean
+  environmentSeparation?: boolean        // dev/test/staging/prod isolation
+  drStrategy?: 'none' | 'backup' | 'active-passive' | 'active-active'
+}
+
+/**
+ * Interoperability protocols for agentic and modular AI systems.
+ */
+export type InteropProtocol = 'mcp' | 'a2a' | 'openapi' | 'graphql' | 'grpc'
+
+/**
+ * Deployment channels — how end-users interact with the AI solution.
+ */
+export type DeploymentChannel = 'copilot' | 'teams' | 'outlook' | 'app-service' | 'power-bi' | 'bot-service' | 'custom-app'
+
+/**
+ * A single component within an architecture topology.
+ * Placed in a specific layer with data flow connections.
+ */
+export interface ArchitectureComponent {
+  serviceId: string                       // References a service ID from the catalog
+  layer: ArchitectureLayer
+  role: 'primary' | 'supporting' | 'integration' | 'monitoring'
+  dataFlows?: Array<{
+    to: string                            // Target serviceId
+    protocol: string                      // e.g., "REST", "gRPC", "Event", "SDK"
+    description?: string
+  }>
+  securityBoundary?: 'public' | 'private-endpoint' | 'vnet-injected' | 'internal'
+}
+
+/**
+ * Deployment model for a reference architecture.
+ */
+export interface DeploymentModelInfo {
+  primaryRegion?: string                  // e.g., "South Africa North"
+  drRegion?: string
+  environments: string[]                  // e.g., ["dev", "staging", "prod"]
+  scalingModel: 'manual' | 'autoscale' | 'serverless' | 'reserved'
+  costPattern: 'pay-as-you-go' | 'reserved' | 'hybrid' | 'serverless-burst'
+}
+
 export interface CurrentStateAssessment {
   // Technology landscape
   techStack: {
@@ -928,6 +1045,18 @@ export interface CurrentStateAssessment {
     aiGovernance: boolean
     aiSkillsGap?: 'significant' | 'moderate' | 'minimal'
   }
+
+  // Landing Zone & ESLZ readiness
+  landingZone?: LandingZoneReadiness
+
+  // Well-Architected / Principle self-assessment (1-5 per principle)
+  wafAssessment?: WAFPillarScore[]
+
+  // Cloud Adoption Framework lifecycle position
+  cafStage?: CAFLifecycleStage
+
+  // CAF capability maturity per pillar
+  cafCapabilityMaturity?: Partial<Record<CAFCapability, CAFMaturityLevel>>
 }
 
 // Strategic alignment info attached to use cases
@@ -989,6 +1118,10 @@ export interface UseCaseAgenticOpportunity {
   humanOversight: 'none' | 'approval' | 'review' | 'supervision'
   automationLevel: 'assisted' | 'semi-autonomous' | 'autonomous'
   tools?: string[]                      // Tools the agent would use
+  orchestrationPattern?: 'single-agent' | 'multi-agent' | 'hierarchical'
+  orchestrationFramework?: 'semantic-kernel' | 'langgraph' | 'autogen' | 'foundry-agents' | 'other'
+  interopProtocols?: InteropProtocol[]
+  hostingTarget?: 'container-apps' | 'aks' | 'app-service' | 'functions' | 'other'
 }
 
 export interface ImplementationComplexityInfo {

@@ -190,6 +190,19 @@ export function UseCaseCard({
               )}
               {/* ATM Qualification Badge */}
               {atmScore && <ATMBadge atmScore={atmScore} />}
+              {/* Architecture Layer Badge */}
+              {useCase.referenceArchitecture && REFERENCE_ARCHITECTURES[useCase.referenceArchitecture as ReferenceArchitecturePattern]?.layers && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                      {REFERENCE_ARCHITECTURES[useCase.referenceArchitecture as ReferenceArchitecturePattern].layers.length}L
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    Spans {REFERENCE_ARCHITECTURES[useCase.referenceArchitecture as ReferenceArchitecturePattern].layers.length} architecture layers
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
             {useCase.kpis && useCase.kpis.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
@@ -649,11 +662,19 @@ export function UseCaseCard({
                           })}
                         </div>
                         {useCase.referenceArchitecture && (
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-[10px] text-muted-foreground">Reference Architecture:</span>
-                            <Badge variant="outline" className="text-xs">
-                              {REFERENCE_ARCHITECTURES[useCase.referenceArchitecture]?.label || useCase.referenceArchitecture}
-                            </Badge>
+                          <div className="mt-2 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-muted-foreground">Reference Architecture:</span>
+                              <Badge variant="outline" className="text-xs">
+                                {REFERENCE_ARCHITECTURES[useCase.referenceArchitecture as ReferenceArchitecturePattern]?.label || useCase.referenceArchitecture}
+                              </Badge>
+                            </div>
+                            {REFERENCE_ARCHITECTURES[useCase.referenceArchitecture as ReferenceArchitecturePattern]?.layers && (
+                              <ArchitectureLayerDiagram
+                                architecture={REFERENCE_ARCHITECTURES[useCase.referenceArchitecture as ReferenceArchitecturePattern]}
+                                compact
+                              />
+                            )}
                           </div>
                         )}
                       </div>

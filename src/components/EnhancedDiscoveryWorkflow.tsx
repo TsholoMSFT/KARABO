@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { fetchFinancialStatements } from '@/lib/earnings-service'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
+import ArchitectureLayerDiagram from '@/components/ArchitectureLayerDiagram'
 import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 
 interface WorkflowUseCase {
@@ -790,6 +791,14 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                               </Badge>
                             </div>
                           </div>
+                          {uc.referenceArchitecture && REFERENCE_ARCHITECTURES[uc.referenceArchitecture]?.layers && (
+                            <div className="mt-2 pt-2 border-t border-muted">
+                              <ArchitectureLayerDiagram
+                                architecture={REFERENCE_ARCHITECTURES[uc.referenceArchitecture]}
+                                compact
+                              />
+                            </div>
+                          )}
                         </Card>
                       ))}
                     </div>

@@ -19,6 +19,9 @@ import { CustomerJourneyView } from '@/components/CustomerJourneyView'
 import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 import { DEMO_PROCESS_ANALYSIS } from '@/lib/demo-data'
 import type { DemoIndustry } from '@/lib/demo-data'
+import LandingZoneAssessment, { EMPTY_LANDING_ZONE } from '@/components/LandingZoneAssessment'
+import CAFReadinessPanel from '@/components/CAFReadinessPanel'
+import type { LandingZoneReadiness, CAFLifecycleStage, CAFCapability, CAFMaturityLevel } from '@/lib/types'
 
 type AIAssessmentStep = 'inputs' | 'review'
 
@@ -72,6 +75,9 @@ export function AIAssessmentWorkflow({
     aiUsage: 'experimental',
     aiGovernance: 'unknown',
   })
+  const [landingZone, setLandingZone] = useState<LandingZoneReadiness>(EMPTY_LANDING_ZONE)
+  const [cafStage, setCafStage] = useState<CAFLifecycleStage | undefined>(undefined)
+  const [cafMaturity, setCafMaturity] = useState<Partial<Record<CAFCapability, CAFMaturityLevel>>>({})
 
   // Pre-fill with demo data when demo mode is active
   useEffect(() => {
@@ -458,6 +464,26 @@ RULES
                   </Select>
                 </div>
               </div>
+
+              <Separator />
+
+              {/* Landing Zone Assessment */}
+              <LandingZoneAssessment
+                value={landingZone}
+                onChange={setLandingZone}
+              />
+
+              <Separator />
+
+              {/* CAF Readiness */}
+              <CAFReadinessPanel
+                cafStage={cafStage}
+                cafCapabilityMaturity={cafMaturity}
+                onStageChange={setCafStage}
+                onMaturityChange={(pillar, level) => setCafMaturity(prev => ({ ...prev, [pillar]: level }))}
+              />
+
+              <Separator />
 
               <div className="space-y-2">
                 <Label>Process candidates</Label>
