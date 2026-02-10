@@ -396,23 +396,80 @@ export function AboutSection() {
                       </div>
 
                       {/* ATM Scoring */}
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
                           <Target size={16} weight="duotone" className="text-purple-500" />
                           <span className="font-semibold text-foreground">Apps That Matter (ATM) Scoring</span>
                         </div>
                         <p className="pl-6">
-                          A composite 0–100 score based on Microsoft's FY26 "Apps That Matter" framework, computed across five weighted dimensions:
+                          A composite 0–100 score based on Microsoft's FY26 "Apps That Matter" framework, computed across five weighted dimensions.
+                          Each dimension scores its sub-components on a points basis, normalises to 0–100, then contributes its weighted share to the composite.
+                          Only assessed components count — missing data reduces confidence, not the score.
                         </p>
-                        <ul className="pl-10 list-disc space-y-0.5">
-                          <li><strong>Business Impact</strong> (25 %) — strategic alignment, financial quantification, RICE score</li>
-                          <li><strong>Innovation / Agentic</strong> (25 %) — agent sophistication, automation level, orchestration</li>
-                          <li><strong>Enterprise-Grade</strong> (20 %) — regulatory readiness, security posture, risk management</li>
-                          <li><strong>Multi-Pillar</strong> (15 %) — AI + Apps + Data coverage, service depth, role diversity</li>
-                          <li><strong>Repeatability</strong> (15 %) — reference architecture, process mapping, industry alignment</li>
-                        </ul>
+                        <div className="pl-6 space-y-2">
+                          {/* Business Impact */}
+                          <div>
+                            <p className="font-medium text-foreground">1. Business Impact <span className="text-purple-500">(25 %)</span></p>
+                            <ul className="pl-5 list-disc text-muted-foreground space-y-0.5 text-xs">
+                              <li><strong>Financial Quantification</strong> — 30 pts — COI &amp; expected value thresholds ($100 K / $500 K / $1 M+)</li>
+                              <li><strong>Strategic Alignment</strong> — 20 pts — alignment score (0–10) × 2, linked strategic priority</li>
+                              <li><strong>Impact × Feasibility</strong> — 15 pts — product of the two ratings, scaled</li>
+                              <li><strong>RICE Score</strong> — 15 pts — Reach × Impact × Confidence ÷ Effort, log-normalised</li>
+                              <li><strong>KPI Definition</strong> — 10 pts — number of measurable KPIs (≥ 3 = full marks)</li>
+                              <li><strong>Data Grounding</strong> — 10 pts — earnings (+5), research (+3), discovery (+2)</li>
+                            </ul>
+                          </div>
+                          {/* Innovation / Agentic */}
+                          <div>
+                            <p className="font-medium text-foreground">2. Innovation / Agentic <span className="text-purple-500">(25 %)</span></p>
+                            <ul className="pl-5 list-disc text-muted-foreground space-y-0.5 text-xs">
+                              <li><strong>Agent Sophistication</strong> — 25 pts — agent type (orchestrator &gt; specialist &gt; task) + capability count</li>
+                              <li><strong>Agentic Opportunity Defined</strong> — 20 pts — ≥ 2 agents = full marks</li>
+                              <li><strong>Automation Level</strong> — 20 pts — autonomous / semi-autonomous / assisted, minus oversight deduction</li>
+                              <li><strong>Process AI Opportunities</strong> — 20 pts — processes with AI pain points + cycle-time targets</li>
+                              <li><strong>Reference Architecture</strong> — 15 pts — agentic-ai pattern = max; high/med/low potential scaled</li>
+                              <li><strong>Interop &amp; Orchestration</strong> — 15 pts — MCP/A2A protocols + orchestration patterns</li>
+                            </ul>
+                          </div>
+                          {/* Enterprise-Grade */}
+                          <div>
+                            <p className="font-medium text-foreground">3. Enterprise-Grade <span className="text-purple-500">(20 %)</span></p>
+                            <ul className="pl-5 list-disc text-muted-foreground space-y-0.5 text-xs">
+                              <li><strong>Regulatory Assessment</strong> — 25 pts — gate status (clear 25 / warning 10–18 / blocked 0)</li>
+                              <li><strong>Security Posture</strong> — 20 pts — security requirements count (of 13) + data classification</li>
+                              <li><strong>Risk Management</strong> — 20 pts — risks identified (1–5+) + remediations acknowledged</li>
+                              <li><strong>Implementation Readiness</strong> — 20 pts — complexity assessed + duration + team size</li>
+                              <li><strong>Landing Zone Readiness</strong> — 20 pts — AI LZ, ESLZ, private endpoints, network model, env separation</li>
+                              <li><strong>Customer Maturity</strong> — 15 pts — cloud readiness + data maturity + AI governance</li>
+                              <li><strong>WAF Assessment</strong> — 15 pts — Well-Architected pillar average (80 %+ = full marks)</li>
+                            </ul>
+                          </div>
+                          {/* Multi-Pillar */}
+                          <div>
+                            <p className="font-medium text-foreground">4. Multi-Pillar <span className="text-purple-500">(15 %)</span></p>
+                            <ul className="pl-5 list-disc text-muted-foreground space-y-0.5 text-xs">
+                              <li><strong>Pillar Coverage</strong> — 50 pts — AI + Apps + Data pillars (3 = 50, 2 = 30, 1 = 15)</li>
+                              <li><strong>Service Depth</strong> — 30 pts — distinct Azure/Microsoft services (8+ = full marks)</li>
+                              <li><strong>Role Diversity</strong> — 20 pts — primary + supporting + integration roles</li>
+                            </ul>
+                          </div>
+                          {/* Repeatability */}
+                          <div>
+                            <p className="font-medium text-foreground">5. Repeatability <span className="text-purple-500">(15 %)</span></p>
+                            <ul className="pl-5 list-disc text-muted-foreground space-y-0.5 text-xs">
+                              <li><strong>Reference Architecture</strong> — 35 pts — known catalog pattern = 35; custom = 15</li>
+                              <li><strong>Business Process Mapping</strong> — 30 pts — processes mapped (3+ = 20) + cycle-time targets</li>
+                              <li><strong>Industry Alignment</strong> — 20 pts — architecture proven in session industry</li>
+                              <li><strong>CAF Maturity</strong> — 20 pts — lifecycle stage (define → adopt) + pillar maturity avg</li>
+                              <li><strong>Solution Play Tagging</strong> — 15 pts — tagged solution plays (any = full marks)</li>
+                              <li><strong>Architecture Layer Coverage</strong> — 15 pts — up to 5 layers × 3 pts each</li>
+                            </ul>
+                          </div>
+                        </div>
                         <p className="pl-6">
-                          <strong>Tiers:</strong> Platinum (≥ 80), Gold (≥ 60), Silver (≥ 40), Not Qualified (&lt; 40). Gap recommendations are generated with priority ranking.
+                          <strong>Tiers:</strong> Platinum (≥ 80), Gold (≥ 60), Silver (≥ 40), Not Qualified (&lt; 40).
+                          A confidence gate requires ≥ 50 % of components assessed; otherwise the tier shows "Insufficient Data."
+                          Gap recommendations are generated with priority ranking based on potential point gain.
                         </p>
                       </div>
                     </div>

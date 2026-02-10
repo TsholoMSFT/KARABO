@@ -11,7 +11,8 @@ import { ThreadlightTool } from '@/components/ThreadlightTool'
 import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, TreeStructure, Buildings, Microphone, GearSix, Briefcase, Rocket, Play, Toolbox, Calculator, FileArrowDown, ArrowsLeftRight, FileText } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import type { EnterpriseDiscoverySession, DiscoverySession, CustomerJourney } from '@/lib/types'
+import type { EnterpriseDiscoverySession, DiscoverySession, CustomerJourney, AccountSegment } from '@/lib/types'
+import { getVisibleTabs, getSegmentFeatures, getDiscoveryButtonLabel, getStrategicAssessmentLabel, type DiscoveryTab } from '@/lib/segment-config'
 
 type DiscoveryMode = 'quick' | 'ai-assessment' | 'enterprise' | 'tools'
 
@@ -28,11 +29,15 @@ interface DiscoveryLauncherProps {
   onOpenExport?: () => void
   currentSession?: DiscoverySession | null
   onJourneyUpdate?: (useCaseId: string, journey: CustomerJourney) => void
+  accountSegment?: AccountSegment
 }
 
-export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport, currentSession, onJourneyUpdate }: DiscoveryLauncherProps) {
+export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport, currentSession, onJourneyUpdate, accountSegment = 'enterprise' }: DiscoveryLauncherProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [mode, setMode] = useState<DiscoveryMode>('quick')
+  const visibleTabs = getVisibleTabs(accountSegment)
+  const features = getSegmentFeatures(accountSegment)
+  const availableTabs = visibleTabs.filter(t => t.visible)
+  const [mode, setMode] = useState<DiscoveryMode>(availableTabs[0]?.id ?? 'quick')
 
   return (
     <>
@@ -40,23 +45,15 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
         {/* Mode Toggle with Settings */}
         <div className="flex justify-center items-center gap-3">
           <Tabs value={mode} onValueChange={(v) => setMode(v as DiscoveryMode)} className="w-auto">
-            <TabsList className="grid w-[680px] grid-cols-4">
-              <TabsTrigger value="quick" className="gap-2">
-                <Rocket size={16} />
-                Discovery
-              </TabsTrigger>
-              <TabsTrigger value="ai-assessment" className="gap-2">
-                <Sparkle size={16} weight="fill" />
-                AI Assessment Lite
-              </TabsTrigger>
-              <TabsTrigger value="enterprise" className="gap-2">
-                <Briefcase size={16} />
-                Strategic Assessment
-              </TabsTrigger>
-              <TabsTrigger value="tools" className="gap-2">
-                <Toolbox size={16} />
-                Tools
-              </TabsTrigger>
+            <TabsList className={`grid w-[680px] grid-cols-${availableTabs.length}`}>
+              {availableTabs.map(tab => (
+                <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
+                  {tab.id === 'quick' && <><Rocket size={16} /> Discovery</>}
+                  {tab.id === 'ai-assessment' && <><Sparkle size={16} weight="fill" /> AI Assessment Lite</>}
+                  {tab.id === 'enterprise' && <><Briefcase size={16} /> {getStrategicAssessmentLabel(accountSegment)}{tab.badge && <Badge variant="outline" className="ml-1 text-[10px] px-1.5 py-0">{tab.badge}</Badge>}</>}
+                  {tab.id === 'tools' && <><Toolbox size={16} /> Tools</>}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
           <Button onClick={() => setSettingsOpen(true)} size="sm" variant="outline" className="gap-2">
@@ -76,7 +73,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                     Use Case Discovery
                   </CardTitle>
                   <CardDescription className="text-base">
-                    AI-powered discovery with guided questions. Identify, validate, and prioritize use cases.
+                    {features.discoveryDescription}
                   </CardDescription>
                   <div className="flex items-center gap-2 pt-1">
                     <Badge variant="outline" className="gap-1.5 bg-background">
@@ -92,7 +89,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                 <div className="flex flex-col gap-2 shrink-0">
                   <Button onClick={onStartDiscovery} size="lg" className="gap-2">
                     <Sparkle size={20} weight="fill" />
-                    Start Discovery
+                    {getDiscoveryButtonLabel(accountSegment)}
                   </Button>
                   {onStartLiveDiscovery && (
                     <Button onClick={onStartLiveDiscovery} size="lg" variant="outline" className="gap-2">
@@ -246,7 +243,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartAIAssessment, onSta
                     Strategic Assessment Process
                   </CardTitle>
                   <CardDescription className="text-base">
-                    Comprehensive 5-stage assessment framework with financial modeling, stakeholder mapping, and ROI analysis.
+                    Comprehensive {features.strategicAssessmentStages}-stage assessment framework with {accountSegment === 'enterprise' ? 'financial modeling, stakeholder mapping, and ROI analysis' : 'quick business case and ROI estimation'}.
                   </CardDescription>
                   <div className="flex items-center gap-2 pt-1">
                     <Badge variant="outline" className="gap-1.5 bg-background">

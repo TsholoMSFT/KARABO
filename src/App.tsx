@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import '@/lib/openai-service' // Initialize OpenAI service
-import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType } from '@/lib/types'
+import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType, AccountSegment } from '@/lib/types'
 import type { EnterpriseDiscoverySession, EnterpriseDiscoverySessionMVP } from '@/lib/types'
 
 // Union type: handlers accept both legacy and MVP sessions
@@ -538,6 +538,7 @@ function App() {
         innovationHubLocation: metadata.innovationHubLocation,
         solutionEngineer: metadata.solutionEngineer,
         stockTicker: metadata.stockTicker,
+        accountSegment: metadata.accountSegment,
         name: `AI Assessment Lite - ${metadata.customerName}`,
         industry: 'general',
         responses: [],
@@ -605,6 +606,7 @@ function App() {
       innovationHubLocation: metadata.innovationHubLocation,
       solutionEngineer: metadata.solutionEngineer,
       stockTicker: metadata.stockTicker,
+      accountSegment: metadata.accountSegment,
       name: sessionName,
       industry: industry,
       entityType: entityType,
@@ -1093,6 +1095,7 @@ function App() {
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
                   onStartDemo={handleStartDemo}
                   onStartEnterpriseDemo={handleStartEnterpriseDemo}
+                  accountSegment={selectedSession?.accountSegment}
                 />
                 <EmptyState onAddFirst={handleOpenAddDialog} onImport={() => setImportDialogOpen(true)} />
               </>
@@ -1161,6 +1164,7 @@ function App() {
                   customerName={customerMetadata?.customerName}
                   onOpenSessionComparison={() => setSessionManagerOpen(true)}
                   onOpenExport={() => handleOpenTableExport()}
+                  accountSegment={selectedSession?.accountSegment}
                 />
 
                 <Card className="border-2 bg-card mb-8">

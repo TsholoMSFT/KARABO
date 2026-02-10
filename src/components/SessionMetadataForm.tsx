@@ -10,8 +10,8 @@ import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { useCustomers } from '@/hooks/use-customers'
 import { lookupTickerSymbol, TickerLookupResult } from '@/lib/earnings-service'
-import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext } from '@/lib/types'
-import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info, ShieldCheck, CurrencyDollar, Buildings } from '@phosphor-icons/react'
+import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext, AccountSegment, ACCOUNT_SEGMENT_LABELS, ACCOUNT_SEGMENT_DESCRIPTIONS, ACCOUNT_SEGMENT_META } from '@/lib/types'
+import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info, ShieldCheck, CurrencyDollar, Buildings, UsersThree } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DEMO_SESSION_METADATA_BY_INDUSTRY } from '@/lib/demo-data'
@@ -26,6 +26,7 @@ export interface SessionMetadata {
   solutionEngineer: string
   stockTicker?: string // Optional stock ticker for public companies
   entityType?: EntityType // Type of organization
+  accountSegment?: AccountSegment // Account segment — enterprise, majors-growth, smec
   complianceEnforcement?: ComplianceEnforcement // Strict or advisory gate mode
   manualFinancials?: ManualFinancialContext // Manual financial data for non-public entities
 }
@@ -90,6 +91,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
     solutionEngineer: initialMetadata?.solutionEngineer || '',
     stockTicker: initialMetadata?.stockTicker || '',
     entityType: initialMetadata?.entityType || 'public-company',
+    accountSegment: initialMetadata?.accountSegment || 'enterprise',
     complianceEnforcement: initialMetadata?.complianceEnforcement || 'advisory',
     manualFinancials: initialMetadata?.manualFinancials || {},
   })
@@ -210,6 +212,55 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* ── Account Segment Selector ──────────────────────────── */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-base font-semibold">
+                <UsersThree size={18} />
+                Account Segment
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {(['enterprise', 'majors-growth', 'smec'] as AccountSegment[]).map((seg) => {
+                  const meta = ACCOUNT_SEGMENT_META[seg]
+                  const selected = metadata.accountSegment === seg
+                  return (
+                    <button
+                      key={seg}
+                      type="button"
+                      onClick={() => {
+                        setMetadata((current) => ({
+                          ...current,
+                          accountSegment: seg,
+                          entityType: meta.defaultEntityType,
+                          stockTicker: meta.defaultEntityType === 'public-company' ? current.stockTicker : '',
+                        }))
+                        setTickerAutoPopulated(false)
+                      }}
+                      className={`relative text-left p-3 rounded-lg border-2 transition-all ${
+                        selected
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                          : 'border-border hover:border-primary/40 bg-card'
+                      }`}
+                    >
+                      {selected && (
+                        <div className="absolute top-2 right-2">
+                          <Check size={16} className="text-primary" />
+                        </div>
+                      )}
+                      <p className="font-semibold text-sm">{meta.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 pr-5">{meta.description}</p>
+                      <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
+                        <span>Deal: {meta.typicalDealSize}</span>
+                        <span>·</span>
+                        <span>{meta.discoveryDuration}</span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <Separator />
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="customer-name" className="flex items-center gap-2">

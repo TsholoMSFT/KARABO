@@ -193,7 +193,7 @@ export function LandingPage({
                     <Separator />
 
                     <p className="text-xs text-muted-foreground">
-                      KARABO follows the <strong>Microsoft Responsible AI Principles</strong>. 
+                      ID-8 follows the <strong>Microsoft Responsible AI Principles</strong>. 
                       All regulatory assessments are deterministic (no AI hallucination). 
                       Data remains in your Azure tenant; no third-party analytics or tracking is used.
                     </p>

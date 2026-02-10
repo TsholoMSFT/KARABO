@@ -18,6 +18,7 @@ import {
   ATM_DIMENSION_LABELS,
   ATM_DIMENSION_DESCRIPTIONS,
 } from '@/lib/types'
+import type { AccountSegment } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -41,17 +42,51 @@ import {
 interface ATMScoreCardProps {
   atmScore: ATMScore
   className?: string
+  accountSegment?: AccountSegment
 }
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
-export function ATMScoreCard({ atmScore, className = '' }: ATMScoreCardProps) {
+export function ATMScoreCard({ atmScore, className = '', accountSegment = 'enterprise' }: ATMScoreCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [showMethodology, setShowMethodology] = useState(false)
   const tier = ATM_TIER_CONFIG[atmScore.tier]
   const isInsufficient = atmScore.tier === 'insufficient-data'
+
+  // SME&C: ATM scoring hidden entirely (caller should not render, but guard anyway)
+  if (accountSegment === 'smec') return null
+
+  // Majors Growth: summary-only — show tier + composite + top 3 gap recommendations
+  if (accountSegment === 'majors-growth') {
+    const topGaps = atmScore.gapRecommendations.slice(0, 3)
+    return (
+      <div className={`border rounded-lg ${tier.borderColor} ${tier.bgColor} p-4 ${className}`}>
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-lg">{tier.icon}</span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`font-semibold text-sm ${tier.color}`}>ATM: {tier.label}</span>
+              {!isInsufficient && <span className="text-xs text-muted-foreground">{Math.round(atmScore.compositeScore)}/100</span>}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">{tier.description}</p>
+          </div>
+        </div>
+        {topGaps.length > 0 && (
+          <div className="mt-3 space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Top improvement actions:</p>
+            {topGaps.map((gap, i) => (
+              <div key={i} className="text-xs flex items-start gap-2">
+                <Lightning size={12} className="mt-0.5 text-amber-500 flex-shrink-0" />
+                <span>{gap.action} <span className="text-muted-foreground">(+{gap.potentialPointsGain} pts)</span></span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className={`border rounded-lg ${tier.borderColor} ${tier.bgColor} overflow-hidden ${className}`}>
@@ -503,7 +538,7 @@ function MethodologyExplainer() {
       <h5 className="font-semibold text-foreground text-xs">How ATM Scoring Works</h5>
       <p>
         Microsoft's <strong>Apps That Matter</strong> framework defines five qualitative criteria
-        for high-impact opportunities. KARABO quantifies these into a 0–100 composite score
+        for high-impact opportunities. ID-8 quantifies these into a 0–100 composite score
         using data already captured during discovery sessions.
       </p>
       <div className="space-y-1">
@@ -514,7 +549,7 @@ function MethodologyExplainer() {
         <div><strong>Repeatability</strong> (15%) — Reference architectures, industry plays</div>
       </div>
       <p className="italic text-[10px]">
-        This is KARABO's interpretation — the official ATM criteria are qualitative (pass/fail).
+        This is ID-8's interpretation — the official ATM criteria are qualitative (pass/fail).
         The numerical model helps identify gaps and strengthen opportunities before pipeline tagging.
       </p>
     </div>

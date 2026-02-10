@@ -182,6 +182,81 @@ export const ENTITY_TYPE_DESCRIPTIONS: Record<EntityType, string> = {
   'non-profit': 'Non-profit, NGO, or charitable organization',
 }
 
+// ============================================================================
+// ACCOUNT SEGMENT — Adapts discovery depth for different customer sizes
+// ============================================================================
+
+export type AccountSegment = 'enterprise' | 'majors-growth' | 'smec'
+
+export const ACCOUNT_SEGMENT_LABELS: Record<AccountSegment, string> = {
+  'enterprise': 'Enterprise',
+  'majors-growth': 'Majors Growth',
+  'smec': 'SME & Commercial',
+}
+
+export const ACCOUNT_SEGMENT_DESCRIPTIONS: Record<AccountSegment, string> = {
+  'enterprise': 'Large organizations — full discovery depth, financial modeling, and multi-stakeholder assessment',
+  'majors-growth': 'Mid-market ($50 M–$500 M) — streamlined discovery with essential scoring and simplified financials',
+  'smec': 'Small & medium businesses — rapid value assessment with pre-configured defaults and one-pager output',
+}
+
+/** Segment-specific metadata surfaced in segment picker and configuration */
+export interface AccountSegmentMeta {
+  segment: AccountSegment
+  label: string
+  description: string
+  typicalDealSize: string
+  discoveryDuration: string
+  maxDiscoveryQuestions: number
+  showStrategicAssessment: boolean
+  showATMScoring: boolean
+  showFinancialModeling: boolean
+  defaultEntityType: EntityType
+  budgetRanges: string[]
+}
+
+export const ACCOUNT_SEGMENT_META: Record<AccountSegment, AccountSegmentMeta> = {
+  'enterprise': {
+    segment: 'enterprise',
+    label: 'Enterprise',
+    description: 'Full-depth discovery with financial modeling and multi-stakeholder mapping',
+    typicalDealSize: '$150 K – $5 M+',
+    discoveryDuration: '2–4 hours',
+    maxDiscoveryQuestions: 8,
+    showStrategicAssessment: true,
+    showATMScoring: true,
+    showFinancialModeling: true,
+    defaultEntityType: 'public-company',
+    budgetRanges: ['< $50 K', '$50 K–$150 K', '$150 K–$500 K', '$500 K–$1 M', '> $1 M'],
+  },
+  'majors-growth': {
+    segment: 'majors-growth',
+    label: 'Majors Growth',
+    description: 'Streamlined discovery focused on business value and quick ROI',
+    typicalDealSize: '$25 K – $250 K',
+    discoveryDuration: '30–60 min',
+    maxDiscoveryQuestions: 5,
+    showStrategicAssessment: true,   // available but simplified
+    showATMScoring: true,            // summary only
+    showFinancialModeling: false,    // simple ROI instead
+    defaultEntityType: 'private-company',
+    budgetRanges: ['< $25 K', '$25 K–$50 K', '$50 K–$150 K', '$150 K–$500 K', '> $500 K'],
+  },
+  'smec': {
+    segment: 'smec',
+    label: 'SME & Commercial',
+    description: 'Rapid value assessment — identify 1–3 high-impact use cases in 15 minutes',
+    typicalDealSize: '$5 K – $75 K',
+    discoveryDuration: '15–30 min',
+    maxDiscoveryQuestions: 3,
+    showStrategicAssessment: false,
+    showATMScoring: false,
+    showFinancialModeling: false,
+    defaultEntityType: 'private-company',
+    budgetRanges: ['< $5 K', '$5 K–$15 K', '$15 K–$25 K', '$25 K–$50 K', '> $50 K'],
+  },
+}
+
 export interface AIRegulationsInfo {
   applicableFrameworks: AIRegulationFramework[]
   riskClassification?: AIRiskLevel
@@ -1226,6 +1301,7 @@ export interface DiscoverySession {
   primaryStakeholder: string
   stockTicker?: string // For public companies - enables earnings/financial analysis
   entityType?: EntityType // Type of organization (public, private, government, non-profit)
+  accountSegment?: AccountSegment // Account segment — enterprise, majors-growth, smec
   complianceEnforcement?: ComplianceEnforcement // Strict or advisory gate mode
   manualFinancials?: ManualFinancialContext     // Manual financial data for non-public entities
   executiveSummary?: string
