@@ -18,7 +18,20 @@ import type {
   RegulatoryAssessment,
   ComplianceEnforcement,
 } from './types'
-import { INDUSTRY_REGULATIONS } from './demo-data'
+
+// Defined here (not in demo-data) to avoid circular dependency
+export const INDUSTRY_REGULATIONS: Record<Industry, AIRegulationFramework[]> = {
+  general: ['gdpr', 'iso-42001', 'oecd-ai-principles'],
+  healthcare: ['hipaa', 'gdpr', 'eu-ai-act', 'iso-42001'],
+  'financial-services': ['sox', 'glba', 'pci-dss', 'gdpr', 'eu-ai-act'],
+  manufacturing: ['osha', 'epa', 'iso-42001', 'gdpr'],
+  retail: ['pci-dss', 'gdpr', 'ccpa', 'popia'],
+  government: ['nist-ai-rmf', 'white-house-eo', 'gdpr', 'popia'],
+  education: ['ferpa', 'gdpr', 'popia', 'iso-42001'],
+  energy: ['nerc-cip', 'epa', 'osha', 'iso-42001'],
+  telecommunications: ['gdpr', 'ccpa', 'popia', 'iso-42001'],
+  'technology-software': ['gdpr', 'ccpa', 'iso-42001', 'ms-responsible-ai', 'ms-copilot-governance'],
+}
 
 // ============================================================================
 // GLOBAL REGULATION REGISTRY

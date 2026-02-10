@@ -14,25 +14,11 @@ import {
   OpportunityStageData,
   ResourcesStageData
 } from './types'
-import { JURISDICTION_FRAMEWORK_MAP } from './regulatory-engine'
+import { JURISDICTION_FRAMEWORK_MAP, INDUSTRY_REGULATIONS } from './regulatory-engine'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 
-// ============================================================================
-// INDUSTRY-REGULATION MAPPING
-// ============================================================================
-
-export const INDUSTRY_REGULATIONS: Record<Industry, AIRegulationFramework[]> = {
-  general: ['gdpr', 'iso-42001', 'oecd-ai-principles'],
-  healthcare: ['hipaa', 'gdpr', 'eu-ai-act', 'iso-42001'],
-  'financial-services': ['sox', 'glba', 'pci-dss', 'gdpr', 'eu-ai-act'],
-  manufacturing: ['osha', 'epa', 'iso-42001', 'gdpr'],
-  retail: ['pci-dss', 'gdpr', 'ccpa', 'popia'],
-  government: ['nist-ai-rmf', 'white-house-eo', 'gdpr', 'popia'],
-  education: ['ferpa', 'gdpr', 'popia', 'iso-42001'],
-  energy: ['nerc-cip', 'epa', 'osha', 'iso-42001'],
-  telecommunications: ['gdpr', 'ccpa', 'popia', 'iso-42001'],
-  'technology-software': ['gdpr', 'ccpa', 'iso-42001', 'ms-responsible-ai', 'ms-copilot-governance'],
-}
+// Re-export from regulatory-engine so existing consumers (e.g. DiscoveryResults) keep working
+export { INDUSTRY_REGULATIONS }
 
 // Mining-specific regulations (for Contoso Mining demo)
 export const MINING_REGULATIONS: AIRegulationFramework[] = [
