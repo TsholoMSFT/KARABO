@@ -142,6 +142,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
   useEffect(() => {
     const timer = setTimeout(() => {
       if (
+        metadata.entityType === 'public-company' &&
         metadata.customerName.trim().length >= 3 && 
         !metadata.stockTicker && 
         !tickerAutoPopulated &&
@@ -152,7 +153,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
     }, 1500) // Debounce 1.5 seconds
 
     return () => clearTimeout(timer)
-  }, [metadata.customerName, metadata.stockTicker, tickerAutoPopulated, isSearchingTicker, handleTickerSearch])
+  }, [metadata.entityType, metadata.customerName, metadata.stockTicker, tickerAutoPopulated, isSearchingTicker, handleTickerSearch])
 
   const handleSelectTicker = (ticker: TickerLookupResult) => {
     setMetadata((current) => ({

@@ -2,7 +2,10 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import '@/lib/openai-service' // Initialize OpenAI service
 import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType } from '@/lib/types'
-import type { EnterpriseDiscoverySession } from '@/lib/types'
+import type { EnterpriseDiscoverySession, EnterpriseDiscoverySessionMVP } from '@/lib/types'
+
+// Union type: handlers accept both legacy and MVP sessions
+type AnyEnterpriseSession = EnterpriseDiscoverySession | EnterpriseDiscoverySessionMVP
 import type { SessionTemplate } from '@/lib/session-templates'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { getTopUseCases, getRankedUseCases } from '@/lib/scoring'
@@ -60,7 +63,7 @@ const SessionManager = lazy(() => import('@/components/SessionManager').then(m =
 const SessionComparison = lazy(() => import('@/components/SessionComparison').then(m => ({ default: m.SessionComparison })))
 const SessionMetadataForm = lazy(() => import('@/components/SessionMetadataForm').then(m => ({ default: m.SessionMetadataForm })))
 const CustomerSelector = lazy(() => import('@/components/CustomerSelector').then(m => ({ default: m.CustomerSelector })))
-const EnterpriseDiscoveryOrchestrator = lazy(() => import('@/components/enterprise-discovery/EnterpriseDiscoveryOrchestrator').then(m => ({ default: m.EnterpriseDiscoveryOrchestrator })))
+const EnterpriseDiscoveryOrchestrator = lazy(() => import('@/components/enterprise-discovery/EnterpriseDiscoveryOrchestratorMVP').then(m => ({ default: m.EnterpriseDiscoveryOrchestratorMVP })))
 const FinancialImpactTab = lazy(() => import('@/components/FinancialImpactTab').then(m => ({ default: m.FinancialImpactTab })))
 const ImportUseCasesDialog = lazy(() => import('@/components/ImportUseCasesDialog').then(m => ({ default: m.ImportUseCasesDialog })))
 
@@ -89,8 +92,8 @@ function App() {
   const [useCases, setUseCases] = useLocalStorage<UseCase[]>('use-cases', [])
   const [selectedSessionId, setSelectedSessionId] = useLocalStorage<string | null>('selected-session-id', null)
   const [selectedCustomerId, setSelectedCustomerId] = useLocalStorage<string | null>('selected-customer-id', null)
-  const [enterpriseSessions, setEnterpriseSessions] = useLocalStorage<EnterpriseDiscoverySession[]>('enterprise-sessions', [])
-  const [currentEnterpriseSession, setCurrentEnterpriseSession] = useState<EnterpriseDiscoverySession | null>(null)
+  const [enterpriseSessions, setEnterpriseSessions] = useLocalStorage<AnyEnterpriseSession[]>('enterprise-sessions', [])
+  const [currentEnterpriseSession, setCurrentEnterpriseSession] = useState<AnyEnterpriseSession | null>(null)
   
   // Demo mode state
   const [isDemoMode, setIsDemoMode] = useState(false)
@@ -386,7 +389,7 @@ function App() {
     setCurrentView('enterprise-discovery')
   }
 
-  const handleResumeEnterpriseDiscovery = (session: EnterpriseDiscoverySession) => {
+  const handleResumeEnterpriseDiscovery = (session: AnyEnterpriseSession) => {
     setCurrentEnterpriseSession(session)
     setCurrentView('enterprise-discovery')
   }
@@ -460,7 +463,7 @@ function App() {
     })
   }
 
-  const handleEnterpriseSessionPause = (session: EnterpriseDiscoverySession) => {
+  const handleEnterpriseSessionPause = (session: AnyEnterpriseSession) => {
     handleEnterpriseSessionSave(session)
     toast.info('Discovery session paused', {
       description: 'You can resume from the Enterprise Discovery tab.',
@@ -469,7 +472,7 @@ function App() {
     setCurrentEnterpriseSession(null)
   }
 
-  const handleEnterpriseSessionSave = (session: EnterpriseDiscoverySession) => {
+  const handleEnterpriseSessionSave = (session: AnyEnterpriseSession) => {
     const updated = enterpriseSessions || []
     const index = updated.findIndex(s => s.id === session.id)
     if (index >= 0) {
@@ -480,7 +483,7 @@ function App() {
     setEnterpriseSessions(updated)
   }
 
-  const handleEnterpriseSessionComplete = (session: EnterpriseDiscoverySession) => {
+  const handleEnterpriseSessionComplete = (session: AnyEnterpriseSession) => {
     handleEnterpriseSessionSave(session)
     toast.success('Enterprise Discovery completed successfully!')
     setCurrentView('dashboard')
@@ -780,21 +783,18 @@ function App() {
           <NavigationHeader 
             onBackToLanding={handleBackToLanding}
             onBack={handleEnterpriseDiscoveryCancel}
-            backLabel="Exit Discovery"
-            title="Enterprise Discovery"
+            backLabel="Exit Assessment"
+            title="Strategic Assessment"
             subtitle="Comprehensive opportunity assessment"
           />
           <div className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
             <EnterpriseDiscoveryOrchestrator
             initialSession={currentEnterpriseSession || undefined}
             initialCustomerName={selectedCustomerId ? customers.find(c => c.id === selectedCustomerId)?.name : undefined}
-            businessEnvisioning={selectedSession?.businessEnvisioning}
             onSave={handleEnterpriseSessionSave}
             onComplete={handleEnterpriseSessionComplete}
             onCancel={handleEnterpriseDiscoveryCancel}
             onPause={handleEnterpriseSessionPause}
-            isDemoMode={isDemoMode}
-            demoIndustry={demoIndustry}
             />
           </div>
         </>

@@ -300,7 +300,7 @@ export function ComplianceReviewStep({
                                   <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                                     Framework Assessments
                                   </h5>
-                                  <div className="space-y-2">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-1">
                                     {a.assessment.frameworkAssessments.map((fa, i) => {
                                       const info = getRegulationDisplayInfo(fa.framework)
                                       const faCfg = RISK_LEVEL_CONFIG[fa.risk]
@@ -356,7 +356,7 @@ export function ComplianceReviewStep({
                                     <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                                       Recommended Remediations
                                     </h5>
-                                    <div className="space-y-1.5">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 max-h-[250px] overflow-y-auto pr-1">
                                       {a.assessment.remediations.map((rem) => (
                                         <div
                                           key={rem.id}

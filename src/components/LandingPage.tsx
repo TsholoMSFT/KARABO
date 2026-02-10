@@ -101,7 +101,7 @@ export function LandingPage({
             transition={{ delay: 0.3 }}
             className="text-5xl font-bold tracking-tight"
           >
-            ID-8
+            Microsoft Innovation Hub: ID-8
           </motion.h1>
           
           <motion.p
@@ -110,7 +110,7 @@ export function LandingPage({
             transition={{ delay: 0.4 }}
             className="text-xl text-muted-foreground max-w-2xl mx-auto"
           >
-            Enterprise Discovery & AI Use Case Assessment Platform
+            AI Discovery and Assessment Platform
           </motion.p>
           
           <motion.div
@@ -219,9 +219,9 @@ export function LandingPage({
                   </div>
                   <Badge variant="outline" className="text-xs">Use Cases</Badge>
                 </div>
-                <CardTitle className="text-xl">Quick Discovery</CardTitle>
+                <CardTitle className="text-xl">Discovery</CardTitle>
                 <CardDescription className="text-sm">
-                  Guided questions + AI suggestions to rapidly identify use cases
+                  Guided questions + AI suggestions to identify and assess use cases
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -243,7 +243,7 @@ export function LandingPage({
                 <div className="space-y-3">
                   <Button onClick={onStartNew} className="w-full gap-2" size="lg">
                     <RocketLaunch size={20} weight="duotone" />
-                    Start Quick Discovery
+                    Start Discovery
                   </Button>
 
                   <div className="flex flex-col gap-2">
@@ -297,7 +297,7 @@ export function LandingPage({
                   </div>
                   <Badge variant="outline" className="text-xs">Framework</Badge>
                 </div>
-                <CardTitle className="text-xl">Enterprise Discovery</CardTitle>
+                <CardTitle className="text-xl">Strategic Assessment</CardTitle>
                 <CardDescription className="text-sm">
                   5-stage framework with financial impact and prioritization outputs
                 </CardDescription>
@@ -324,7 +324,7 @@ export function LandingPage({
                   size="lg"
                 >
                   <Briefcase size={20} weight="duotone" />
-                  Start Enterprise Discovery
+                  Start Strategic Assessment
                 </Button>
               </CardContent>
             </Card>
@@ -443,7 +443,7 @@ export function LandingPage({
                       <HardHat size={18} weight="duotone" className="text-amber-600" />
                       <div className="text-left">
                         <div className="font-medium text-sm">Zava Mining</div>
-                        <div className="text-[10px] text-muted-foreground">Quick Discovery</div>
+                        <div className="text-[10px] text-muted-foreground">Discovery</div>
                       </div>
                     </Button>
                   </div>
@@ -479,7 +479,7 @@ export function LandingPage({
                       <ShoppingCart size={18} weight="duotone" className="text-green-600" />
                       <div className="text-left">
                         <div className="font-medium text-sm">MegaMart Retail</div>
-                        <div className="text-[10px] text-muted-foreground">Enterprise Discovery</div>
+                        <div className="text-[10px] text-muted-foreground">Strategic Assessment</div>
                       </div>
                     </Button>
                   </div>
