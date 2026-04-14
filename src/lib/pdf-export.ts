@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf'
 import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData, ENGAGEMENT_DEFAULTS, AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG, RESPONSIBLE_AI_PRINCIPLE_LABELS } from './types'
-import type { AIGovernanceAssessment } from './types'
+import type { AIGovernanceAssessment, SovereignCloudAssessment } from './types'
 import { calculateRICEScore, getQuadrant } from './scoring'
 import { getKPIById } from './kpis'
 import { DISCLAIMERS, getPolicyById } from './ai-policies'
@@ -17,6 +17,7 @@ export interface ExportOptions {
   includeCustomerJourney?: boolean
   includeGovernance?: boolean
   governanceAssessment?: AIGovernanceAssessment
+  sovereignCloudAssessment?: SovereignCloudAssessment
 }
 
 function formatCurrency(value: number): string {
@@ -1162,6 +1163,130 @@ export async function exportToPDF(
         doc.text(raia.overallRisk, margin + 90, y)
         doc.text(raia.involvesDecisionsAboutPeople ? 'Yes' : 'No', margin + 110, y)
         doc.text(raia.humanOversightRequired ? 'Required' : 'Optional', margin + 145, y)
+        y += 5
+      }
+    }
+  }
+
+  // ============ SOVEREIGN CLOUD & DATA RESIDENCY ============
+  if (options.sovereignCloudAssessment && options.sovereignCloudAssessment.mandateLevel !== 'optional') {
+    const sov = options.sovereignCloudAssessment
+    doc.addPage()
+    y = margin
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.setTextColor(30, 80, 180)
+    doc.text('Sovereign Cloud & Data Residency', margin, y)
+    y += 10
+
+    // Cloud environment + mandate
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(60, 60, 80)
+    const cloudLabels: Record<string, string> = {
+      'azure-public': 'Azure Commercial (Global)',
+      'azure-government': 'Azure Government (US)',
+      'azure-government-dod': 'Azure Government DoD',
+      'azure-china-21vianet': 'Azure China (21Vianet)',
+      'azure-eu-boundary': 'Azure EU Data Boundary',
+    }
+    doc.text(`Cloud: ${cloudLabels[sov.cloudEnvironment] || sov.cloudEnvironment}`, margin, y)
+    y += 6
+    doc.text(`Mandate: ${sov.mandateLevel.charAt(0).toUpperCase() + sov.mandateLevel.slice(1)}  |  Readiness: ${sov.readinessScore}/100`, margin, y)
+    y += 8
+
+    // Justification
+    doc.setFont('helvetica', 'italic')
+    doc.setFontSize(9)
+    doc.setTextColor(80, 80, 80)
+    y = drawWrappedText(doc, sov.dataResidency.justification, margin, y, pageWidth - 2 * margin, 4)
+    y += 6
+
+    // Recommended regions
+    if (sov.recommendedRegions.length > 0) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(100, 100, 100)
+      doc.text('Recommended Regions:', margin, y)
+      y += 5
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(60, 60, 60)
+      doc.text(sov.recommendedRegions.join(', '), margin + 5, y)
+      y += 7
+    }
+
+    // Service availability table
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(100, 100, 100)
+    doc.text('Service', margin, y)
+    doc.text('Available', margin + 80, y)
+    doc.text('Limitations', margin + 100, y)
+    y += 2
+    doc.setDrawColor(180, 180, 180)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 4
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    for (const svc of sov.serviceAvailability) {
+      y = addPageIfNeeded(doc, y, 5, margin)
+      doc.setTextColor(60, 60, 60)
+      doc.text(svc.service, margin, y)
+      doc.setTextColor(svc.availableInCloud ? 0 : 180, svc.availableInCloud ? 120 : 0, 0)
+      doc.text(svc.availableInCloud ? 'Yes' : 'No', margin + 80, y)
+      doc.setTextColor(100, 100, 100)
+      if (svc.limitations) {
+        const limitText = svc.limitations.length > 60 ? svc.limitations.slice(0, 60) + '...' : svc.limitations
+        doc.text(limitText, margin + 100, y)
+      }
+      y += 5
+    }
+    y += 4
+
+    // Gaps
+    if (sov.gaps.length > 0) {
+      y = addPageIfNeeded(doc, y, 15, margin)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(180, 130, 30)
+      doc.text(`Readiness Gaps (${sov.gaps.length})`, margin, y)
+      y += 5
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      for (const gap of sov.gaps) {
+        y = addPageIfNeeded(doc, y, 8, margin)
+        const impactIcon = gap.impact === 'high' ? '[HIGH]' : gap.impact === 'medium' ? '[MED]' : '[LOW]'
+        doc.setTextColor(gap.impact === 'high' ? 180 : 120, gap.impact === 'high' ? 50 : 100, 30)
+        doc.text(`${impactIcon} ${gap.dimension}`, margin, y)
+        doc.setTextColor(60, 60, 60)
+        y += 4
+        y = drawWrappedText(doc, gap.description, margin + 5, y, pageWidth - 2 * margin - 10, 3.5)
+        y += 2
+        doc.setTextColor(100, 100, 100)
+        y = drawWrappedText(doc, `→ ${gap.recommendation}`, margin + 5, y, pageWidth - 2 * margin - 10, 3.5)
+        y += 4
+      }
+    }
+
+    // Cross-border data flows
+    const riskyFlows = sov.crossBorderFlows.filter(f => f.risk !== 'minimal')
+    if (riskyFlows.length > 0) {
+      y = addPageIfNeeded(doc, y, 15, margin)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(100, 100, 100)
+      doc.text('Cross-border Data Flow Considerations', margin, y)
+      y += 5
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      for (const flow of riskyFlows) {
+        y = addPageIfNeeded(doc, y, 6, margin)
+        doc.setTextColor(flow.permitted ? 80 : 180, flow.permitted ? 80 : 50, 60)
+        doc.text(`${flow.permitted ? '⚠' : '✗'} ${flow.dataTypes[0]}: ${flow.mechanism || 'No mechanism'}`, margin + 5, y)
         y += 5
       }
     }

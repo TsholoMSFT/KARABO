@@ -3,23 +3,53 @@ import { makeCorsHeaders, safeErrorMessage } from "../lib/xml-utils";
 
 /**
  * Azure Function Proxy for Azure OpenAI
- * Supports multiple endpoints:
- * - Azure OpenAI (GPT-4o, GPT-4o-mini)
+ * Supports multiple endpoints and sovereign cloud environments:
+ * - Azure Commercial (GPT-4o, GPT-4o-mini)
+ * - Azure Government (FedRAMP authorized)
+ * - Azure China 21Vianet
+ * - Azure EU Data Boundary
  * - AI Hub (Phi-4-mini-instruct, GPT-5-nano for cheap tasks)
  * 
  * Features:
  * - Multi-model routing based on cost optimization
+ * - Multi-cloud endpoint resolution per sovereign environment
+ * - Entra ID (AAD) + API key authentication
  * - System prompt support for prompt caching
  * - Silent fallback with logging
  */
 
-// Azure OpenAI configuration (GPT models)
+// ── Cloud environment detection ──────────────────────────────────────
+type CloudEnvironment = "public" | "government" | "government-dod" | "china" | "eu-boundary";
+const AZURE_CLOUD_ENV = (process.env.AZURE_CLOUD_ENVIRONMENT || "public") as CloudEnvironment;
+
+// ── Azure OpenAI configuration (per-cloud) ───────────────────────────
+// Public cloud (default)
 const AZURE_OPENAI_ENDPOINT = process.env.AZURE_OPENAI_ENDPOINT;
 const AZURE_OPENAI_API_KEY = process.env.AZURE_OPENAI_API_KEY;
 
-// AI Hub configuration (Phi and cheaper models)
+// Azure Government
+const AZURE_GOV_OPENAI_ENDPOINT = process.env.AZURE_GOV_OPENAI_ENDPOINT;
+const AZURE_GOV_OPENAI_API_KEY = process.env.AZURE_GOV_OPENAI_API_KEY;
+
+// Azure China 21Vianet
+const AZURE_CN_OPENAI_ENDPOINT = process.env.AZURE_CN_OPENAI_ENDPOINT;
+const AZURE_CN_OPENAI_API_KEY = process.env.AZURE_CN_OPENAI_API_KEY;
+
+// AI Hub configuration (Phi and cheaper models — public cloud only)
 const AI_HUB_ENDPOINT = process.env.AI_HUB_ENDPOINT;
 const AI_HUB_API_KEY = process.env.AI_HUB_API_KEY;
+
+// Authentication mode: 'key' (default) or 'entra-id'
+const AUTH_TYPE = process.env.AZURE_OPENAI_AUTH_TYPE || "key";
+
+// ── API versions per cloud ───────────────────────────────────────────
+const API_VERSIONS: Record<CloudEnvironment, string> = {
+  public: "2024-08-01-preview",
+  government: "2024-06-01",
+  "government-dod": "2024-06-01",
+  china: "2024-06-01",
+  "eu-boundary": "2024-08-01-preview",
+};
 
 // Model type definition
 type ModelType = "gpt-4o" | "gpt-4o-mini" | "gpt-5-nano" | "phi-4-mini-instruct";
@@ -30,36 +60,72 @@ interface DeploymentConfig {
   key: string;
   deployment: string;
   isAIHub: boolean;
+  cloud: CloudEnvironment;
 }
 
-function getDeploymentConfig(model: ModelType): DeploymentConfig | null {
-  const configs: Record<ModelType, DeploymentConfig> = {
-    "gpt-4o": {
-      endpoint: AZURE_OPENAI_ENDPOINT || "",
-      key: AZURE_OPENAI_API_KEY || "",
-      deployment: process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O || "gpt-4o",
-      isAIHub: false,
-    },
-    "gpt-4o-mini": {
-      endpoint: AZURE_OPENAI_ENDPOINT || "",
-      key: AZURE_OPENAI_API_KEY || "",
-      deployment: process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI || "gpt-4o-mini",
-      isAIHub: false,
-    },
-    "phi-4-mini-instruct": {
-      endpoint: AI_HUB_ENDPOINT || "",
-      key: AI_HUB_API_KEY || "",
-      deployment: "phi-4-mini-instruct",
+/**
+ * Resolve endpoint + key for a given cloud environment.
+ */
+function getCloudConfig(cloud: CloudEnvironment): { endpoint: string; key: string } | null {
+  switch (cloud) {
+    case "government":
+    case "government-dod":
+      if (AZURE_GOV_OPENAI_ENDPOINT && AZURE_GOV_OPENAI_API_KEY) {
+        return { endpoint: AZURE_GOV_OPENAI_ENDPOINT, key: AZURE_GOV_OPENAI_API_KEY };
+      }
+      // Fall through to public if gov not configured
+      break;
+    case "china":
+      if (AZURE_CN_OPENAI_ENDPOINT && AZURE_CN_OPENAI_API_KEY) {
+        return { endpoint: AZURE_CN_OPENAI_ENDPOINT, key: AZURE_CN_OPENAI_API_KEY };
+      }
+      break;
+    case "eu-boundary":
+    case "public":
+    default:
+      if (AZURE_OPENAI_ENDPOINT && AZURE_OPENAI_API_KEY) {
+        return { endpoint: AZURE_OPENAI_ENDPOINT, key: AZURE_OPENAI_API_KEY };
+      }
+      break;
+  }
+  // Fallback: try public cloud config  
+  if (AZURE_OPENAI_ENDPOINT && AZURE_OPENAI_API_KEY) {
+    return { endpoint: AZURE_OPENAI_ENDPOINT, key: AZURE_OPENAI_API_KEY };
+  }
+  return null;
+}
+
+function getDeploymentConfig(model: ModelType, cloud: CloudEnvironment = AZURE_CLOUD_ENV): DeploymentConfig | null {
+  // AI Hub models (only available in public cloud)
+  if ((model === "phi-4-mini-instruct" || model === "gpt-5-nano") && AI_HUB_ENDPOINT && AI_HUB_API_KEY) {
+    return {
+      endpoint: AI_HUB_ENDPOINT,
+      key: AI_HUB_API_KEY,
+      deployment: model,
       isAIHub: true,
-    },
-    "gpt-5-nano": {
-      endpoint: AI_HUB_ENDPOINT || "",
-      key: AI_HUB_API_KEY || "",
-      deployment: "gpt-5-nano",
-      isAIHub: true,
-    },
+      cloud: "public",
+    };
+  }
+
+  // Resolve cloud-specific endpoint
+  const cloudConfig = getCloudConfig(cloud);
+  if (!cloudConfig) return null;
+
+  const deploymentMap: Record<string, string> = {
+    "gpt-4o": process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O || "gpt-4o",
+    "gpt-4o-mini": process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI || "gpt-4o-mini",
+    // Phi/nano fall through to GPT models when AI Hub not configured
+    "phi-4-mini-instruct": process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI || "gpt-4o-mini",
+    "gpt-5-nano": process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI || "gpt-4o-mini",
   };
-  return configs[model] || null;
+
+  return {
+    endpoint: cloudConfig.endpoint,
+    key: cloudConfig.key,
+    deployment: deploymentMap[model] || "gpt-4o-mini",
+    isAIHub: false,
+    cloud,
+  };
 }
 
 interface ChatRequest {
@@ -67,6 +133,23 @@ interface ChatRequest {
   model?: ModelType;
   expectJson?: boolean;
   systemPrompt?: string;
+  cloudEnvironment?: CloudEnvironment; // Optional: override cloud per request
+}
+
+/**
+ * Get Entra ID (AAD) token for Azure OpenAI.
+ * Uses DefaultAzureCredential which supports managed identity, VS Code, CLI, etc.
+ */
+async function getEntraIdToken(context: InvocationContext): Promise<string | null> {
+  try {
+    const { DefaultAzureCredential } = await import("@azure/identity");
+    const credential = new DefaultAzureCredential();
+    const tokenResponse = await credential.getToken("https://cognitiveservices.azure.com/.default");
+    return tokenResponse.token;
+  } catch (error: any) {
+    context.warn(`Entra ID auth failed, falling back to API key: ${error.message}`);
+    return null;
+  }
 }
 
 const corsHeaders = makeCorsHeaders("POST, OPTIONS");
@@ -79,7 +162,7 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
 
   try {
     const body = await req.json() as ChatRequest;
-    const { prompt, model = "phi-4-mini-instruct", expectJson = false, systemPrompt } = body;
+    const { prompt, model = "phi-4-mini-instruct", expectJson = false, systemPrompt, cloudEnvironment } = body;
 
     if (!prompt) {
       return {
@@ -89,20 +172,23 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
       };
     }
 
-    // Get deployment config for requested model
-    let config = getDeploymentConfig(model);
+    // Resolve target cloud: request override > env var default
+    const targetCloud = cloudEnvironment || AZURE_CLOUD_ENV;
+
+    // Get deployment config for requested model + cloud
+    let config = getDeploymentConfig(model, targetCloud);
     let actualModel = model;
 
     // Validate configuration, fallback if needed
     if (!config || !config.endpoint || !config.key) {
-      context.log(`Model ${model} not configured, attempting fallback...`);
+      context.log(`Model ${model} not configured for ${targetCloud}, attempting fallback...`);
       
       // Fallback chain: AI Hub models → gpt-4o-mini → gpt-4o
       const fallbackOrder: ModelType[] = ["gpt-5-nano", "gpt-4o-mini", "gpt-4o"];
       for (const fallbackModel of fallbackOrder) {
-        const fallbackConfig = getDeploymentConfig(fallbackModel);
+        const fallbackConfig = getDeploymentConfig(fallbackModel, targetCloud);
         if (fallbackConfig && fallbackConfig.endpoint && fallbackConfig.key) {
-          context.log(`Falling back to ${fallbackModel}`);
+          context.log(`Falling back to ${fallbackModel} on ${targetCloud}`);
           config = fallbackConfig;
           actualModel = fallbackModel;
           break;
@@ -113,12 +199,12 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
         return {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          jsonBody: { error: "No AI models configured on server" },
+          jsonBody: { error: `No AI models configured for cloud environment: ${targetCloud}` },
         };
       }
     }
 
-    const apiVersion = "2024-08-01-preview";
+    const apiVersion = API_VERSIONS[config.cloud] || API_VERSIONS.public;
     const url = `${config.endpoint}/openai/deployments/${config.deployment}/chat/completions?api-version=${apiVersion}`;
 
     // Build messages array with optional system prompt (for prompt caching)
@@ -138,14 +224,28 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
       requestBody.response_format = { type: "json_object" };
     }
 
-    context.log(`Calling ${actualModel} (requested: ${model}) at ${config.endpoint}`);
+    // Build auth headers — Entra ID or API key
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+    if (AUTH_TYPE === "entra-id" && !config.isAIHub) {
+      const token = await getEntraIdToken(context);
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+        context.log(`Using Entra ID auth for ${actualModel} on ${config.cloud}`);
+      } else {
+        // Fallback to API key
+        headers["api-key"] = config.key;
+        context.log(`Entra ID unavailable, using API key for ${actualModel} on ${config.cloud}`);
+      }
+    } else {
+      headers["api-key"] = config.key;
+    }
+
+    context.log(`Calling ${actualModel} (requested: ${model}) on ${config.cloud} at ${config.endpoint}`);
 
     const response = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": config.key,
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 
@@ -155,7 +255,7 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
         status: response.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         jsonBody: {
-          error: `Azure OpenAI error: ${response.status}`,
+          error: `Azure OpenAI error: ${response.status} (${config.cloud})`,
           details: errorData.error?.message || response.statusText,
         },
       };

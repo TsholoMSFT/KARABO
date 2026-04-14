@@ -1,5 +1,5 @@
 import { UseCase, ScoringMethod, CustomerMetadata, AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG, RESPONSIBLE_AI_PRINCIPLE_LABELS } from '@/lib/types'
-import type { AIGovernanceAssessment } from '@/lib/types'
+import type { AIGovernanceAssessment, SovereignCloudAssessment } from '@/lib/types'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +17,7 @@ interface PrintViewProps {
   effortUnit: 'person-weeks' | 'fte' | 'man-hours'
   customerMetadata?: CustomerMetadata
   governanceAssessment?: AIGovernanceAssessment
+  sovereignCloudAssessment?: SovereignCloudAssessment
 }
 
 export function PrintView({
@@ -28,6 +29,7 @@ export function PrintView({
   effortUnit,
   customerMetadata,
   governanceAssessment,
+  sovereignCloudAssessment,
 }: PrintViewProps) {
   const topUseCaseIds = new Set(topUseCases.map((uc) => uc.id))
 
@@ -500,6 +502,82 @@ export function PrintView({
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Sovereign Cloud & Data Residency */}
+          {sovereignCloudAssessment && sovereignCloudAssessment.mandateLevel !== 'optional' && (
+            <section className="print:page-break-before-always">
+              <h2 className="text-lg font-bold text-blue-700 border-b pb-1 mb-3">
+                ☁ Sovereign Cloud & Data Residency
+              </h2>
+
+              <div className="mb-3">
+                <p className="text-sm">
+                  <span className="font-semibold">Cloud Environment: </span>
+                  {{
+                    'azure-public': 'Azure Commercial (Global)',
+                    'azure-government': 'Azure Government (US)',
+                    'azure-government-dod': 'Azure Government DoD',
+                    'azure-china-21vianet': 'Azure China (21Vianet)',
+                    'azure-eu-boundary': 'Azure EU Data Boundary',
+                  }[sovereignCloudAssessment.cloudEnvironment] || sovereignCloudAssessment.cloudEnvironment}
+                  <Badge variant="outline" className={`ml-2 text-[9px] ${
+                    sovereignCloudAssessment.mandateLevel === 'required' ? 'text-red-600 border-red-300' : 'text-blue-600 border-blue-300'
+                  }`}>
+                    {sovereignCloudAssessment.mandateLevel}
+                  </Badge>
+                  <span className={`ml-3 font-bold text-sm ${
+                    sovereignCloudAssessment.readinessScore >= 70 ? 'text-green-600' :
+                    sovereignCloudAssessment.readinessScore >= 40 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    Readiness: {sovereignCloudAssessment.readinessScore}/100
+                  </span>
+                </p>
+                <p className="text-xs text-gray-600 italic mt-1">
+                  {sovereignCloudAssessment.dataResidency.justification}
+                </p>
+              </div>
+
+              {/* Service Availability */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold mb-1">Service Availability</h3>
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-300">
+                      <th className="text-left py-1">Service</th>
+                      <th className="text-left py-1">Available</th>
+                      <th className="text-left py-1">Limitations</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sovereignCloudAssessment.serviceAvailability.map(svc => (
+                      <tr key={svc.service} className="border-b border-gray-100">
+                        <td className="py-1">{svc.service}</td>
+                        <td className={`py-1 ${svc.availableInCloud ? 'text-green-600' : 'text-red-600'}`}>
+                          {svc.availableInCloud ? '✅ Yes' : '❌ No'}
+                        </td>
+                        <td className="py-1 text-gray-500">{svc.limitations || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Gaps */}
+              {sovereignCloudAssessment.gaps.length > 0 && (
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold mb-1 text-amber-600">Readiness Gaps ({sovereignCloudAssessment.gaps.length})</h3>
+                  {sovereignCloudAssessment.gaps.slice(0, 6).map(gap => (
+                    <div key={gap.id} className="border-l-2 border-amber-300 pl-2 mb-1 text-xs">
+                      <span className="font-medium">[{gap.impact.toUpperCase()}] {gap.dimension}:</span>{' '}
+                      {gap.description}
+                      <br />
+                      <span className="text-gray-500">→ {gap.recommendation}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </section>

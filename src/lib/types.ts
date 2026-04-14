@@ -589,6 +589,202 @@ export interface ResponsibleAIImpact {
 }
 
 // ============================================================================
+// SOVEREIGN CLOUD & DATA RESIDENCY TYPES
+// ============================================================================
+
+/**
+ * Azure cloud environments — determines endpoint resolution, auth, and service availability.
+ */
+export type SovereignCloudEnvironment =
+  | 'azure-public'                // Azure Commercial (global)
+  | 'azure-government'            // Azure Government (US FedRAMP / IL4)
+  | 'azure-government-dod'        // Azure Government DoD (IL5/IL6)
+  | 'azure-china-21vianet'        // Azure China operated by 21Vianet
+  | 'azure-eu-boundary'           // Azure EU Data Boundary (GDPR/EU AI Act)
+
+/**
+ * Sovereign Azure region codes for data residency.
+ */
+export type SovereignCloudRegion =
+  // Azure Government
+  | 'usgovvirginia' | 'usgovarizona' | 'usgovtexas' | 'usdodcentral' | 'usdodeast'
+  // Azure China 21Vianet
+  | 'chinanorth3' | 'chinaeast3'
+  // EU Data Boundary (standard regions, but with data boundary controls)
+  | 'westeurope' | 'northeurope' | 'germanywestcentral' | 'francecentral' | 'swedencentral' | 'switzerlandnorth'
+  // Africa
+  | 'southafricanorth' | 'southafricawest'
+  // Middle East
+  | 'uaenorth' | 'qatarcentral' | 'israelcentral'
+  // Other
+  | string  // Allow custom regions
+
+/**
+ * Level of enforcement for sovereign cloud requirements.
+ */
+export type SovereignCloudMandateLevel = 'required' | 'recommended' | 'optional'
+
+/**
+ * Data residency requirement derived from regulatory frameworks and entity type.
+ */
+export interface DataResidencyRequirement {
+  requiredCloud: SovereignCloudEnvironment
+  requiredRegions: SovereignCloudRegion[]
+  mandateLevel: SovereignCloudMandateLevel
+  dataClassification: DataClassification
+  crossBorderTransferAllowed: boolean
+  justification: string             // Why this cloud/region is required
+  triggeringFrameworks: AIRegulationFramework[] // Which regulations drive this
+}
+
+/**
+ * A gap identified in sovereign cloud readiness.
+ */
+export interface SovereignCloudGap {
+  id: string
+  dimension: string                 // e.g., 'endpoint-routing', 'service-availability', 'auth-model'
+  description: string
+  impact: 'high' | 'medium' | 'low'
+  recommendation: string
+}
+
+/**
+ * Service availability check result for a sovereign cloud.
+ */
+export interface SovereignServiceCheck {
+  service: string                   // e.g., 'Azure OpenAI', 'Document Intelligence'
+  availableInCloud: boolean
+  availableModels?: string[]        // e.g., ['gpt-4o'] — which models are deployed
+  limitations?: string              // e.g., 'Only GPT-4o, no Phi-4'
+}
+
+/**
+ * Cross-border data flow assessment.
+ */
+export interface CrossBorderDataFlow {
+  sourceJurisdiction: string
+  targetCloud: SovereignCloudEnvironment
+  targetRegion: SovereignCloudRegion
+  dataTypes: string[]               // e.g., ['AI prompts', 'customer business data']
+  permitted: boolean
+  mechanism?: string                // e.g., 'EU Standard Contractual Clauses', 'FedRAMP ATO'
+  risk: AIRiskLevel
+}
+
+/**
+ * Complete sovereign cloud assessment — attached to DiscoverySession.
+ */
+export interface SovereignCloudAssessment {
+  cloudEnvironment: SovereignCloudEnvironment
+  recommendedRegions: SovereignCloudRegion[]
+  mandateLevel: SovereignCloudMandateLevel
+  dataResidency: DataResidencyRequirement
+  serviceAvailability: SovereignServiceCheck[]
+  crossBorderFlows: CrossBorderDataFlow[]
+  gaps: SovereignCloudGap[]
+  readinessScore: number            // 0-100
+  assessedAt: number
+}
+
+// ── Configuration constants ──
+
+export const SOVEREIGN_CLOUD_LABELS: Record<SovereignCloudEnvironment, string> = {
+  'azure-public': 'Azure Commercial (Global)',
+  'azure-government': 'Azure Government (US)',
+  'azure-government-dod': 'Azure Government DoD',
+  'azure-china-21vianet': 'Azure China (21Vianet)',
+  'azure-eu-boundary': 'Azure EU Data Boundary',
+}
+
+export const SOVEREIGN_CLOUD_CONFIG: Record<SovereignCloudEnvironment, {
+  label: string
+  endpointSuffix: string
+  authType: 'key' | 'entra-id' | 'both'
+  openAIDomain: string
+  cognitiveServicesDomain: string
+  availableRegions: SovereignCloudRegion[]
+  apiVersion: string
+  color: string
+}> = {
+  'azure-public': {
+    label: 'Azure Commercial',
+    endpointSuffix: '.azure.com',
+    authType: 'both',
+    openAIDomain: 'openai.azure.com',
+    cognitiveServicesDomain: 'cognitiveservices.azure.com',
+    availableRegions: ['westeurope', 'northeurope', 'southafricanorth', 'southafricawest', 'uaenorth', 'qatarcentral', 'swedencentral', 'francecentral', 'germanywestcentral', 'switzerlandnorth'],
+    apiVersion: '2024-08-01-preview',
+    color: '#3b82f6',
+  },
+  'azure-government': {
+    label: 'Azure Government',
+    endpointSuffix: '.azure.us',
+    authType: 'entra-id',
+    openAIDomain: 'openai.azure.us',
+    cognitiveServicesDomain: 'cognitiveservices.azure.us',
+    availableRegions: ['usgovvirginia', 'usgovarizona', 'usgovtexas'],
+    apiVersion: '2024-06-01',
+    color: '#1d4ed8',
+  },
+  'azure-government-dod': {
+    label: 'Azure Government DoD',
+    endpointSuffix: '.azure.us',
+    authType: 'entra-id',
+    openAIDomain: 'openai.azure.us',
+    cognitiveServicesDomain: 'cognitiveservices.azure.us',
+    availableRegions: ['usdodcentral', 'usdodeast'],
+    apiVersion: '2024-06-01',
+    color: '#1e3a5f',
+  },
+  'azure-china-21vianet': {
+    label: 'Azure China',
+    endpointSuffix: '.azure.cn',
+    authType: 'key',
+    openAIDomain: 'openai.azure.cn',
+    cognitiveServicesDomain: 'cognitiveservices.azure.cn',
+    availableRegions: ['chinanorth3', 'chinaeast3'],
+    apiVersion: '2024-06-01',
+    color: '#dc2626',
+  },
+  'azure-eu-boundary': {
+    label: 'Azure EU Data Boundary',
+    endpointSuffix: '.azure.com',
+    authType: 'both',
+    openAIDomain: 'openai.azure.com',
+    cognitiveServicesDomain: 'cognitiveservices.azure.com',
+    availableRegions: ['westeurope', 'northeurope', 'germanywestcentral', 'francecentral', 'swedencentral', 'switzerlandnorth'],
+    apiVersion: '2024-08-01-preview',
+    color: '#0ea5e9',
+  },
+}
+
+export const SOVEREIGN_REGION_LABELS: Record<string, string> = {
+  // Azure Government
+  usgovvirginia: 'US Gov Virginia',
+  usgovarizona: 'US Gov Arizona',
+  usgovtexas: 'US Gov Texas',
+  usdodcentral: 'US DoD Central',
+  usdodeast: 'US DoD East',
+  // Azure China
+  chinanorth3: 'China North 3',
+  chinaeast3: 'China East 3',
+  // EU
+  westeurope: 'West Europe (Netherlands)',
+  northeurope: 'North Europe (Ireland)',
+  germanywestcentral: 'Germany West Central',
+  francecentral: 'France Central',
+  swedencentral: 'Sweden Central',
+  switzerlandnorth: 'Switzerland North',
+  // Africa
+  southafricanorth: 'South Africa North',
+  southafricawest: 'South Africa West',
+  // Middle East
+  uaenorth: 'UAE North',
+  qatarcentral: 'Qatar Central',
+  israelcentral: 'Israel Central',
+}
+
+// ============================================================================
 // APPS THAT MATTER (ATM) QUALIFICATION SCORING
 // ============================================================================
 
@@ -1189,6 +1385,8 @@ export interface LandingZoneReadiness {
   policyBaseline: boolean
   environmentSeparation?: boolean        // dev/test/staging/prod isolation
   drStrategy?: 'none' | 'backup' | 'active-passive' | 'active-active'
+  sovereignCloudRequired?: boolean
+  cloudEnvironment?: SovereignCloudEnvironment
 }
 
 /**
@@ -1226,6 +1424,8 @@ export interface DeploymentModelInfo {
   environments: string[]                  // e.g., ["dev", "staging", "prod"]
   scalingModel: 'manual' | 'autoscale' | 'serverless' | 'reserved'
   costPattern: 'pay-as-you-go' | 'reserved' | 'hybrid' | 'serverless-burst'
+  cloudEnvironment?: SovereignCloudEnvironment  // Sovereign cloud determination
+  sovereignRegion?: SovereignCloudRegion         // Specific sovereign region
 }
 
 export interface CurrentStateAssessment {
@@ -1457,6 +1657,9 @@ export interface DiscoverySession {
 
   // AI Governance Assessment (populated by governance workflow step)
   aiGovernanceAssessment?: AIGovernanceAssessment
+
+  // Sovereign Cloud Assessment (populated by compliance review step)
+  sovereignCloudAssessment?: SovereignCloudAssessment
   
   createdAt: number
   completedAt?: number

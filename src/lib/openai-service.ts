@@ -177,19 +177,25 @@ interface ProxyResponse {
 
 /**
  * Call AI via secure Azure Function proxy
+ * Supports optional cloudEnvironment for sovereign cloud routing.
  */
 async function callViaProxy(
   prompt: string,
   model: ModelType = 'phi-4-mini-instruct',
   expectJson: boolean = false,
-  systemPrompt?: string
+  systemPrompt?: string,
+  cloudEnvironment?: string
 ): Promise<string> {
+  const requestBody: Record<string, unknown> = { prompt, model, expectJson }
+  if (systemPrompt) requestBody.systemPrompt = systemPrompt
+  if (cloudEnvironment) requestBody.cloudEnvironment = cloudEnvironment
+
   const response = await fetch(`${API_ENDPOINT}/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ prompt, model, expectJson, systemPrompt }),
+    body: JSON.stringify(requestBody),
   })
 
   const rawText = await response.text()
