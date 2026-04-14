@@ -10,6 +10,14 @@
  */
 
 import type { EntityType } from './types'
+import type {
+  AIGovernanceDimension,
+  AIGovernanceMaturityLevel,
+  GovernanceActionPlan,
+  GovernanceRecommendation,
+  GovernanceGap,
+} from './types'
+import { AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG } from './types'
 
 // API endpoint for the Azure Function proxy (never call AI services directly from the browser)
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || '/api'
@@ -117,6 +125,7 @@ export type AITask =
   | 'analysis'        // COI estimation, effort estimation → GPT-4o-mini
   | 'architecture'    // Solution architecture → GPT-4o-mini
   | 'journey'         // Customer journey generation → GPT-4o-mini
+  | 'governance'      // AI governance recommendations → GPT-4o-mini
   | 'executive'       // Executive summaries → GPT-4o (premium)
   | 'general'         // Default → Phi-4-mini-instruct
 
@@ -136,6 +145,7 @@ export function getModelForTask(task: AITask): ModelType {
     analysis: 'gpt-4o-mini',
     architecture: 'gpt-4o-mini',
     journey: 'gpt-4o-mini',
+    governance: 'gpt-4o-mini',
     executive: 'gpt-4o',
   }
   return taskModelMap[task] || 'phi-4-mini-instruct'
@@ -977,5 +987,159 @@ Focus on metrics that are:
       measurementPlan: 'Establish baseline metrics 2-4 weeks before go-live. Track weekly during initial rollout, then monthly for ongoing monitoring.',
       generatedAt: Date.now(),
     }
+  }
+}
+
+// ============================================================================
+// AI GOVERNANCE ACTION PLAN GENERATION
+// ============================================================================
+
+export interface GovernanceActionPlanInput {
+  dimensionScores: Record<AIGovernanceDimension, AIGovernanceMaturityLevel>
+  overallMaturity: number
+  gaps: GovernanceGap[]
+  entityType?: EntityType
+  industry?: string
+  useCaseTitles?: string[]
+}
+
+/**
+ * Generate an AI-powered governance action plan from governance assessment data.
+ * Falls back to deterministic recommendations if AI is unavailable.
+ */
+export async function generateGovernanceActionPlan(
+  input: GovernanceActionPlanInput
+): Promise<GovernanceActionPlan> {
+  const dimensionSummary = Object.entries(input.dimensionScores)
+    .map(([dim, level]) => `- ${AI_GOVERNANCE_DIMENSION_LABELS[dim as AIGovernanceDimension]}: ${AI_GOVERNANCE_MATURITY_CONFIG[level].label} (${AI_GOVERNANCE_MATURITY_CONFIG[level].numericValue}/5)`)
+    .join('\n')
+
+  const gapSummary = input.gaps.length > 0
+    ? input.gaps.map(g => `- ${AI_GOVERNANCE_DIMENSION_LABELS[g.dimension]}: ${g.gap} [Impact: ${g.impact}]`).join('\n')
+    : 'No critical gaps identified.'
+
+  const useCaseContext = input.useCaseTitles && input.useCaseTitles.length > 0
+    ? `\nPLANNED AI USE CASES:\n${input.useCaseTitles.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
+    : ''
+
+  const prompt = `You are a senior AI governance advisor specializing in Microsoft Responsible AI Standard and NIST AI RMF.
+
+ORGANIZATION CONTEXT:
+${input.entityType ? `Organization type: ${input.entityType}` : ''}
+${input.industry ? `Industry: ${input.industry}` : ''}
+Overall AI Governance Maturity: ${input.overallMaturity.toFixed(1)}/5
+
+DIMENSION SCORES:
+${dimensionSummary}
+
+IDENTIFIED GAPS:
+${gapSummary}
+${useCaseContext}
+
+TASK: Create a prioritized AI Governance Action Plan with concrete, actionable recommendations organized by timeframe.
+
+For each recommendation, provide:
+- dimension: The governance dimension it addresses (use exact keys: ai-strategy, data-governance, model-lifecycle, ethics-fairness, security-privacy, monitoring-accountability)
+- priority: "critical" | "recommended" | "optional"
+- action: A clear, specific action (1-2 sentences)
+- rationale: Why this matters for the organization
+- timeframe: "short-term" | "medium-term" | "long-term"
+
+Also provide an overall readiness statement (2-3 sentences) summarizing the organization's AI governance posture and top priorities.
+
+Return a JSON object:
+{
+  "shortTerm": [{ "dimension": "...", "priority": "...", "action": "...", "rationale": "...", "timeframe": "short-term" }],
+  "mediumTerm": [{ "dimension": "...", "priority": "...", "action": "...", "rationale": "...", "timeframe": "medium-term" }],
+  "longTerm": [{ "dimension": "...", "priority": "...", "action": "...", "rationale": "...", "timeframe": "long-term" }],
+  "overallReadinessStatement": "..."
+}
+
+RULES:
+- Include 3-5 short-term actions (0-3 months), 3-4 medium-term (3-12 months), 2-3 long-term (12+ months)
+- Prioritize gaps with "high" impact first
+- Be specific to the organization type and industry
+- Reference Microsoft Responsible AI Standard, NIST AI RMF, ISO 42001, or EU AI Act where relevant
+- For each action, use clear imperative language ("Establish...", "Implement...", "Document...")`
+
+  try {
+    const raw = await callAIForTask('governance', prompt, { expectJson: true })
+    const parsed = JSON.parse(raw)
+    let recId = 0
+    const mapRec = (r: Record<string, string>): GovernanceRecommendation => {
+      recId++
+      return {
+        id: `gov-ai-${recId}`,
+        dimension: (r.dimension || 'ai-strategy') as AIGovernanceDimension,
+        priority: (r.priority || 'recommended') as GovernanceRecommendation['priority'],
+        action: r.action || '',
+        rationale: r.rationale || '',
+        timeframe: (r.timeframe || 'medium-term') as GovernanceRecommendation['timeframe'],
+      }
+    }
+
+    return {
+      shortTerm: (parsed.shortTerm || []).map(mapRec),
+      mediumTerm: (parsed.mediumTerm || []).map(mapRec),
+      longTerm: (parsed.longTerm || []).map(mapRec),
+      overallReadinessStatement: parsed.overallReadinessStatement || 'Assessment complete. Review recommendations for next steps.',
+      generatedAt: Date.now(),
+    }
+  } catch (error) {
+    console.error('[AI Governance] Action plan generation failed, using fallback:', error)
+    return createFallbackActionPlan(input)
+  }
+}
+
+/** Deterministic fallback when AI is unavailable */
+function createFallbackActionPlan(input: GovernanceActionPlanInput): GovernanceActionPlan {
+  const { gaps } = input
+  let recId = 0
+  const highGaps = gaps.filter(g => g.impact === 'high')
+  const mediumGaps = gaps.filter(g => g.impact === 'medium')
+
+  const shortTerm: GovernanceRecommendation[] = highGaps.slice(0, 4).map(g => {
+    recId++
+    return {
+      id: `gov-fb-${recId}`,
+      dimension: g.dimension,
+      priority: 'critical' as const,
+      action: `Address critical gap in ${AI_GOVERNANCE_DIMENSION_LABELS[g.dimension]}: ${g.gap}`,
+      rationale: `Current level (${AI_GOVERNANCE_MATURITY_CONFIG[g.currentLevel].label}) is significantly below target (${AI_GOVERNANCE_MATURITY_CONFIG[g.targetLevel].label})`,
+      timeframe: 'short-term' as const,
+    }
+  })
+
+  const mediumTerm: GovernanceRecommendation[] = mediumGaps.slice(0, 3).map(g => {
+    recId++
+    return {
+      id: `gov-fb-${recId}`,
+      dimension: g.dimension,
+      priority: 'recommended' as const,
+      action: `Improve ${AI_GOVERNANCE_DIMENSION_LABELS[g.dimension]} from ${AI_GOVERNANCE_MATURITY_CONFIG[g.currentLevel].label} to ${AI_GOVERNANCE_MATURITY_CONFIG[g.targetLevel].label}`,
+      rationale: g.gap,
+      timeframe: 'medium-term' as const,
+    }
+  })
+
+  const longTerm: GovernanceRecommendation[] = [{
+    id: `gov-fb-${++recId}`,
+    dimension: 'ai-strategy' as const,
+    priority: 'optional' as const,
+    action: 'Establish continuous AI governance maturity improvement process with annual reassessment',
+    rationale: 'Ongoing governance maturity enables sustainable AI adoption at scale',
+    timeframe: 'long-term' as const,
+  }]
+
+  const maturityLabel = input.overallMaturity >= 3.5 ? 'strong'
+    : input.overallMaturity >= 2.5 ? 'developing'
+    : 'early-stage'
+
+  return {
+    shortTerm,
+    mediumTerm,
+    longTerm,
+    overallReadinessStatement: `The organization has a ${maturityLabel} AI governance posture (${input.overallMaturity.toFixed(1)}/5). ${highGaps.length > 0 ? `Priority attention needed in ${highGaps.map(g => AI_GOVERNANCE_DIMENSION_LABELS[g.dimension]).join(', ')}.` : 'No critical gaps identified \u2014 focus on continuous improvement.'}`,
+    generatedAt: Date.now(),
   }
 }

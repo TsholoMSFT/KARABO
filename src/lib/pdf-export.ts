@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf'
-import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData, ENGAGEMENT_DEFAULTS } from './types'
+import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData, ENGAGEMENT_DEFAULTS, AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG, RESPONSIBLE_AI_PRINCIPLE_LABELS } from './types'
+import type { AIGovernanceAssessment } from './types'
 import { calculateRICEScore, getQuadrant } from './scoring'
 import { getKPIById } from './kpis'
 import { DISCLAIMERS, getPolicyById } from './ai-policies'
@@ -14,6 +15,8 @@ export interface ExportOptions {
   includeExpectedValue?: boolean
   includeDataSources?: boolean
   includeCustomerJourney?: boolean
+  includeGovernance?: boolean
+  governanceAssessment?: AIGovernanceAssessment
 }
 
 function formatCurrency(value: number): string {
@@ -1001,6 +1004,167 @@ export async function exportToPDF(
         y += 5
       }
     })
+  }
+
+  // ============ DISCLAIMERS PAGE ============
+  if (options.includeGovernance !== false && options.governanceAssessment) {
+    const gov = options.governanceAssessment
+    doc.addPage()
+    y = margin
+
+    // Section title
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.setTextColor(80, 60, 150)
+    doc.text('AI Governance Assessment', margin, y)
+    y += 10
+
+    // Overall maturity badge
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(60, 60, 80)
+    doc.text(`Overall Maturity: ${gov.overallMaturity.toFixed(1)}/5 (${AI_GOVERNANCE_MATURITY_CONFIG[gov.overallMaturityLabel].label})`, margin, y)
+    y += 8
+
+    // Dimension scores table
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(100, 100, 100)
+    doc.text('Dimension', margin, y)
+    doc.text('Level', margin + 80, y)
+    doc.text('Score', margin + 130, y)
+    y += 2
+    doc.setDrawColor(200, 200, 200)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 4
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
+    doc.setTextColor(60, 60, 80)
+    const dims = Object.keys(gov.dimensionScores) as Array<keyof typeof gov.dimensionScores>
+    for (const dim of dims) {
+      addPageIfNeeded(6)
+      const level = gov.dimensionScores[dim]
+      const config = AI_GOVERNANCE_MATURITY_CONFIG[level]
+      doc.text(AI_GOVERNANCE_DIMENSION_LABELS[dim], margin, y)
+      doc.text(config.label, margin + 80, y)
+      doc.text(`${config.numericValue}/5`, margin + 130, y)
+      y += 5
+    }
+    y += 5
+
+    // Key gaps
+    if (gov.gaps.length > 0) {
+      addPageIfNeeded(10)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(180, 100, 50)
+      doc.text(`Key Gaps (${gov.gaps.length})`, margin, y)
+      y += 6
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(60, 60, 80)
+      for (const gap of gov.gaps.slice(0, 6)) {
+        addPageIfNeeded(10)
+        doc.setFont('helvetica', 'bold')
+        doc.text(`${AI_GOVERNANCE_DIMENSION_LABELS[gap.dimension]} [${gap.impact} impact]`, margin + 3, y)
+        y += 4
+        doc.setFont('helvetica', 'normal')
+        const gapLines = doc.splitTextToSize(gap.gap, pageWidth - 2 * margin - 6)
+        gapLines.slice(0, 2).forEach((line: string) => {
+          doc.text(line, margin + 3, y)
+          y += 3.5
+        })
+        y += 3
+      }
+    }
+
+    // Action plan overview
+    if (gov.actionPlan) {
+      addPageIfNeeded(15)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(80, 60, 150)
+      doc.text('AI Governance Action Plan', margin, y)
+      y += 6
+
+      doc.setFont('helvetica', 'italic')
+      doc.setFontSize(8)
+      doc.setTextColor(80, 80, 100)
+      const readinessLines = doc.splitTextToSize(gov.actionPlan.overallReadinessStatement, pageWidth - 2 * margin)
+      readinessLines.slice(0, 3).forEach((line: string) => {
+        addPageIfNeeded(5)
+        doc.text(line, margin, y)
+        y += 4
+      })
+      y += 3
+
+      const phases = [
+        { label: 'Short-term (0-3 months)', items: gov.actionPlan.shortTerm },
+        { label: 'Medium-term (3-12 months)', items: gov.actionPlan.mediumTerm },
+        { label: 'Long-term (12+ months)', items: gov.actionPlan.longTerm },
+      ]
+      for (const phase of phases) {
+        if (phase.items.length === 0) continue
+        addPageIfNeeded(8)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(9)
+        doc.setTextColor(60, 60, 80)
+        doc.text(phase.label, margin, y)
+        y += 5
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        for (const rec of phase.items.slice(0, 5)) {
+          addPageIfNeeded(6)
+          const bulletText = `\u2022 [${rec.priority}] ${rec.action}`
+          const recLines = doc.splitTextToSize(bulletText, pageWidth - 2 * margin - 5)
+          recLines.slice(0, 2).forEach((line: string) => {
+            doc.text(line, margin + 3, y)
+            y += 3.5
+          })
+          y += 1
+        }
+        y += 3
+      }
+    }
+
+    // RAIA summary for use cases that have it
+    const ucWithRAIA = useCases.filter(uc => uc.responsibleAIImpact)
+    if (ucWithRAIA.length > 0) {
+      addPageIfNeeded(15)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.setTextColor(80, 60, 150)
+      doc.text('Responsible AI Impact Summary', margin, y)
+      y += 7
+
+      // Header row
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8)
+      doc.setTextColor(100, 100, 100)
+      doc.text('Use Case', margin, y)
+      doc.text('Risk', margin + 90, y)
+      doc.text('People Decisions', margin + 110, y)
+      doc.text('Human Oversight', margin + 145, y)
+      y += 2
+      doc.line(margin, y, pageWidth - margin, y)
+      y += 4
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(60, 60, 80)
+      for (const uc of ucWithRAIA.slice(0, 10)) {
+        addPageIfNeeded(6)
+        const raia = uc.responsibleAIImpact!
+        const titleTrunc = uc.title.length > 40 ? uc.title.slice(0, 38) + '...' : uc.title
+        doc.text(titleTrunc, margin, y)
+        doc.text(raia.overallRisk, margin + 90, y)
+        doc.text(raia.involvesDecisionsAboutPeople ? 'Yes' : 'No', margin + 110, y)
+        doc.text(raia.humanOversightRequired ? 'Required' : 'Optional', margin + 145, y)
+        y += 5
+      }
+    }
   }
 
   // ============ DISCLAIMERS PAGE ============

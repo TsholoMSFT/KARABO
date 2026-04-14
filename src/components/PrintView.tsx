@@ -1,4 +1,5 @@
-import { UseCase, ScoringMethod, CustomerMetadata } from '@/lib/types'
+import { UseCase, ScoringMethod, CustomerMetadata, AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG, RESPONSIBLE_AI_PRINCIPLE_LABELS } from '@/lib/types'
+import type { AIGovernanceAssessment } from '@/lib/types'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +16,7 @@ interface PrintViewProps {
   scoringMethod: ScoringMethod
   effortUnit: 'person-weeks' | 'fte' | 'man-hours'
   customerMetadata?: CustomerMetadata
+  governanceAssessment?: AIGovernanceAssessment
 }
 
 export function PrintView({
@@ -25,6 +27,7 @@ export function PrintView({
   scoringMethod,
   effortUnit,
   customerMetadata,
+  governanceAssessment,
 }: PrintViewProps) {
   const topUseCaseIds = new Set(topUseCases.map((uc) => uc.id))
 
@@ -412,6 +415,95 @@ export function PrintView({
               })}
             </div>
           </section>
+
+          {/* AI Governance Assessment Section */}
+          {governanceAssessment && (
+            <section className="print:page-break-before-always">
+              <h2 className="text-xl font-bold mb-4 text-purple-600">AI Governance Assessment</h2>
+              
+              <div className="mb-4">
+                <p className="text-sm">
+                  <strong>Overall Maturity:</strong>{' '}
+                  <span className={`font-bold ${
+                    governanceAssessment.overallMaturity >= 3.5 ? 'text-green-600' :
+                    governanceAssessment.overallMaturity >= 2.5 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {governanceAssessment.overallMaturity.toFixed(1)}/5
+                  </span>
+                  {' '}({AI_GOVERNANCE_MATURITY_CONFIG[governanceAssessment.overallMaturityLabel].label})
+                </p>
+              </div>
+
+              {/* Dimension scores */}
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold mb-2">Dimension Scores</h3>
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-1">Dimension</th>
+                      <th className="text-left py-1">Level</th>
+                      <th className="text-left py-1">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Object.keys(governanceAssessment.dimensionScores) as Array<keyof typeof governanceAssessment.dimensionScores>).map(dim => {
+                      const level = governanceAssessment.dimensionScores[dim]
+                      const config = AI_GOVERNANCE_MATURITY_CONFIG[level]
+                      return (
+                        <tr key={dim} className="border-b border-gray-100">
+                          <td className="py-1">{AI_GOVERNANCE_DIMENSION_LABELS[dim]}</td>
+                          <td className="py-1">{config.label}</td>
+                          <td className="py-1">{config.numericValue}/5</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Gaps */}
+              {governanceAssessment.gaps.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold mb-2 text-amber-600">Key Gaps ({governanceAssessment.gaps.length})</h3>
+                  {governanceAssessment.gaps.slice(0, 6).map((gap, i) => (
+                    <div key={i} className="mb-2 pl-3 border-l-2 border-amber-300">
+                      <p className="text-xs font-medium">{AI_GOVERNANCE_DIMENSION_LABELS[gap.dimension]} [{gap.impact} impact]</p>
+                      <p className="text-xs text-muted-foreground">{gap.gap}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* RAIA summary */}
+              {useCases.some(uc => uc.responsibleAIImpact) && (
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold mb-2 text-purple-600">Responsible AI Impact Summary</h3>
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-1">Use Case</th>
+                        <th className="text-left py-1">Risk</th>
+                        <th className="text-left py-1">People</th>
+                        <th className="text-left py-1">Oversight</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {useCases.filter(uc => uc.responsibleAIImpact).slice(0, 10).map(uc => (
+                        <tr key={uc.id} className="border-b border-gray-100">
+                          <td className="py-1 max-w-[200px] truncate">{uc.title}</td>
+                          <td className="py-1">
+                            <Badge variant="outline" className="text-[9px]">{uc.responsibleAIImpact!.overallRisk}</Badge>
+                          </td>
+                          <td className="py-1">{uc.responsibleAIImpact!.involvesDecisionsAboutPeople ? 'Yes' : 'No'}</td>
+                          <td className="py-1">{uc.responsibleAIImpact!.humanOversightRequired ? 'Required' : 'Optional'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
         </div>
 
         <style>{`

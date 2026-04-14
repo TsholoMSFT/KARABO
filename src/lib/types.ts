@@ -448,6 +448,144 @@ export interface UseCase {
 
   // Apps That Matter (ATM) Qualification Score (computed, not persisted)
   atmScore?: ATMScore
+
+  // Responsible AI Impact Assessment (populated by governance engine)
+  responsibleAIImpact?: ResponsibleAIImpact
+}
+
+// ============================================================================
+// AI GOVERNANCE TYPES
+// ============================================================================
+
+/** The 6 governance dimensions aligned with MS Responsible AI Standard & NIST AI RMF */
+export type AIGovernanceDimension =
+  | 'ai-strategy'
+  | 'data-governance'
+  | 'model-lifecycle'
+  | 'ethics-fairness'
+  | 'security-privacy'
+  | 'monitoring-accountability'
+
+export const AI_GOVERNANCE_DIMENSION_LABELS: Record<AIGovernanceDimension, string> = {
+  'ai-strategy': 'AI Strategy',
+  'data-governance': 'Data Governance',
+  'model-lifecycle': 'Model Lifecycle',
+  'ethics-fairness': 'Ethics & Fairness',
+  'security-privacy': 'Security & Privacy',
+  'monitoring-accountability': 'Monitoring & Accountability',
+}
+
+export const AI_GOVERNANCE_DIMENSION_DESCRIPTIONS: Record<AIGovernanceDimension, string> = {
+  'ai-strategy': 'Organization-wide AI vision, roadmap, investment priorities, and executive sponsorship',
+  'data-governance': 'Data quality, lineage, cataloging, access controls, and AI-readiness of data assets',
+  'model-lifecycle': 'Model development, versioning, testing, documentation (model cards), and retirement processes',
+  'ethics-fairness': 'Bias assessment, fairness metrics, AI ethics board, inclusive design, and impact assessments',
+  'security-privacy': 'AI-specific threat modeling, adversarial robustness, PII handling, differential privacy, and red-teaming',
+  'monitoring-accountability': 'Production monitoring, drift detection, incident response, audit trails, and human oversight escalation',
+}
+
+/** 5-level maturity scale matching industry standards (CMMI-style) */
+export type AIGovernanceMaturityLevel = 'ad-hoc' | 'developing' | 'defined' | 'managed' | 'optimized'
+
+export const AI_GOVERNANCE_MATURITY_CONFIG: Record<AIGovernanceMaturityLevel, {
+  label: string
+  description: string
+  numericValue: number
+  color: string
+}> = {
+  'ad-hoc': { label: 'Ad-hoc', description: 'No formal processes; AI governance is reactive', numericValue: 1, color: '#ef4444' },
+  'developing': { label: 'Developing', description: 'Basic awareness; some informal practices emerging', numericValue: 2, color: '#f97316' },
+  'defined': { label: 'Defined', description: 'Documented policies and processes; consistent application', numericValue: 3, color: '#eab308' },
+  'managed': { label: 'Managed', description: 'Measured and controlled; continuous improvement', numericValue: 4, color: '#22c55e' },
+  'optimized': { label: 'Optimized', description: 'Industry-leading; automated governance integrated into CI/CD', numericValue: 5, color: '#3b82f6' },
+}
+
+/** A single governance gap identified by the deterministic engine */
+export interface GovernanceGap {
+  dimension: AIGovernanceDimension
+  currentLevel: AIGovernanceMaturityLevel
+  targetLevel: AIGovernanceMaturityLevel
+  gap: string
+  impact: 'high' | 'medium' | 'low'
+}
+
+/** A governance recommendation (deterministic or AI-generated) */
+export interface GovernanceRecommendation {
+  id: string
+  dimension: AIGovernanceDimension
+  priority: 'critical' | 'recommended' | 'optional'
+  action: string
+  rationale: string
+  timeframe: 'short-term' | 'medium-term' | 'long-term'
+  referenceFramework?: string
+  acknowledged?: boolean
+}
+
+/** AI-generated governance action plan */
+export interface GovernanceActionPlan {
+  shortTerm: GovernanceRecommendation[]   // 0-3 months
+  mediumTerm: GovernanceRecommendation[]  // 3-12 months
+  longTerm: GovernanceRecommendation[]    // 12+ months
+  overallReadinessStatement: string
+  generatedAt: number
+}
+
+/** Complete AI Governance Assessment attached to a session */
+export interface AIGovernanceAssessment {
+  dimensionScores: Record<AIGovernanceDimension, AIGovernanceMaturityLevel>
+  overallMaturity: number  // 1-5 average
+  overallMaturityLabel: AIGovernanceMaturityLevel
+  gaps: GovernanceGap[]
+  recommendations: GovernanceRecommendation[]
+  actionPlan?: GovernanceActionPlan
+  assessedAt: number
+}
+
+/** The 6 Microsoft Responsible AI Principles for per-use-case impact assessment */
+export type ResponsibleAIPrinciple =
+  | 'fairness'
+  | 'reliability-safety'
+  | 'privacy-security'
+  | 'inclusiveness'
+  | 'transparency'
+  | 'accountability'
+
+export const RESPONSIBLE_AI_PRINCIPLE_LABELS: Record<ResponsibleAIPrinciple, string> = {
+  'fairness': 'Fairness',
+  'reliability-safety': 'Reliability & Safety',
+  'privacy-security': 'Privacy & Security',
+  'inclusiveness': 'Inclusiveness',
+  'transparency': 'Transparency',
+  'accountability': 'Accountability',
+}
+
+export const RESPONSIBLE_AI_PRINCIPLE_DESCRIPTIONS: Record<ResponsibleAIPrinciple, string> = {
+  'fairness': 'AI systems should treat all people fairly — assess and mitigate bias in training data, model outputs, and decision-making',
+  'reliability-safety': 'AI systems should perform reliably and safely under expected and unexpected conditions',
+  'privacy-security': 'AI systems should be secure and respect privacy — protect personal data and resist adversarial attacks',
+  'inclusiveness': 'AI systems should empower everyone and engage people — design for diverse users and accessibility needs',
+  'transparency': 'AI systems should be understandable — provide explanations, disclose AI involvement, and document model behavior',
+  'accountability': 'People should be accountable for AI systems — establish human oversight, governance, and redress mechanisms',
+}
+
+/** Per-principle risk assessment within RAIA */
+export interface RAIPrincipleAssessment {
+  principle: ResponsibleAIPrinciple
+  risk: AIRiskLevel
+  reason: string
+  mitigations?: string[]
+}
+
+/** Responsible AI Impact Assessment for a single use case */
+export interface ResponsibleAIImpact {
+  overallRisk: AIRiskLevel
+  principleAssessments: RAIPrincipleAssessment[]
+  involvesDecisionsAboutPeople: boolean
+  protectedClassesAffected?: string[]
+  fairnessMetricsRecommended?: string[]
+  humanOversightRequired: boolean
+  modelDocumentationRequired: boolean
+  assessedAt: number
 }
 
 // ============================================================================
@@ -1316,6 +1454,9 @@ export interface DiscoverySession {
   // INNOVATION HUB METHODOLOGY: BUSINESS ENVISIONING DATA
   // ============================================================================
   businessEnvisioning?: BusinessEnvisioningData
+
+  // AI Governance Assessment (populated by governance workflow step)
+  aiGovernanceAssessment?: AIGovernanceAssessment
   
   createdAt: number
   completedAt?: number

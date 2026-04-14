@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue, CustomerJourney, type MicrosoftProductFamily, type EntityType, type RegulatoryAssessment, type ComplianceEnforcement } from '@/lib/types'
+import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue, CustomerJourney, type MicrosoftProductFamily, type EntityType, type RegulatoryAssessment, type ComplianceEnforcement, type AIGovernanceAssessment as AIGovernanceAssessmentType, type ResponsibleAIImpact } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { industryLabels } from '@/lib/discovery-questions'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,7 @@ import { fetchFinancialStatements } from '@/lib/earnings-service'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
 import ArchitectureLayerDiagram from '@/components/ArchitectureLayerDiagram'
 import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
+import { AIGovernanceAssessment } from '@/components/AIGovernanceAssessment'
 
 interface WorkflowUseCase {
   id: string
@@ -97,6 +98,8 @@ interface WorkflowUseCase {
   customerJourney?: CustomerJourney
   // Regulatory compliance assessment
   regulatoryAssessment?: RegulatoryAssessment
+  // Responsible AI Impact Assessment
+  responsibleAIImpact?: ResponsibleAIImpact
 }
 
 function calculateWorkflowRICEScore(useCase: WorkflowUseCase): number {
@@ -141,7 +144,7 @@ interface EnhancedDiscoveryWorkflowProps {
   onCancel: () => void
 }
 
-type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'compliance-review' | 'summary' | 'save-confirm'
+type WorkflowStep = 'review-add' | 'select' | 'impact-feasibility' | 'rice' | 'compliance-review' | 'governance-assessment' | 'summary' | 'save-confirm'
 
 export function EnhancedDiscoveryWorkflow({
   session,
@@ -343,7 +346,7 @@ export function EnhancedDiscoveryWorkflow({
     }
   }
 
-  // Handle compliance review completion — attach assessments to use cases
+  // Handle compliance review completion — attach assessments to use cases, then proceed to governance
   const handleComplianceComplete = (assessments: Map<string, RegulatoryAssessment>) => {
     setUseCases(prev =>
       prev.map(uc => {
@@ -351,6 +354,23 @@ export function EnhancedDiscoveryWorkflow({
         return assessment ? { ...uc, regulatoryAssessment: assessment } : uc
       })
     )
+    handleStepWithSave('governance-assessment')
+  }
+
+  // Handle governance assessment completion — attach RAIA to use cases and save governance data
+  const handleGovernanceComplete = (
+    govAssessment: AIGovernanceAssessmentType,
+    raiaResults: Map<string, ResponsibleAIImpact>
+  ) => {
+    // Attach RAIA results to individual use cases
+    setUseCases(prev =>
+      prev.map(uc => {
+        const raia = raiaResults.get(uc.id)
+        return raia ? { ...uc, responsibleAIImpact: raia } : uc
+      })
+    )
+    // Save governance assessment to session
+    updateSession(session.id, { aiGovernanceAssessment: govAssessment })
     handleCompleteDiscovery()
   }
 
@@ -456,6 +476,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
       referenceArchitecture: uc.referenceArchitecture,
       customerJourney: uc.customerJourney,
       regulatoryAssessment: uc.regulatoryAssessment,
+      responsibleAIImpact: uc.responsibleAIImpact,
       costOfInaction: uc.manualCOI
         ? { ...uc.manualCOI }
         : (uc.coiEstimate
@@ -695,6 +716,19 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                 setCurrentUseCaseIndex(selectedUseCases.length - 1)
                 setStep('rice')
               }}
+            />
+          )}
+
+          {step === 'governance-assessment' && (
+            <AIGovernanceAssessment
+              session={session}
+              useCases={selectedUseCases.map(uc => ({
+                id: uc.id,
+                title: uc.title,
+                description: uc.description,
+              }))}
+              onComplete={handleGovernanceComplete}
+              onBack={() => setStep('compliance-review')}
             />
           )}
 
