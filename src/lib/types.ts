@@ -12,6 +12,7 @@ export interface Customer {
   name: string
   innovationHubSPOC: string
   stockTicker?: string
+  accountId?: string              // Linked Account entity (ATS)
   createdAt: number
   updatedAt?: number
 }
@@ -451,6 +452,11 @@ export interface UseCase {
 
   // Responsible AI Impact Assessment (populated by governance engine)
   responsibleAIImpact?: ResponsibleAIImpact
+
+  // ATS Enablement: Consumption, partner, workload linkage
+  consumptionEstimate?: ConsumptionEstimate
+  partner?: WorkloadPartner
+  linkedWorkloadIds?: string[]      // Workloads this use case depends on or enhances
 }
 
 // ============================================================================
@@ -782,6 +788,394 @@ export const SOVEREIGN_REGION_LABELS: Record<string, string> = {
   uaenorth: 'UAE North',
   qatarcentral: 'Qatar Central',
   israelcentral: 'Israel Central',
+}
+
+// ============================================================================
+// ATS (ACCOUNT TECHNOLOGY STRATEGIST) ENABLEMENT TYPES
+// ============================================================================
+
+/**
+ * User persona — controls feature visibility, discovery track defaults,
+ * and label styling. Not a security boundary; purely UX adaptation.
+ */
+export type UserRole = 'innovation-hub' | 'ats' | 'csa' | 'sales'
+
+export const USER_ROLE_LABELS: Record<UserRole, string> = {
+  'innovation-hub': 'Innovation Hub',
+  'ats': 'Account Technology Strategist',
+  'csa': 'Cloud Solution Architect',
+  'sales': 'Account Executive / Sales',
+}
+
+export const USER_ROLE_DESCRIPTIONS: Record<UserRole, string> = {
+  'innovation-hub': 'Innovation Hub facilitated customer engagement with AI-focused discovery',
+  'ats': 'Account-level technology strategy with full portfolio, MACC tracking, and workload planning',
+  'csa': 'Azure solution architecture, Well-Architected Review, and technical assessments',
+  'sales': 'Opportunity qualification, stakeholder mapping, and executive business cases',
+}
+
+export const USER_ROLE_ICONS: Record<UserRole, string> = {
+  'innovation-hub': '💡',
+  'ats': '🗺️',
+  'csa': '🏗️',
+  'sales': '📊',
+}
+
+/** Feature visibility matrix per user role */
+export const USER_ROLE_FEATURES: Record<UserRole, {
+  showAccountDashboard: boolean
+  showMACCTracking: boolean
+  showWorkloads: boolean
+  showFullPortfolioDiscovery: boolean
+  showInfraDiscovery: boolean
+  showModernWorkDiscovery: boolean
+  showAIDiscovery: boolean
+  showEnterpriseDiscovery: boolean
+  showAccountTechPlan: boolean
+  showATMScoring: boolean
+  showGovernanceAssessment: boolean
+  defaultDiscoveryTrack: string
+}> = {
+  'innovation-hub': {
+    showAccountDashboard: false,
+    showMACCTracking: false,
+    showWorkloads: false,
+    showFullPortfolioDiscovery: false,
+    showInfraDiscovery: false,
+    showModernWorkDiscovery: false,
+    showAIDiscovery: true,
+    showEnterpriseDiscovery: true,
+    showAccountTechPlan: false,
+    showATMScoring: true,
+    showGovernanceAssessment: true,
+    defaultDiscoveryTrack: 'use-case',
+  },
+  'ats': {
+    showAccountDashboard: true,
+    showMACCTracking: true,
+    showWorkloads: true,
+    showFullPortfolioDiscovery: true,
+    showInfraDiscovery: true,
+    showModernWorkDiscovery: true,
+    showAIDiscovery: true,
+    showEnterpriseDiscovery: true,
+    showAccountTechPlan: true,
+    showATMScoring: true,
+    showGovernanceAssessment: true,
+    defaultDiscoveryTrack: 'full-portfolio',
+  },
+  'csa': {
+    showAccountDashboard: false,
+    showMACCTracking: false,
+    showWorkloads: true,
+    showFullPortfolioDiscovery: false,
+    showInfraDiscovery: true,
+    showModernWorkDiscovery: false,
+    showAIDiscovery: true,
+    showEnterpriseDiscovery: false,
+    showAccountTechPlan: false,
+    showATMScoring: true,
+    showGovernanceAssessment: true,
+    defaultDiscoveryTrack: 'use-case',
+  },
+  'sales': {
+    showAccountDashboard: true,
+    showMACCTracking: true,
+    showWorkloads: false,
+    showFullPortfolioDiscovery: true,
+    showInfraDiscovery: false,
+    showModernWorkDiscovery: false,
+    showAIDiscovery: true,
+    showEnterpriseDiscovery: true,
+    showAccountTechPlan: false,
+    showATMScoring: true,
+    showGovernanceAssessment: false,
+    defaultDiscoveryTrack: 'use-case',
+  },
+}
+
+// ============================================================================
+// ACCOUNT ENTITY — Aggregates sessions, MACC, and workloads per customer
+// ============================================================================
+
+export type FiscalQuarter = 'Q1' | 'Q2' | 'Q3' | 'Q4'
+
+export type AccountTeamRole = 'ats' | 'csa' | 'ae' | 'csam' | 'ssp' | 'tsp' | 'innovation-hub-spoc' | 'solution-engineer'
+
+export const ACCOUNT_TEAM_ROLE_LABELS: Record<AccountTeamRole, string> = {
+  'ats': 'Account Technology Strategist',
+  'csa': 'Cloud Solution Architect',
+  'ae': 'Account Executive',
+  'csam': 'Customer Success Account Manager',
+  'ssp': 'Solution Sales Professional',
+  'tsp': 'Technical Sales Professional',
+  'innovation-hub-spoc': 'Innovation Hub SPOC',
+  'solution-engineer': 'Solution Engineer',
+}
+
+export interface AccountTeamMember {
+  name: string
+  role: AccountTeamRole
+  email?: string
+}
+
+export interface MACCCommitment {
+  totalAmount: number             // Total MACC commitment in USD
+  startDate: number               // Commitment start (timestamp)
+  endDate: number                 // Commitment end (timestamp)
+  remainingBalance: number        // Remaining commitment balance
+  currentACR: number              // Current Azure Consumed Revenue (monthly)
+  lastUpdated: number             // Timestamp of last update
+  notes?: string                  // E.g., "Renewed FY26 H1"
+}
+
+export type AccountHealthRating = 'healthy' | 'at-risk' | 'critical' | 'unknown'
+
+export interface Account {
+  id: string
+  name: string                    // Account / customer name
+  accountSegment: AccountSegment
+  team: AccountTeamMember[]
+  maccCommitment?: MACCCommitment
+  fiscalYear?: string             // E.g., "FY26"
+  fiscalQuarter?: FiscalQuarter
+  sessionIds: string[]            // Linked DiscoverySession IDs
+  workloadIds: string[]           // Linked Workload IDs
+  healthRating: AccountHealthRating
+  healthNotes?: string
+  technologyPlanSummary?: string  // Free-form ATS technology plan summary
+  createdAt: number
+  updatedAt?: number
+}
+
+// ============================================================================
+// MACC / CONSUMPTION TRACKING
+// ============================================================================
+
+export type ConsumptionTShirt = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+
+export const CONSUMPTION_TSHIRT_RANGES: Record<ConsumptionTShirt, {
+  label: string
+  minMonthly: number
+  maxMonthly: number
+}> = {
+  xs: { label: 'XS (< $1 K/mo)', minMonthly: 0, maxMonthly: 1000 },
+  sm: { label: 'S ($1 K–$5 K/mo)', minMonthly: 1000, maxMonthly: 5000 },
+  md: { label: 'M ($5 K–$25 K/mo)', minMonthly: 5000, maxMonthly: 25000 },
+  lg: { label: 'L ($25 K–$100 K/mo)', minMonthly: 25000, maxMonthly: 100000 },
+  xl: { label: 'XL ($100 K+/mo)', minMonthly: 100000, maxMonthly: Infinity },
+}
+
+/** Per-use-case consumption estimate */
+export interface ConsumptionEstimate {
+  tShirtSize: ConsumptionTShirt
+  estimatedMonthly: number         // Estimated monthly Azure consumption in USD
+  primaryServices: string[]        // Azure services driving consumption
+  assumptions?: string             // Estimation notes
+  estimatedAt?: number
+}
+
+// ============================================================================
+// WORKLOAD MODEL — Migration, modernization, and infrastructure workloads
+// ============================================================================
+
+export type WorkloadType = 'migration' | 'modernization' | 'new-build' | 'optimization'
+
+export const WORKLOAD_TYPE_LABELS: Record<WorkloadType, string> = {
+  'migration': 'Migration',
+  'modernization': 'Modernization',
+  'new-build': 'New Build',
+  'optimization': 'Optimization',
+}
+
+export type SolutionArea =
+  | 'infrastructure'
+  | 'data-ai'
+  | 'digital-app-innovation'
+  | 'modern-work'
+  | 'security'
+  | 'biz-apps'
+
+export const SOLUTION_AREA_LABELS: Record<SolutionArea, string> = {
+  'infrastructure': 'Infrastructure',
+  'data-ai': 'Data & AI',
+  'digital-app-innovation': 'Digital & App Innovation',
+  'modern-work': 'Modern Work',
+  'security': 'Security',
+  'biz-apps': 'Business Applications',
+}
+
+export const SOLUTION_AREA_COLORS: Record<SolutionArea, string> = {
+  'infrastructure': '#0078D4',      // Azure blue
+  'data-ai': '#8661C5',             // Purple
+  'digital-app-innovation': '#00A4EF', // Light blue
+  'modern-work': '#7FBA00',         // Green
+  'security': '#F25022',            // Red
+  'biz-apps': '#FFB900',            // Yellow
+}
+
+export type ModernizationPath = 'rehost' | 'refactor' | 'rearchitect' | 'rebuild' | 'replace'
+
+export const MODERNIZATION_PATH_LABELS: Record<ModernizationPath, string> = {
+  'rehost': 'Rehost (Lift & Shift)',
+  'refactor': 'Refactor (Repackage)',
+  'rearchitect': 'Rearchitect',
+  'rebuild': 'Rebuild',
+  'replace': 'Replace (SaaS)',
+}
+
+export type CompetitorPlatform =
+  | 'aws' | 'gcp' | 'oracle-cloud' | 'ibm-cloud'
+  | 'salesforce' | 'servicenow' | 'sap-cloud' | 'vmware'
+  | 'on-premises' | 'other'
+
+export const COMPETITOR_PLATFORM_LABELS: Record<CompetitorPlatform, string> = {
+  'aws': 'Amazon Web Services',
+  'gcp': 'Google Cloud Platform',
+  'oracle-cloud': 'Oracle Cloud',
+  'ibm-cloud': 'IBM Cloud',
+  'salesforce': 'Salesforce',
+  'servicenow': 'ServiceNow',
+  'sap-cloud': 'SAP Cloud',
+  'vmware': 'VMware / Broadcom',
+  'on-premises': 'On-Premises',
+  'other': 'Other',
+}
+
+export type DisplacementFeasibility = 'high' | 'medium' | 'low' | 'none'
+
+export interface WorkloadCompetitor {
+  platform: CompetitorPlatform
+  currentPosition: CompetitivePosition  // Reuses existing type
+  displacementFeasibility: DisplacementFeasibility
+  switchingCostEstimate?: ConsumptionTShirt  // T-shirt sizing for switching cost
+  notes?: string
+}
+
+export interface WorkloadPartner {
+  partnerName: string
+  partnerType: 'isv' | 'si' | 'msp' | 'consulting'
+  partnerRole: 'build' | 'run' | 'co-sell'
+  partnerStatus: 'identified' | 'engaged' | 'committed'
+}
+
+export interface Workload {
+  id: string
+  accountId?: string              // Linked to Account
+  name: string
+  description: string
+  type: WorkloadType
+  solutionArea: SolutionArea
+  sourceSystem?: string           // E.g., "SAP ERP 6.0", "SQL Server 2012", "VMware vSphere"
+  targetServices: string[]        // Azure target services
+  modernizationPath?: ModernizationPath
+  consumptionEstimate?: ConsumptionEstimate
+  migrationReadiness: number      // 0-100 readiness score
+  blockers: string[]
+  competitors: WorkloadCompetitor[]
+  partner?: WorkloadPartner
+  linkedUseCaseIds: string[]      // Use cases that depend on or enhance this workload
+  endOfSupportDate?: string       // E.g., "2025-10-14" for SQL 2012 EOS
+  priority: 'critical' | 'high' | 'medium' | 'low'
+  status: 'identified' | 'assessed' | 'planned' | 'in-progress' | 'completed'
+  notes?: string
+  createdAt: number
+  updatedAt?: number
+}
+
+// ============================================================================
+// ENGAGEMENT MODEL — Generalized engagement types beyond Innovation Hub
+// ============================================================================
+
+export type EngagementType =
+  | 'innovation-hub'        // Original 4-phase IH methodology
+  | 'ads'                   // Architecture Design Session
+  | 'war'                   // Well-Architected Review
+  | 'amsp'                  // Azure Migration & Modernization Program
+  | 'partner-delivery'      // Partner-led delivery engagement
+  | 'executive-briefing'    // Executive Briefing / Envision workshop
+  | 'qbr'                   // Quarterly Business Review
+  | 'poc'                   // Proof of Concept (standalone)
+  | 'workshop'              // Generic technical workshop
+
+export const ENGAGEMENT_TYPE_LABELS: Record<EngagementType, string> = {
+  'innovation-hub': 'Innovation Hub Engagement',
+  'ads': 'Architecture Design Session (ADS)',
+  'war': 'Well-Architected Review (WAR)',
+  'amsp': 'Azure Migration & Modernization (AMSP)',
+  'partner-delivery': 'Partner Delivery Engagement',
+  'executive-briefing': 'Executive Briefing',
+  'qbr': 'Quarterly Business Review (QBR)',
+  'poc': 'Proof of Concept',
+  'workshop': 'Technical Workshop',
+}
+
+export const ENGAGEMENT_TYPE_DESCRIPTIONS: Record<EngagementType, string> = {
+  'innovation-hub': 'Facilitated 4-phase engagement: Business Envisioning → Solution Envisioning → Architecture Design → Rapid Prototype',
+  'ads': 'Deep-dive architecture session to design Azure solution architecture for a specific workload',
+  'war': 'Assessment against Azure Well-Architected Framework pillars with actionable recommendations',
+  'amsp': 'Structured migration/modernization program with planning, assessment, and execution phases',
+  'partner-delivery': 'Engagement delivered through an ISV or SI partner with Microsoft support',
+  'executive-briefing': 'CxO-level session aligned to customer''s strategic priorities and Microsoft capabilities',
+  'qbr': 'Quarterly account review covering consumption, adoption, roadmap, and success metrics',
+  'poc': 'Focused proof of concept to validate a specific technical hypothesis or capability',
+  'workshop': 'Hands-on technical workshop for a specific Azure service or scenario',
+}
+
+export interface EngagementPhaseTemplate {
+  name: string
+  description: string
+  defaultDuration: string         // E.g., "1 week"
+  deliverables: string[]
+  keyQuestions: string[]
+}
+
+/** Pre-defined phase templates for each engagement type */
+export const ENGAGEMENT_PHASE_TEMPLATES: Record<EngagementType, EngagementPhaseTemplate[]> = {
+  'innovation-hub': [
+    { name: 'Business Envisioning', description: 'Design thinking & use case prioritization', defaultDuration: '1-2 weeks', deliverables: ['Use case portfolio', 'Prioritization matrix', 'Strategic alignment map'], keyQuestions: ['What are the top business priorities?', 'Where is AI applicable?'] },
+    { name: 'Solution Envisioning', description: 'Technical direction & Microsoft capabilities mapping', defaultDuration: '1-2 weeks', deliverables: ['Solution architecture concept', 'Microsoft solution mapping', 'Agentic opportunity analysis'], keyQuestions: ['What Microsoft services apply?', 'What data is available?'] },
+    { name: 'Architecture Design', description: 'Reference architectures & scope definition', defaultDuration: '1-2 weeks', deliverables: ['Reference architecture', 'Cost estimation', 'Landing zone assessment'], keyQuestions: ['What is the target architecture?', 'What infrastructure is needed?'] },
+    { name: 'Rapid Prototype', description: 'POC demo & technical validation', defaultDuration: '2-4 weeks', deliverables: ['Working POC', 'Validation report', 'Go/No-Go recommendation'], keyQuestions: ['What needs to be proven?', 'What are success criteria?'] },
+  ],
+  'ads': [
+    { name: 'Preparation', description: 'Gather requirements, existing architecture, constraints', defaultDuration: '1 week', deliverables: ['Pre-read questionnaire', 'Current architecture inventory'], keyQuestions: ['What are the non-functional requirements?', 'What are the constraints?'] },
+    { name: 'Design Session', description: 'Collaborative architecture design with whiteboarding', defaultDuration: '1-2 days', deliverables: ['Architecture diagram', 'Technology selection rationale', 'Security considerations'], keyQuestions: ['What are the availability requirements?', 'What is the data model?'] },
+    { name: 'Documentation', description: 'Finalize architecture & produce deliverables', defaultDuration: '1 week', deliverables: ['Architecture Decision Record', 'Implementation roadmap', 'Cost estimate'], keyQuestions: ['Are all WAF pillars addressed?', 'What are the risks?'] },
+  ],
+  'war': [
+    { name: 'Assessment', description: 'Evaluate workload against WAF pillars', defaultDuration: '1-2 weeks', deliverables: ['WAF assessment results', 'Pillar scorecards'], keyQuestions: ['Which pillars are weakest?', 'What is the SLA target?'] },
+    { name: 'Recommendations', description: 'Prioritize improvements with actionable guidance', defaultDuration: '1 week', deliverables: ['Prioritized recommendation list', 'Effort-impact matrix'], keyQuestions: ['What improvements have highest impact?', 'What is the cost of remediation?'] },
+    { name: 'Roadmap', description: 'Build implementation plan for recommendations', defaultDuration: '1 week', deliverables: ['Remediation roadmap', 'Quick wins list', 'Long-term improvements'], keyQuestions: ['What can be done in 30 days?', 'What needs budget approval?'] },
+  ],
+  'amsp': [
+    { name: 'Assessment', description: 'Inventory, dependency mapping, readiness scoring', defaultDuration: '2-4 weeks', deliverables: ['Migration inventory', 'Readiness assessment', 'TCO analysis'], keyQuestions: ['What is the full server/app inventory?', 'What are the dependencies?'] },
+    { name: 'Planning', description: 'Wave planning, migration path selection, landing zone', defaultDuration: '2-3 weeks', deliverables: ['Wave plan', 'Migration path per workload', 'Landing zone design'], keyQuestions: ['Which workloads migrate first?', 'What is the rollback strategy?'] },
+    { name: 'Execution', description: 'Migration execution with validation gates', defaultDuration: '4-12 weeks', deliverables: ['Migrated workloads', 'Validation test results', 'Performance baselines'], keyQuestions: ['Are SLAs met post-migration?', 'What is the cutover schedule?'] },
+    { name: 'Optimization', description: 'Post-migration optimization and consumption tuning', defaultDuration: '2-4 weeks', deliverables: ['Cost optimization report', 'Right-sizing recommendations', 'Monitoring setup'], keyQuestions: ['What can be right-sized?', 'Are reserved instances applicable?'] },
+  ],
+  'partner-delivery': [
+    { name: 'Scoping', description: 'Define scope, roles, and responsibilities with partner', defaultDuration: '1-2 weeks', deliverables: ['Statement of Work', 'Partner delivery plan', 'Microsoft support plan'], keyQuestions: ['What is Microsoft role vs. partner role?', 'What are the escalation paths?'] },
+    { name: 'Delivery', description: 'Partner-led implementation with Microsoft oversight', defaultDuration: '4-12 weeks', deliverables: ['Solution implementation', 'Progress reports', 'Risk log'], keyQuestions: ['Is the partner on track?', 'Are there technical blockers?'] },
+    { name: 'Handoff', description: 'Knowledge transfer and operational readiness', defaultDuration: '1-2 weeks', deliverables: ['Operational runbook', 'Knowledge transfer sessions', 'Support plan'], keyQuestions: ['Can the customer operate independently?', 'Is support in place?'] },
+  ],
+  'executive-briefing': [
+    { name: 'Preparation', description: 'Research account context, build tailored content', defaultDuration: '1 week', deliverables: ['Custom presentation deck', 'Demo environment', 'Leave-behind materials'], keyQuestions: ['What are the CxO priorities?', 'What has resonated in past meetings?'] },
+    { name: 'Briefing', description: 'Executive presentation with interactive discussion', defaultDuration: '2-4 hours', deliverables: ['Meeting notes', 'Action items', 'Follow-up plan'], keyQuestions: ['What commitment can we ask for?', 'Who is the champion?'] },
+  ],
+  'qbr': [
+    { name: 'Data Collection', description: 'Gather consumption, adoption, and success metrics', defaultDuration: '1 week', deliverables: ['Consumption dashboard', 'Adoption metrics', 'Success scorecard'], keyQuestions: ['Is MACC on track?', 'What new workloads are planned?'] },
+    { name: 'QBR Meeting', description: 'Present findings, discuss roadmap, align on next quarter', defaultDuration: '1-2 hours', deliverables: ['QBR presentation', 'Updated account technology plan', 'Next quarter action items'], keyQuestions: ['What went well?', 'What needs escalation?'] },
+  ],
+  'poc': [
+    { name: 'Definition', description: 'Define success criteria, scope, and timeline', defaultDuration: '1 week', deliverables: ['POC scope document', 'Success criteria', 'Environment requirements'], keyQuestions: ['What needs to be proven?', 'What is the decision criteria?'] },
+    { name: 'Build', description: 'Develop and configure the proof of concept', defaultDuration: '2-4 weeks', deliverables: ['Working POC', 'Technical documentation'], keyQuestions: ['Is the architecture repeatable?', 'What shortcuts are acceptable?'] },
+    { name: 'Evaluate', description: 'Test against criteria and present results', defaultDuration: '1 week', deliverables: ['Results report', 'Go/No-Go recommendation', 'Production path estimate'], keyQuestions: ['Did we meet success criteria?', 'What is the path to production?'] },
+  ],
+  'workshop': [
+    { name: 'Preparation', description: 'Define agenda, prepare lab environment', defaultDuration: '1 week', deliverables: ['Workshop agenda', 'Lab guide', 'Pre-requisites checklist'], keyQuestions: ['What is the skill level of attendees?', 'What tools do they need?'] },
+    { name: 'Workshop Delivery', description: 'Hands-on session with exercises', defaultDuration: '1-2 days', deliverables: ['Completed exercises', 'Workshop feedback', 'Next steps'], keyQuestions: ['Can attendees execute independently?', 'What follow-up is needed?'] },
+  ],
 }
 
 // ============================================================================
@@ -1584,6 +1978,7 @@ export interface CustomerMetadata {
   innovationHubLocation: string
   solutionEngineer: string
   executiveSummary?: string
+  userRole?: UserRole              // Persona using KARABO
 }
 
 export type Industry = 
@@ -1660,6 +2055,14 @@ export interface DiscoverySession {
 
   // Sovereign Cloud Assessment (populated by compliance review step)
   sovereignCloudAssessment?: SovereignCloudAssessment
+
+  // ATS Enablement
+  userRole?: UserRole               // Persona that created this session
+  accountId?: string                // Linked Account entity
+  workloadIds?: string[]            // Workloads identified in this session
+  fiscalYear?: string               // E.g., "FY26"
+  fiscalQuarter?: FiscalQuarter
+  engagementType?: EngagementType   // Type of engagement this session supports
   
   createdAt: number
   completedAt?: number

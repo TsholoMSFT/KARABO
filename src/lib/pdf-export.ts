@@ -1445,3 +1445,238 @@ export async function exportToPDF(
   const fileName = `innovation-hub-${customerSlug}-${new Date().toISOString().split('T')[0]}.pdf`
   doc.save(fileName)
 }
+
+// ============================================================================
+// ACCOUNT TECHNOLOGY PLAN EXPORT (ATS-specific)
+// ============================================================================
+
+import type { Account, Workload, DiscoverySession as DiscSession } from './types'
+import { SOLUTION_AREA_LABELS, WORKLOAD_TYPE_LABELS, ENGAGEMENT_TYPE_LABELS, ACCOUNT_TEAM_ROLE_LABELS } from './types'
+
+export interface AccountTechPlanExportOptions {
+  account: Account
+  sessions: DiscSession[]
+  useCases: UseCase[]
+  workloads: Workload[]
+  totalEstimatedConsumption: number
+  maccOnTrack?: boolean
+}
+
+export function exportAccountTechPlanToPDF(opts: AccountTechPlanExportOptions): void {
+  const { account, sessions, useCases, workloads, totalEstimatedConsumption, maccOnTrack } = opts
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+  const margin = 15
+  let y = 0
+
+  const checkNewPage = (needed: number = 30) => {
+    if (y + needed > pageHeight - 20) {
+      doc.addPage()
+      y = margin
+    }
+  }
+
+  // ───── Cover Page ─────
+  doc.setFillColor(0, 120, 212)
+  doc.rect(0, 0, pageWidth, 100, 'F')
+  doc.setTextColor(255, 255, 255)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(28)
+  doc.text('Account Technology Plan', margin, 40)
+  doc.setFontSize(16)
+  doc.text(account.name, margin, 55)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(11)
+  doc.text(`${account.fiscalYear || 'FY26'} ${account.fiscalQuarter || ''}`.trim(), margin, 70)
+  doc.text(`Generated: ${new Date().toLocaleDateString()}`, margin, 80)
+  doc.setTextColor(0, 0, 0)
+
+  // ───── Account Overview ─────
+  y = 115
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(14)
+  doc.text('Account Overview', margin, y)
+  y += 8
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  const overviewLines = [
+    `Account: ${account.name}`,
+    `Segment: ${account.accountSegment}`,
+    `Health: ${account.healthRating}`,
+    `Sessions: ${sessions.length}  |  Use Cases: ${useCases.length}  |  Workloads: ${workloads.length}`,
+    `Estimated Monthly Consumption: ${formatCurrency(totalEstimatedConsumption)}`,
+  ]
+  overviewLines.forEach((line) => {
+    doc.text(line, margin, y)
+    y += 6
+  })
+
+  // Team
+  if (account.team.length > 0) {
+    y += 4
+    doc.setFont('helvetica', 'bold')
+    doc.text('Account Team:', margin, y)
+    y += 6
+    doc.setFont('helvetica', 'normal')
+    account.team.forEach((m) => {
+      doc.text(`  ${m.name} — ${ACCOUNT_TEAM_ROLE_LABELS[m.role]}`, margin, y)
+      y += 5
+    })
+  }
+
+  // ───── MACC Tracking ─────
+  if (account.maccCommitment) {
+    checkNewPage(50)
+    y += 6
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(14)
+    doc.text('MACC Commitment', margin, y)
+    y += 8
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    const m = account.maccCommitment
+    const consumed = m.totalAmount - m.remainingBalance
+    const pct = Math.round((consumed / m.totalAmount) * 100)
+    doc.text(`Total: ${formatCurrency(m.totalAmount)}  |  Remaining: ${formatCurrency(m.remainingBalance)}  |  Consumed: ${pct}%`, margin, y)
+    y += 6
+    doc.text(`Current ACR: ${formatCurrency(m.currentACR)}/mo  |  Status: ${maccOnTrack ? 'On Track' : 'At Risk'}`, margin, y)
+    y += 6
+    doc.text(`Period: ${new Date(m.startDate).toLocaleDateString()} – ${new Date(m.endDate).toLocaleDateString()}`, margin, y)
+    y += 6
+  }
+
+  // ───── Workload Portfolio ─────
+  if (workloads.length > 0) {
+    doc.addPage()
+    y = margin
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(14)
+    doc.text('Workload Portfolio', margin, y)
+    y += 10
+
+    workloads.forEach((w, idx) => {
+      checkNewPage(40)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.text(`${idx + 1}. ${w.name}`, margin, y)
+      y += 6
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.text(`Type: ${WORKLOAD_TYPE_LABELS[w.type]}  |  Area: ${SOLUTION_AREA_LABELS[w.solutionArea]}  |  Priority: ${w.priority}`, margin + 4, y)
+      y += 5
+      doc.text(`Readiness: ${w.migrationReadiness}%  |  Status: ${w.status}`, margin + 4, y)
+      y += 5
+      if (w.sourceSystem) {
+        doc.text(`Source: ${w.sourceSystem}`, margin + 4, y)
+        y += 5
+      }
+      if (w.targetServices.length > 0) {
+        doc.text(`Target: ${w.targetServices.join(', ')}`, margin + 4, y)
+        y += 5
+      }
+      if (w.consumptionEstimate) {
+        doc.text(`Est. Consumption: ${formatCurrency(w.consumptionEstimate.estimatedMonthly)}/mo`, margin + 4, y)
+        y += 5
+      }
+      if (w.blockers.length > 0) {
+        doc.text(`Blockers: ${w.blockers.join('; ')}`, margin + 4, y)
+        y += 5
+      }
+      if (w.competitors.length > 0) {
+        const compStr = w.competitors.map((c) => `${c.platform} (${c.currentPosition})`).join(', ')
+        doc.text(`Competitors: ${compStr}`, margin + 4, y)
+        y += 5
+      }
+      y += 4
+    })
+  }
+
+  // ───── Use Case Portfolio ─────
+  if (useCases.length > 0) {
+    doc.addPage()
+    y = margin
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(14)
+    doc.text('Use Case Portfolio', margin, y)
+    y += 10
+
+    useCases.forEach((uc, idx) => {
+      checkNewPage(30)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(10)
+      doc.text(`${idx + 1}. ${uc.title}`, margin, y)
+      y += 6
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      const descLines = doc.splitTextToSize(uc.description, pageWidth - 2 * margin - 8)
+      descLines.slice(0, 2).forEach((line: string) => {
+        doc.text(line, margin + 4, y)
+        y += 4.5
+      })
+      if (uc.consumptionEstimate) {
+        doc.text(`Est. Consumption: ${formatCurrency(uc.consumptionEstimate.estimatedMonthly)}/mo`, margin + 4, y)
+        y += 5
+      }
+      y += 3
+    })
+  }
+
+  // ───── Technology Plan Summary ─────
+  if (account.technologyPlanSummary) {
+    doc.addPage()
+    y = margin
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(14)
+    doc.text('Technology Strategy', margin, y)
+    y += 10
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    const planLines = doc.splitTextToSize(account.technologyPlanSummary, pageWidth - 2 * margin)
+    planLines.forEach((line: string) => {
+      checkNewPage()
+      doc.text(line, margin, y)
+      y += 5
+    })
+  }
+
+  // ───── Next 90-Day Action Plan ─────
+  checkNewPage(40)
+  y += 8
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(14)
+  doc.text('Next 90-Day Actions', margin, y)
+  y += 8
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  const actions = [
+    workloads.filter((w) => w.priority === 'critical').length > 0 ? `[Critical] ${workloads.filter((w) => w.priority === 'critical').length} critical workloads require immediate attention` : null,
+    account.maccCommitment && !maccOnTrack ? '[MACC] Consumption is behind schedule — review acceleration levers' : null,
+    workloads.filter((w) => w.endOfSupportDate).length > 0 ? `[EOS] ${workloads.filter((w) => w.endOfSupportDate).length} workloads have end-of-support deadlines` : null,
+    sessions.length > 0 ? `[Discovery] ${sessions.length} discovery session(s) completed — review use case pipeline` : null,
+    useCases.length > 0 ? `[Use Cases] ${useCases.length} use cases identified — prioritize for implementation` : null,
+  ].filter(Boolean) as string[]
+
+  if (actions.length === 0) actions.push('No critical actions identified. Schedule next QBR to review progress.')
+  actions.forEach((a) => {
+    checkNewPage()
+    doc.text(`• ${a}`, margin, y)
+    y += 5
+  })
+
+  // ───── Footer on all pages ─────
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(150, 150, 150)
+    doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    doc.text('Account Technology Plan - Confidential', margin, pageHeight - 10)
+    doc.text(new Date().toLocaleDateString(), pageWidth - margin, pageHeight - 10, { align: 'right' })
+  }
+
+  const slug = account.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 30)
+  doc.save(`account-tech-plan-${slug}-${new Date().toISOString().split('T')[0]}.pdf`)
+}

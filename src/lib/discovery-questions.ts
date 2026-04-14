@@ -1,6 +1,22 @@
 import { DiscoveryQuestion, Industry } from './types'
 
-export type DiscoveryTrack = 'use-case' | 'ai-assessment'
+export type DiscoveryTrack = 'use-case' | 'ai-assessment' | 'infrastructure' | 'modern-work' | 'full-portfolio'
+
+export const DISCOVERY_TRACK_LABELS: Record<DiscoveryTrack, string> = {
+  'use-case': 'AI & Innovation Use Cases',
+  'ai-assessment': 'AI Assessment (Deep Dive)',
+  'infrastructure': 'Infrastructure & Migration',
+  'modern-work': 'Modern Work & Security',
+  'full-portfolio': 'Full Portfolio (ATS)',
+}
+
+export const DISCOVERY_TRACK_DESCRIPTIONS: Record<DiscoveryTrack, string> = {
+  'use-case': '8 guided questions to identify AI and innovation use cases — ideal for Innovation Hub sessions',
+  'ai-assessment': '24 deep questions covering AI architecture, data, models, infra, security, and governance',
+  'infrastructure': '8 questions focused on datacenter, migration, hybrid connectivity, and workload modernization',
+  'modern-work': '8 questions on M365 adoption, Copilot readiness, identity, security posture, and endpoint management',
+  'full-portfolio': '12 questions spanning AI, infrastructure, modern work, and security — ideal for ATS account intake',
+}
 
 export const industryLabels: Record<Industry, string> = {
   general: 'General / Cross-Industry',
@@ -452,12 +468,199 @@ export const aiAssessmentQuestions: DiscoveryQuestion[] = [
   },
 ]
 
+// ============================================================================
+// INFRASTRUCTURE & MIGRATION QUESTIONS (ATS / CSA track)
+// ============================================================================
+
+export const infrastructureQuestions: DiscoveryQuestion[] = [
+  {
+    id: 'infra-q1',
+    question: 'What does your current datacenter and server estate look like? (on-premises, co-located, single cloud, multi-cloud)',
+    category: 'technical',
+    placeholder: 'E.g., 200 VMs in on-prem VMware vSphere, 50 VMs in AWS, some Azure App Services...',
+  },
+  {
+    id: 'infra-q2',
+    question: 'Which workloads or applications are you considering migrating to Azure, and what is driving the move?',
+    category: 'business',
+    placeholder: 'E.g., SQL Server 2014 end-of-support, datacenter lease expiring, cost reduction, DR improvement...',
+  },
+  {
+    id: 'infra-q3',
+    question: 'What database and data platform technologies are in your estate? (SQL Server, Oracle, SAP HANA, PostgreSQL, etc.)',
+    category: 'technical',
+    placeholder: 'E.g., SQL Server 2016/2019, Oracle 12c, SAP ERP 6.0, MongoDB, Postgres...',
+  },
+  {
+    id: 'infra-q4',
+    question: 'Do you have any upcoming end-of-support dates driving urgency? (Windows Server, SQL Server, SAP, etc.)',
+    category: 'challenges',
+    placeholder: 'E.g., SQL Server 2014 ESU expiring, Windows Server 2012 R2, SAP ECC EOS 2027...',
+  },
+  {
+    id: 'infra-q5',
+    question: 'What is your network connectivity between on-premises and cloud? (ExpressRoute, VPN, SD-WAN)',
+    category: 'technical',
+    placeholder: 'E.g., ExpressRoute 1Gbps, site-to-site VPN, SD-WAN overlay, no direct connectivity yet...',
+  },
+  {
+    id: 'infra-q6',
+    question: 'What disaster recovery and business continuity requirements exist for critical workloads?',
+    category: 'challenges',
+    placeholder: 'E.g., RPO < 1hr for tier-1 apps, DR site in secondary region, annual DR testing...',
+  },
+  {
+    id: 'infra-q7',
+    question: 'What Azure Landing Zone or governance foundation do you have in place? (management groups, policies, subscription design)',
+    category: 'technical',
+    placeholder: 'E.g., basic subscription structure, no formal LZ, partial ESLZ deployment, Azure Lighthouse...',
+  },
+  {
+    id: 'infra-q8',
+    question: 'What is your organization\'s Azure consumption today, and do you have a MACC (Microsoft AI Cloud Commitment)?',
+    category: 'business',
+    placeholder: 'E.g., ~$50K/month ACR, $2M MACC over 3 years, 18 months remaining, on-track...',
+  },
+]
+
+// ============================================================================
+// MODERN WORK & SECURITY QUESTIONS (ATS track)
+// ============================================================================
+
+export const modernWorkQuestions: DiscoveryQuestion[] = [
+  {
+    id: 'mw-q1',
+    question: 'What is your current Microsoft 365 licensing and adoption maturity? (E3, E5, Copilot licenses)',
+    category: 'business',
+    placeholder: 'E.g., M365 E5 across 5000 users, Copilot pilot with 200 seats, low Teams adoption...',
+  },
+  {
+    id: 'mw-q2',
+    question: 'How are you managing identity and access? (Entra ID, on-prem AD, federation, conditional access)',
+    category: 'technical',
+    placeholder: 'E.g., Hybrid AD with Entra ID Connect, conditional access basic policies, no PIM yet...',
+  },
+  {
+    id: 'mw-q3',
+    question: 'What is your endpoint management strategy? (Intune, SCCM, third-party MDM)',
+    category: 'technical',
+    placeholder: 'E.g., co-managed SCCM + Intune, BYOD with third-party MDM, Windows 11 migration in progress...',
+  },
+  {
+    id: 'mw-q4',
+    question: 'What is your current security posture? (Defender suite, SIEM/XDR, zero-trust maturity)',
+    category: 'challenges',
+    placeholder: 'E.g., Defender for Endpoint P2, Sentinel deployed, starting zero-trust journey, no CNAPP...',
+  },
+  {
+    id: 'mw-q5',
+    question: 'Are you using or evaluating Microsoft 365 Copilot? What use cases are most interesting?',
+    category: 'business',
+    placeholder: 'E.g., evaluating for Sales team, interest in meeting summarization, document drafting, data analysis...',
+  },
+  {
+    id: 'mw-q6',
+    question: 'How do you handle data governance and information protection today? (Purview, DLP, sensitivity labels)',
+    category: 'challenges',
+    placeholder: 'E.g., basic DLP policies, no sensitivity labels yet, starting Purview rollout, GDPR concerns...',
+  },
+  {
+    id: 'mw-q7',
+    question: 'What collaboration challenges do your teams face? (remote work, cross-org collaboration, information silos)',
+    category: 'users',
+    placeholder: 'E.g., hybrid workforce struggles, SharePoint adoption low, too many tools, Teams governance gaps...',
+  },
+  {
+    id: 'mw-q8',
+    question: 'What compliance and regulatory requirements affect your modern workplace strategy?',
+    category: 'challenges',
+    placeholder: 'E.g., data residency, retention policies, eDiscovery, audit requirements, industry-specific mandates...',
+  },
+]
+
+// ============================================================================
+// FULL PORTFOLIO QUESTIONS (ATS meta-track — top questions across all domains)
+// ============================================================================
+
+export const fullPortfolioQuestions: DiscoveryQuestion[] = [
+  // Business strategy (from use-case track)
+  discoveryQuestions[0],  // q1: Primary business objectives
+  discoveryQuestions[1],  // q2: Biggest pain points
+  // Infrastructure & migration
+  {
+    id: 'fp-q3',
+    question: 'What does your current IT estate look like — datacenter, cloud, hybrid? Any migration drivers? (end-of-support, lease, cost)',
+    category: 'technical',
+    placeholder: 'E.g., split across on-prem VMware and AWS, datacenter lease expiring in 18 months...',
+  },
+  {
+    id: 'fp-q4',
+    question: 'What database, ERP, and line-of-business platforms are critical? (SQL, SAP, Oracle, custom apps)',
+    category: 'technical',
+    placeholder: 'E.g., SAP ECC 6.0, SQL Server 2016, Oracle E-Business Suite, custom .NET apps...',
+  },
+  // Modern work & security
+  {
+    id: 'fp-q5',
+    question: 'What is your Microsoft 365 and security posture today? (licensing, Copilot, Defender, identity)',
+    category: 'technical',
+    placeholder: 'E.g., M365 E5, Copilot pilot, Defender for Endpoint, Entra ID with conditional access...',
+  },
+  {
+    id: 'fp-q6',
+    question: 'What are the biggest collaboration, productivity, or security challenges your teams face?',
+    category: 'challenges',
+    placeholder: 'E.g., hybrid work adoption, data governance gaps, too many security tools, insider risk...',
+  },
+  // AI & Innovation
+  {
+    id: 'fp-q7',
+    question: 'Where do you see AI or automation making the biggest impact? What experiments have you tried?',
+    category: 'business',
+    placeholder: 'E.g., customer service chatbots, document processing, predictive maintenance, code assistance...',
+  },
+  discoveryQuestions[5],  // q6: What data sources available
+  // Consumption & commitment
+  {
+    id: 'fp-q9',
+    question: 'What is your current Azure consumption, and do you have a MACC or enterprise agreement?',
+    category: 'business',
+    placeholder: 'E.g., $75K/month ACR, $3M MACC over 3 years, EA renewal in Q2 FY27...',
+  },
+  // Competitive landscape
+  {
+    id: 'fp-q10',
+    question: 'Which other cloud or technology vendors are you using or evaluating? (AWS, GCP, Salesforce, etc.)',
+    category: 'challenges',
+    placeholder: 'E.g., primary AWS for compute, Salesforce CRM, evaluating Google Workspace vs M365...',
+  },
+  // Compliance & readiness
+  discoveryQuestions[7],  // q8: Regulatory/compliance requirements
+  // Success vision
+  {
+    id: 'fp-q12',
+    question: 'What does success look like for your technology strategy in the next 12-18 months? What decisions are you making this quarter?',
+    category: 'business',
+    placeholder: 'E.g., complete datacenter exit, launch AI pilot, achieve 80% Teams adoption, reduce spend 20%...',
+  },
+]
+
 function getQuestionsForTrack(track: DiscoveryTrack): DiscoveryQuestion[] {
-  return track === 'ai-assessment' ? aiAssessmentQuestions : discoveryQuestions
+  switch (track) {
+    case 'ai-assessment': return aiAssessmentQuestions
+    case 'infrastructure': return infrastructureQuestions
+    case 'modern-work': return modernWorkQuestions
+    case 'full-portfolio': return fullPortfolioQuestions
+    default: return discoveryQuestions
+  }
 }
 
 export function getQuestionsForIndustry(industry: Industry, track: DiscoveryTrack = 'use-case'): DiscoveryQuestion[] {
   const questions = getQuestionsForTrack(track)
+  // Full portfolio and infrastructure tracks don't have industry-specific variations
+  if (track === 'full-portfolio' || track === 'infrastructure' || track === 'modern-work') {
+    return questions
+  }
   const generalQuestions = questions.filter((q) => !q.industries)
   const industryQuestions = questions.filter((q) => q.industries && q.industries.includes(industry))
   return [...generalQuestions, ...industryQuestions]

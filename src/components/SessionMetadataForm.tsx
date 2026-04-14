@@ -10,7 +10,7 @@ import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { useCustomers } from '@/hooks/use-customers'
 import { lookupTickerSymbol, TickerLookupResult } from '@/lib/earnings-service'
-import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext, AccountSegment, ACCOUNT_SEGMENT_LABELS, ACCOUNT_SEGMENT_DESCRIPTIONS, ACCOUNT_SEGMENT_META } from '@/lib/types'
+import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext, AccountSegment, ACCOUNT_SEGMENT_LABELS, ACCOUNT_SEGMENT_DESCRIPTIONS, ACCOUNT_SEGMENT_META, UserRole, USER_ROLE_LABELS, USER_ROLE_DESCRIPTIONS, USER_ROLE_ICONS } from '@/lib/types'
 import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info, ShieldCheck, CurrencyDollar, Buildings, UsersThree } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -29,6 +29,7 @@ export interface SessionMetadata {
   accountSegment?: AccountSegment // Account segment — enterprise, majors-growth, smec
   complianceEnforcement?: ComplianceEnforcement // Strict or advisory gate mode
   manualFinancials?: ManualFinancialContext // Manual financial data for non-public entities
+  userRole?: UserRole // Persona using KARABO — controls feature visibility
 }
 
 interface SessionMetadataFormProps {
@@ -94,6 +95,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
     accountSegment: initialMetadata?.accountSegment || 'enterprise',
     complianceEnforcement: initialMetadata?.complianceEnforcement || 'advisory',
     manualFinancials: initialMetadata?.manualFinancials || {},
+    userRole: initialMetadata?.userRole || 'innovation-hub',
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [tickerSuggestions, setTickerSuggestions] = useState<TickerLookupResult[]>([])
@@ -212,6 +214,40 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* ── Role / Persona Selector ──────────────────────────── */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-base font-semibold">
+                <ShieldCheck size={18} />
+                Your Role
+              </Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {(['innovation-hub', 'ats', 'csa', 'sales'] as UserRole[]).map((role) => {
+                  const selected = metadata.userRole === role
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => setMetadata((c) => ({ ...c, userRole: role }))}
+                      className={`text-left p-2.5 rounded-lg border-2 transition-all ${
+                        selected
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+                          : 'border-border hover:border-primary/40 bg-card'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">{USER_ROLE_ICONS[role]}</span>
+                        <span className="font-semibold text-xs">{USER_ROLE_LABELS[role]}</span>
+                        {selected && <Check size={12} className="text-primary ml-auto" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{USER_ROLE_DESCRIPTIONS[role]}</p>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <Separator />
+
             {/* ── Account Segment Selector ──────────────────────────── */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2 text-base font-semibold">
