@@ -87,8 +87,58 @@ async function rssFeedsHandler(
     const blobServiceClient = BlobServiceClient.fromConnectionString(storageConnectionString);
     const containerClient = blobServiceClient.getContainerClient(CONTAINER_NAME);
 
-    // Check if container exists
-    const containerExists = await containerClient.exists();
+    // Check if container exists (also validates connectivity to storage)
+    // Use a 3-second timeout to fail fast if Azurite/storage is unreachable
+    let containerExists: boolean;
+    try {
+      const timeoutMs = 3000;
+      containerExists = await Promise.race([
+        containerClient.exists(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Storage connectivity timeout (3s)")), timeoutMs)
+        ),
+      ]);
+    } catch (connError: any) {
+      // Storage unreachable (e.g., Azurite not running locally)
+      context.warn("Azure Storage unreachable:", connError.message);
+      if (companyParam) {
+        context.log(`Storage unavailable, falling back to live RSS for "${companyParam}"...`);
+        try {
+          const liveItems = await fetchLiveRSS(companyParam, context);
+          return {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            jsonBody: {
+              items: liveItems,
+              message: `Live RSS fetched for "${companyParam}" (storage unavailable)`,
+              company: companyParam,
+              source: "live",
+              totalBlobs: 0,
+            },
+          };
+        } catch (liveError: any) {
+          return {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            jsonBody: {
+              items: [],
+              message: `Storage unavailable and live RSS failed: ${liveError.message}`,
+              company: companyParam,
+              source: "none",
+            },
+          };
+        }
+      }
+      return {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: {
+          items: [],
+          message: "Azure Storage is unreachable. Start the Azurite emulator or configure a real connection string.",
+        },
+      };
+    }
+
     if (!containerExists) {
       return {
         status: 200,

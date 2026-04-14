@@ -1116,7 +1116,7 @@ export const ENGAGEMENT_TYPE_DESCRIPTIONS: Record<EngagementType, string> = {
   'war': 'Assessment against Azure Well-Architected Framework pillars with actionable recommendations',
   'amsp': 'Structured migration/modernization program with planning, assessment, and execution phases',
   'partner-delivery': 'Engagement delivered through an ISV or SI partner with Microsoft support',
-  'executive-briefing': 'CxO-level session aligned to customer''s strategic priorities and Microsoft capabilities',
+  'executive-briefing': 'CxO-level session aligned to customer strategic priorities and Microsoft capabilities',
   'qbr': 'Quarterly account review covering consumption, adoption, roadmap, and success metrics',
   'poc': 'Focused proof of concept to validate a specific technical hypothesis or capability',
   'workshop': 'Hands-on technical workshop for a specific Azure service or scenario',
