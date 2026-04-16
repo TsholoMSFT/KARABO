@@ -171,6 +171,29 @@ const SERVICE_AVAILABILITY: Record<SovereignCloudEnvironment, ServiceAvailabilit
     { service: 'Azure Machine Learning' },
     { service: 'Azure AI Content Safety' },
   ],
+  'azure-local': [
+    { service: 'Azure Kubernetes Service', limitations: 'AKS on Azure Local — containerized workloads' },
+    { service: 'Azure Virtual Machines', limitations: 'VM workloads on Azure Local hardware' },
+    { service: 'Azure Arc', limitations: 'Arc agents manage Azure Local nodes' },
+  ],
+  'azure-arc': [
+    { service: 'Azure Arc-enabled Kubernetes', limitations: 'Arc-managed K8s clusters' },
+    { service: 'Azure Arc-enabled Data Services', limitations: 'SQL MI, PostgreSQL on Arc' },
+    { service: 'Azure Policy', limitations: 'Policy enforcement via Arc' },
+    { service: 'Azure Monitor', limitations: 'Monitoring via Arc agents' },
+  ],
+  'disconnected': [
+    { service: 'Foundry Local', availableModels: ['Phi-4', 'Phi-3.5-mini', 'Mistral-7B'], limitations: 'SLM catalog only — no large models; fully offline inference' },
+    { service: 'Azure Local (disconnected)', limitations: 'Manual updates via secure offline media' },
+  ],
+  'private-cloud': [
+    { service: 'Self-hosted LLMs', availableModels: ['Llama', 'Mistral', 'Phi via ONNX/vLLM'], limitations: 'Self-managed — no Azure SLA' },
+    { service: 'Azure Arc', limitations: 'Arc can manage private cloud resources if connectivity exists' },
+  ],
+  'foundry-local': [
+    { service: 'Foundry Local Runtime', availableModels: ['Phi-4', 'Phi-3.5-mini', 'Phi-3.5-vision', 'Mistral-7B'], limitations: 'SLM catalog — no GPT-4o; local inference only' },
+    { service: 'ONNX Runtime', limitations: 'Optimized INT4/INT8 quantization for edge' },
+  ],
 }
 
 // ============================================================================

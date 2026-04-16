@@ -34,7 +34,7 @@ import {
   Factory,
   MagnifyingGlass,
   Briefcase,
-  TreeStructure,
+  ShieldCheck,
   Microphone,
   ChartScatter,
   FileMagnifyingGlass,
@@ -114,7 +114,7 @@ interface FeatureItem {
 const FEATURES: FeatureItem[] = [
   { icon: MagnifyingGlass, title: 'Discovery', description: 'Guided industry-aware use case identification with AI-powered suggestions' },
   { icon: Briefcase, title: 'Strategic Assessment', description: '5-stage engagement framework — Start → Opportunity → Decision → Solution → Commit' },
-  { icon: TreeStructure, title: 'AI Assessment Lite', description: 'Cloud, data & AI maturity assessment with Landing Zone and CAF readiness checks' },
+  { icon: ShieldCheck, title: 'Sovereign Cloud Assessment', description: 'Deployment model decision engine for disconnected, government, hybrid, and edge environments — Azure Local, Arc, Foundry Local' },
   { icon: Microphone, title: 'Live Discovery Mode', description: 'Real-time speech-to-text discovery with AI follow-up insights' },
   { icon: ChartScatter, title: 'Prioritization Matrix', description: 'Impact × Feasibility scatter plot with quadrant analysis (Quick Wins, Strategic Bets, …)' },
   { icon: FileMagnifyingGlass, title: 'Company Research', description: 'Multi-source intelligence (paste, upload, RSS) with AI-extracted strategy & financial insights' },

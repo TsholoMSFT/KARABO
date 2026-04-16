@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Stage 8: Communicate
  * 
  * Generates financial outputs and executive summary:
@@ -63,8 +63,6 @@ import {
 } from '@/lib/financial-assumptions'
 import { Disclaimer } from '@/components/Disclaimer'
 import { mapToIncomeStatement, createEmptyMetricHierarchy } from '@/lib/financial-mapping'
-import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
-import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 
 interface Stage8CommunicateProps {
   initialData: CommunicateStageData | null
@@ -372,7 +370,7 @@ export function Stage8Communicate({
                     <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs text-xs">
-                    Investment ÷ Annual Benefit × 12 months. Shows how quickly the investment pays for itself.
+                    Investment Ã· Annual Benefit Ã— 12 months. Shows how quickly the investment pays for itself.
                   </TooltipContent>
                 </Tooltip>
               </p>
@@ -395,7 +393,7 @@ export function Stage8Communicate({
                     <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs text-xs">
-                    ((Annual Benefit × {assumptions.projectionYears} − Investment) ÷ Investment) × 100%.
+                    ((Annual Benefit Ã— {assumptions.projectionYears} âˆ’ Investment) Ã· Investment) Ã— 100%.
                   </TooltipContent>
                 </Tooltip>
               </p>
@@ -817,63 +815,6 @@ export function Stage8Communicate({
                 </ul>
               </div>
 
-              <Separator />
-
-              <div className="space-y-4">
-                <h4 className="font-semibold">Threadlight BYOP Output</h4>
-                <ThreadlightPasteCard
-                  industryLabel="<USER_SELECT_IN_WIZARD>"
-                  industryValue="<USER_SELECT_IN_WIZARD>"
-                  shortName={makeThreadlightShortName('Enterprise Discovery')}
-                  topScoredLabel="Top value drivers"
-                  topScoredItems={[
-                    ...financialOutputs.valueDriversByPLLine.revenue.map((d) => ({
-                      title: `${d.driver} (Revenue)` ,
-                      scoreLabel: 'Annual',
-                      scoreValue: d.annualValue,
-                    })),
-                    ...financialOutputs.valueDriversByPLLine.opex.map((d) => ({
-                      title: `${d.driver} (OPEX)` ,
-                      scoreLabel: 'Annual',
-                      scoreValue: d.annualValue,
-                    })),
-                  ].slice(0, 3)}
-                  processAnalysis={buildThreadlightProcessAnalysis({
-                    customerName: '<CUSTOMER>',
-                    opportunityName: 'Enterprise Discovery',
-                    industryLabel: '<USER_SELECT_IN_WIZARD>',
-                    processCandidates: [
-                      ...financialOutputs.valueDriversByPLLine.revenue.map((d) => `- ${d.driver} (Revenue)`),
-                      ...financialOutputs.valueDriversByPLLine.opex.map((d) => `- ${d.driver} (OPEX)`),
-                      ...financialOutputs.valueDriversByPLLine.cogs.map((d) => `- ${d.driver} (COGS)`),
-                    ].slice(0, 8).join('\n'),
-                    processNotes: 'Use enterprise discovery outputs as the source of truth; replace placeholders with Stage 1 narrative if available.',
-                    constraints: '<USER_INPUT>',
-                  })}
-                  pasteText={buildThreadlightByopPasteText({
-                    customerName: '<CUSTOMER>',
-                    opportunityName: 'Enterprise Discovery',
-                    industryLabel: '<USER_SELECT_IN_WIZARD>',
-                    processCandidates: [
-                      ...financialOutputs.valueDriversByPLLine.revenue.map((d) => `- ${d.driver} (Revenue)`),
-                      ...financialOutputs.valueDriversByPLLine.opex.map((d) => `- ${d.driver} (OPEX)`),
-                      ...financialOutputs.valueDriversByPLLine.cogs.map((d) => `- ${d.driver} (COGS)`),
-                    ].slice(0, 8).join('\n'),
-                    processNotes: 'Use enterprise discovery outputs as the source of truth; replace placeholders with Stage 1 narrative if available.',
-                    constraints: '<USER_INPUT>',
-                    financials: {
-                      annualCOI: (coiData?.totalAnnual || 0) > 0 ? coiData?.totalAnnual : undefined,
-                      annualValue: annualBenefit > 0 ? annualBenefit : undefined,
-                      implementationCost: investment,
-                      paybackMonths: financialOutputs.investmentAnalysis.simplePaybackMonths,
-                      roi3YearPercent: financialOutputs.investmentAnalysis.roi3Year,
-                    },
-                  })}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Note: Stage 8 currently doesn’t receive Stage 1 narrative fields (problem/outcome/metrics), so this block includes placeholders.
-                </p>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

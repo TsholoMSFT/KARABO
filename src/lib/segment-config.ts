@@ -10,7 +10,7 @@ import { ACCOUNT_SEGMENT_META } from './types'
 
 // ── Discovery mode visibility ───────────────────────────────────────────────
 
-export type DiscoveryTab = 'quick' | 'ai-assessment' | 'enterprise' | 'tools'
+export type DiscoveryTab = 'quick' | 'sovereign-cloud' | 'enterprise' | 'tools'
 
 /** Which tabs are visible (and optionally badged) for each segment */
 export interface TabConfig {
@@ -23,7 +23,7 @@ export function getVisibleTabs(segment: AccountSegment): TabConfig[] {
   const meta = ACCOUNT_SEGMENT_META[segment]
   return [
     { id: 'quick', visible: true },
-    { id: 'ai-assessment', visible: true },
+    { id: 'sovereign-cloud', visible: true },
     {
       id: 'enterprise',
       visible: meta.showStrategicAssessment,

@@ -3,7 +3,7 @@
  * Accelerates discovery by providing common use cases and context
  */
 
-import type { Industry, EntityType } from './types'
+import type { Industry, EntityType, ATMPillar, MicrosoftProductFamily } from './types'
 
 export interface SessionTemplate {
   id: string
@@ -15,6 +15,17 @@ export interface SessionTemplate {
   discoveryPrompts: string[]
   commonChallenges: string[]
   icon: string // Phosphor icon name
+  /** ATM Industry Pack metadata */
+  atmIndustryPack?: {
+    /** Whether this template is ATM-qualified */
+    qualified: boolean
+    /** Expected ATM tier when template use cases are fully populated */
+    targetTier: 'platinum' | 'gold' | 'silver'
+    /** Pillar coverage across all template use cases */
+    pillarCoverage: ATMPillar[]
+    /** Short rationale for ATM qualification */
+    rationale: string
+  }
 }
 
 export interface TemplateSuggestedUseCase {
@@ -24,6 +35,19 @@ export interface TemplateSuggestedUseCase {
   typicalCOI: { min: number; max: number } // Annual USD
   typicalEffort: { min: number; max: number } // weeks
   aiProducts: string[]
+  /** ATM-relevant fields */
+  atm?: {
+    /** Primary Microsoft product families this use case spans */
+    productFamilies: MicrosoftProductFamily[]
+    /** Pillars covered (derived from productFamilies) */
+    pillars: ATMPillar[]
+    /** Suggested reference architecture pattern */
+    referenceArchitecture?: string
+    /** Is this use case agentic? */
+    isAgentic: boolean
+    /** Suggested solution play tags */
+    solutionPlays?: string[]
+  }
 }
 
 export const SESSION_TEMPLATES: SessionTemplate[] = [
@@ -35,6 +59,12 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
     industry: 'healthcare',
     entityType: 'private-company',
     icon: 'FirstAid',
+    atmIndustryPack: {
+      qualified: true,
+      targetTier: 'gold',
+      pillarCoverage: ['ai', 'apps', 'data'],
+      rationale: 'Multi-pillar coverage (Azure AI + M365 + Health Data Services) with agentic clinical documentation',
+    },
     commonChallenges: [
       'Staff burnout and turnover',
       'Patient wait times and throughput',
@@ -56,6 +86,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 500000, max: 2000000 },
         typicalEffort: { min: 8, max: 16 },
         aiProducts: ['Azure OpenAI', 'Azure AI Speech', 'Microsoft 365 Copilot'],
+        atm: {
+          productFamilies: ['azure-ai', 'microsoft-365'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'agentic-ai',
+          isAgentic: true,
+          solutionPlays: ['Copilot for Clinical Workflows'],
+        },
       },
       {
         title: 'Intelligent Patient Scheduling',
@@ -64,6 +101,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 200000, max: 800000 },
         typicalEffort: { min: 6, max: 12 },
         aiProducts: ['Azure OpenAI', 'Power Platform'],
+        atm: {
+          productFamilies: ['azure-ai', 'power-platform'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'conversational-ai',
+          isAgentic: false,
+          solutionPlays: ['Intelligent Automation'],
+        },
       },
       {
         title: 'Prior Authorization Automation',
@@ -72,6 +116,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 300000, max: 1200000 },
         typicalEffort: { min: 10, max: 20 },
         aiProducts: ['Azure OpenAI', 'Azure AI Document Intelligence', 'Power Automate'],
+        atm: {
+          productFamilies: ['azure-ai', 'power-platform'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'knowledge-mining',
+          isAgentic: true,
+          solutionPlays: ['Intelligent Document Processing'],
+        },
       },
       {
         title: 'Clinical Decision Support',
@@ -80,6 +131,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 100000, max: 500000 },
         typicalEffort: { min: 12, max: 24 },
         aiProducts: ['Azure OpenAI', 'Azure Health Data Services'],
+        atm: {
+          productFamilies: ['azure-ai', 'azure-data'],
+          pillars: ['ai', 'data'],
+          referenceArchitecture: 'rag-pattern',
+          isAgentic: false,
+          solutionPlays: ['Health & Life Sciences AI'],
+        },
       },
     ],
   },
@@ -92,6 +150,12 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
     industry: 'financial-services',
     entityType: 'public-company',
     icon: 'Bank',
+    atmIndustryPack: {
+      qualified: true,
+      targetTier: 'platinum',
+      pillarCoverage: ['ai', 'apps', 'data'],
+      rationale: 'Full 3-pillar coverage with agentic fraud detection, multi-service depth, and strong compliance framing',
+    },
     commonChallenges: [
       'Customer service response times',
       'Fraud detection and prevention',
@@ -113,6 +177,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 1000000, max: 5000000 },
         typicalEffort: { min: 8, max: 16 },
         aiProducts: ['Azure OpenAI', 'Copilot Studio', 'Azure AI Search'],
+        atm: {
+          productFamilies: ['azure-ai', 'power-platform'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'agentic-ai',
+          isAgentic: true,
+          solutionPlays: ['Customer Service Transformation'],
+        },
       },
       {
         title: 'Intelligent Fraud Detection',
@@ -121,6 +192,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 2000000, max: 10000000 },
         typicalEffort: { min: 12, max: 24 },
         aiProducts: ['Azure Machine Learning', 'Azure Synapse', 'Azure OpenAI'],
+        atm: {
+          productFamilies: ['azure-ai', 'azure-data'],
+          pillars: ['ai', 'data'],
+          referenceArchitecture: 'data-analytics',
+          isAgentic: false,
+          solutionPlays: ['Financial Crime Prevention'],
+        },
       },
       {
         title: 'Automated KYC/AML Processing',
@@ -129,6 +207,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 500000, max: 2000000 },
         typicalEffort: { min: 10, max: 20 },
         aiProducts: ['Azure AI Document Intelligence', 'Azure OpenAI', 'Microsoft Purview'],
+        atm: {
+          productFamilies: ['azure-ai', 'microsoft-security', 'azure-data'],
+          pillars: ['ai', 'data'],
+          referenceArchitecture: 'knowledge-mining',
+          isAgentic: true,
+          solutionPlays: ['Intelligent Document Processing', 'Compliance Automation'],
+        },
       },
       {
         title: 'Personalized Product Recommendations',
@@ -137,6 +222,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 300000, max: 1500000 },
         typicalEffort: { min: 8, max: 14 },
         aiProducts: ['Azure OpenAI', 'Azure Machine Learning', 'Dynamics 365'],
+        atm: {
+          productFamilies: ['azure-ai', 'azure-data', 'dynamics-365'],
+          pillars: ['ai', 'data', 'apps'],
+          referenceArchitecture: 'rag-pattern',
+          isAgentic: false,
+          solutionPlays: ['Customer Intelligence'],
+        },
       },
     ],
   },
@@ -149,6 +241,12 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
     industry: 'manufacturing',
     entityType: 'public-company',
     icon: 'Factory',
+    atmIndustryPack: {
+      qualified: true,
+      targetTier: 'gold',
+      pillarCoverage: ['ai', 'apps', 'data'],
+      rationale: 'IoT + AI + Digital Twins spans all 3 pillars; predictive maintenance is a proven repeatable pattern',
+    },
     commonChallenges: [
       'Unplanned equipment downtime',
       'Quality defects and rework',
@@ -170,6 +268,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 500000, max: 3000000 },
         typicalEffort: { min: 12, max: 24 },
         aiProducts: ['Azure IoT Hub', 'Azure Machine Learning', 'Azure Digital Twins'],
+        atm: {
+          productFamilies: ['azure-ai', 'azure-data', 'azure-infrastructure'],
+          pillars: ['ai', 'data', 'apps'],
+          referenceArchitecture: 'data-analytics',
+          isAgentic: false,
+          solutionPlays: ['Intelligent Factory'],
+        },
       },
       {
         title: 'AI-Powered Quality Inspection',
@@ -178,6 +283,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 300000, max: 1500000 },
         typicalEffort: { min: 8, max: 16 },
         aiProducts: ['Azure AI Vision', 'Azure IoT Edge', 'Azure Machine Learning'],
+        atm: {
+          productFamilies: ['azure-ai', 'azure-infrastructure'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'ai-vision',
+          isAgentic: false,
+          solutionPlays: ['Quality Intelligence'],
+        },
       },
       {
         title: 'Intelligent Supply Chain',
@@ -186,6 +298,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 400000, max: 2000000 },
         typicalEffort: { min: 10, max: 20 },
         aiProducts: ['Azure OpenAI', 'Azure Synapse', 'Dynamics 365 Supply Chain'],
+        atm: {
+          productFamilies: ['azure-ai', 'azure-data', 'dynamics-365'],
+          pillars: ['ai', 'data', 'apps'],
+          referenceArchitecture: 'data-analytics',
+          isAgentic: false,
+          solutionPlays: ['Supply Chain Resilience'],
+        },
       },
       {
         title: 'AI Training Assistant',
@@ -194,6 +313,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 150000, max: 600000 },
         typicalEffort: { min: 6, max: 12 },
         aiProducts: ['Azure OpenAI', 'Azure AI Search', 'Microsoft 365 Copilot'],
+        atm: {
+          productFamilies: ['azure-ai', 'microsoft-365'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'rag-pattern',
+          isAgentic: true,
+          solutionPlays: ['Connected Worker'],
+        },
       },
     ],
   },
@@ -206,6 +332,12 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
     industry: 'retail',
     entityType: 'public-company',
     icon: 'Storefront',
+    atmIndustryPack: {
+      qualified: true,
+      targetTier: 'gold',
+      pillarCoverage: ['ai', 'apps', 'data'],
+      rationale: 'Agentic shopping assistant + ML inventory + Dynamics 365 spans AI, Apps, Data pillars',
+    },
     commonChallenges: [
       'Inventory optimization across channels',
       'Personalized shopping experience',
@@ -227,6 +359,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 500000, max: 2500000 },
         typicalEffort: { min: 8, max: 16 },
         aiProducts: ['Azure OpenAI', 'Copilot Studio', 'Azure AI Search'],
+        atm: {
+          productFamilies: ['azure-ai', 'power-platform'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'agentic-ai',
+          isAgentic: true,
+          solutionPlays: ['Personalized Shopping Experience'],
+        },
       },
       {
         title: 'Intelligent Inventory Optimization',
@@ -235,6 +374,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 1000000, max: 5000000 },
         typicalEffort: { min: 12, max: 20 },
         aiProducts: ['Azure Machine Learning', 'Azure Synapse', 'Dynamics 365'],
+        atm: {
+          productFamilies: ['azure-ai', 'azure-data', 'dynamics-365'],
+          pillars: ['ai', 'data', 'apps'],
+          referenceArchitecture: 'data-analytics',
+          isAgentic: false,
+          solutionPlays: ['Supply Chain Resilience'],
+        },
       },
       {
         title: 'Visual Search & Product Discovery',
@@ -243,6 +389,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 200000, max: 800000 },
         typicalEffort: { min: 6, max: 12 },
         aiProducts: ['Azure AI Vision', 'Azure AI Search', 'Azure OpenAI'],
+        atm: {
+          productFamilies: ['azure-ai'],
+          pillars: ['ai'],
+          referenceArchitecture: 'ai-vision',
+          isAgentic: false,
+          solutionPlays: ['Visual Commerce'],
+        },
       },
       {
         title: 'Store Associate Copilot',
@@ -251,6 +404,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 300000, max: 1200000 },
         typicalEffort: { min: 6, max: 12 },
         aiProducts: ['Microsoft 365 Copilot', 'Azure OpenAI', 'Power Platform'],
+        atm: {
+          productFamilies: ['microsoft-365', 'azure-ai', 'power-platform'],
+          pillars: ['apps', 'ai'],
+          referenceArchitecture: 'rag-pattern',
+          isAgentic: true,
+          solutionPlays: ['Employee Experience'],
+        },
       },
     ],
   },
@@ -263,6 +423,12 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
     industry: 'government',
     entityType: 'government',
     icon: 'Buildings',
+    atmIndustryPack: {
+      qualified: true,
+      targetTier: 'silver',
+      pillarCoverage: ['ai', 'apps'],
+      rationale: 'Strong AI + Apps coverage; data pillar optional depending on sovereign/disconnected requirements',
+    },
     commonChallenges: [
       'Citizen service wait times',
       'Legacy system modernization',
@@ -284,6 +450,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 500000, max: 2000000 },
         typicalEffort: { min: 10, max: 18 },
         aiProducts: ['Azure OpenAI', 'Copilot Studio', 'Azure AI Search'],
+        atm: {
+          productFamilies: ['azure-ai', 'power-platform'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'agentic-ai',
+          isAgentic: true,
+          solutionPlays: ['Citizen Services Modernization'],
+        },
       },
       {
         title: 'Intelligent Document Processing',
@@ -292,6 +465,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 300000, max: 1500000 },
         typicalEffort: { min: 8, max: 16 },
         aiProducts: ['Azure AI Document Intelligence', 'Azure OpenAI', 'Power Automate'],
+        atm: {
+          productFamilies: ['azure-ai', 'power-platform'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'knowledge-mining',
+          isAgentic: false,
+          solutionPlays: ['Intelligent Document Processing'],
+        },
       },
       {
         title: 'Policy & Procedure Assistant',
@@ -300,6 +480,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 200000, max: 800000 },
         typicalEffort: { min: 6, max: 12 },
         aiProducts: ['Azure OpenAI', 'Azure AI Search', 'Microsoft 365 Copilot'],
+        atm: {
+          productFamilies: ['azure-ai', 'microsoft-365'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'rag-pattern',
+          isAgentic: true,
+          solutionPlays: ['Employee Experience'],
+        },
       },
       {
         title: 'Grant & Application Review',
@@ -308,6 +495,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 150000, max: 600000 },
         typicalEffort: { min: 8, max: 14 },
         aiProducts: ['Azure OpenAI', 'Azure AI Document Intelligence'],
+        atm: {
+          productFamilies: ['azure-ai'],
+          pillars: ['ai'],
+          referenceArchitecture: 'knowledge-mining',
+          isAgentic: false,
+          solutionPlays: ['Intelligent Document Processing'],
+        },
       },
     ],
   },
@@ -320,6 +514,12 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
     industry: 'technology',
     entityType: 'public-company',
     icon: 'Code',
+    atmIndustryPack: {
+      qualified: true,
+      targetTier: 'gold',
+      pillarCoverage: ['ai', 'apps'],
+      rationale: 'GitHub Copilot + Azure OpenAI provides strong AI + Apps coverage; data pillar optional',
+    },
     commonChallenges: [
       'Customer support ticket volume',
       'Developer productivity',
@@ -341,6 +541,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 400000, max: 2000000 },
         typicalEffort: { min: 8, max: 14 },
         aiProducts: ['Azure OpenAI', 'Copilot Studio', 'Azure AI Search'],
+        atm: {
+          productFamilies: ['azure-ai', 'power-platform'],
+          pillars: ['ai', 'apps'],
+          referenceArchitecture: 'agentic-ai',
+          isAgentic: true,
+          solutionPlays: ['Customer Service Transformation'],
+        },
       },
       {
         title: 'GitHub Copilot Adoption',
@@ -349,6 +556,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 500000, max: 3000000 },
         typicalEffort: { min: 4, max: 8 },
         aiProducts: ['GitHub Copilot', 'GitHub Copilot Enterprise'],
+        atm: {
+          productFamilies: ['azure-ai'],
+          pillars: ['ai'],
+          referenceArchitecture: 'copilot-extensions',
+          isAgentic: true,
+          solutionPlays: ['Developer Velocity'],
+        },
       },
       {
         title: 'Intelligent Documentation',
@@ -357,6 +571,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 150000, max: 600000 },
         typicalEffort: { min: 6, max: 12 },
         aiProducts: ['Azure OpenAI', 'GitHub Copilot'],
+        atm: {
+          productFamilies: ['azure-ai'],
+          pillars: ['ai'],
+          referenceArchitecture: 'rag-pattern',
+          isAgentic: false,
+          solutionPlays: ['Knowledge Management'],
+        },
       },
       {
         title: 'AI Code Review & Security',
@@ -365,6 +586,13 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
         typicalCOI: { min: 200000, max: 1000000 },
         typicalEffort: { min: 6, max: 12 },
         aiProducts: ['GitHub Advanced Security', 'Azure OpenAI'],
+        atm: {
+          productFamilies: ['azure-ai', 'microsoft-security'],
+          pillars: ['ai'],
+          referenceArchitecture: 'security-ai',
+          isAgentic: false,
+          solutionPlays: ['Secure Development Lifecycle'],
+        },
       },
     ],
   },
@@ -390,4 +618,18 @@ export function getTemplateById(id: string): SessionTemplate | undefined {
  */
 export function getTemplateIndustries(): Industry[] {
   return [...new Set(SESSION_TEMPLATES.map(t => t.industry))]
+}
+
+/**
+ * Get only ATM-qualified templates
+ */
+export function getATMQualifiedTemplates(): SessionTemplate[] {
+  return SESSION_TEMPLATES.filter(t => t.atmIndustryPack?.qualified)
+}
+
+/**
+ * Count agentic use cases in a template
+ */
+export function getAgenticUseCaseCount(template: SessionTemplate): number {
+  return template.suggestedUseCases.filter(uc => uc.atm?.isAgentic).length
 }

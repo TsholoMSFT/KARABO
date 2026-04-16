@@ -17,6 +17,9 @@ import {
   ArrowRight,
   CheckCircle,
   Sparkle,
+  ShieldCheck,
+  Robot,
+  CirclesThree,
 } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { SESSION_TEMPLATES, type SessionTemplate, type TemplateSuggestedUseCase } from '@/lib/session-templates'
@@ -43,6 +46,18 @@ function formatCurrency(value: number): string {
   return `$${(value / 1000).toFixed(0)}K`
 }
 
+const PILLAR_COLORS: Record<string, string> = {
+  ai: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+  apps: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  data: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+}
+
+const ATM_TIER_BADGE: Record<string, { label: string; className: string }> = {
+  platinum: { label: 'ATM Platinum', className: 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0' },
+  gold: { label: 'ATM Gold', className: 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-0' },
+  silver: { label: 'ATM Silver', className: 'bg-gradient-to-r from-slate-400 to-slate-500 text-white border-0' },
+}
+
 function UseCasePreview({ useCase }: { useCase: TemplateSuggestedUseCase }) {
   return (
     <div className="p-3 border rounded-lg bg-muted/30">
@@ -58,8 +73,18 @@ function UseCasePreview({ useCase }: { useCase: TemplateSuggestedUseCase }) {
       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
         <span>COI: {formatCurrency(useCase.typicalCOI.min)}-{formatCurrency(useCase.typicalCOI.max)}/yr</span>
         <span>Effort: {useCase.typicalEffort.min}-{useCase.typicalEffort.max} weeks</span>
+        {useCase.atm?.isAgentic && (
+          <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 font-medium">
+            <Robot size={12} weight="fill" /> Agentic
+          </span>
+        )}
       </div>
       <div className="flex flex-wrap gap-1 mt-2">
+        {useCase.atm?.pillars.map((pillar) => (
+          <Badge key={pillar} variant="secondary" className={`text-[10px] px-1.5 py-0 ${PILLAR_COLORS[pillar] || ''}`}>
+            {pillar.toUpperCase()}
+          </Badge>
+        ))}
         {useCase.aiProducts.slice(0, 3).map((product, i) => (
           <Badge key={i} variant="secondary" className="text-xs">
             {product}
@@ -103,13 +128,35 @@ function TemplateCard({
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline">{industryLabels[template.industry]}</Badge>
             <Badge variant="outline">{template.suggestedUseCases.length} use cases</Badge>
+            {template.atmIndustryPack?.qualified && (
+              <Badge className={`text-[10px] ${ATM_TIER_BADGE[template.atmIndustryPack.targetTier]?.className || ''}`}>
+                <ShieldCheck size={10} weight="fill" className="mr-0.5" />
+                {ATM_TIER_BADGE[template.atmIndustryPack.targetTier]?.label || 'ATM'}
+              </Badge>
+            )}
           </div>
+
+          {/* Pillar coverage pills */}
+          {template.atmIndustryPack?.pillarCoverage && (
+            <div className="flex items-center gap-1.5">
+              <CirclesThree size={12} className="text-muted-foreground" />
+              {template.atmIndustryPack.pillarCoverage.map((pillar) => (
+                <Badge key={pillar} variant="secondary" className={`text-[10px] px-1.5 py-0 ${PILLAR_COLORS[pillar] || ''}`}>
+                  {pillar.toUpperCase()}
+                </Badge>
+              ))}
+            </div>
+          )}
 
           {/* Quick preview of use cases */}
           <div className="space-y-1">
             {template.suggestedUseCases.slice(0, 2).map((uc, i) => (
               <div key={i} className="flex items-center gap-2 text-xs">
-                <CheckCircle size={12} className="text-green-500 shrink-0" />
+                {uc.atm?.isAgentic ? (
+                  <Robot size={12} className="text-purple-500 shrink-0" />
+                ) : (
+                  <CheckCircle size={12} className="text-green-500 shrink-0" />
+                )}
                 <span className="truncate">{uc.title}</span>
               </div>
             ))}
@@ -139,6 +186,28 @@ function TemplateCard({
                 </DialogHeader>
                 <ScrollArea className="max-h-[60vh] pr-4">
                   <div className="space-y-4">
+                    {/* ATM Qualification Banner */}
+                    {template.atmIndustryPack?.qualified && (
+                      <div className="p-3 rounded-lg border bg-gradient-to-r from-yellow-500/5 via-amber-500/5 to-orange-500/5 border-amber-200 dark:border-amber-800">
+                        <div className="flex items-center gap-2 mb-1">
+                          <ShieldCheck size={16} weight="fill" className="text-amber-600" />
+                          <span className="text-sm font-semibold">ATM Industry Pack</span>
+                          <Badge className={`text-[10px] ml-auto ${ATM_TIER_BADGE[template.atmIndustryPack.targetTier]?.className || ''}`}>
+                            {ATM_TIER_BADGE[template.atmIndustryPack.targetTier]?.label}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{template.atmIndustryPack.rationale}</p>
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <span className="text-xs text-muted-foreground">Pillars:</span>
+                          {template.atmIndustryPack.pillarCoverage.map((p) => (
+                            <Badge key={p} variant="secondary" className={`text-[10px] px-1.5 py-0 ${PILLAR_COLORS[p] || ''}`}>
+                              {p.toUpperCase()}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Common Challenges */}
                     <div>
                       <h4 className="font-medium text-sm mb-2">Common Challenges</h4>

@@ -15,8 +15,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
-import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 import {
   REFERENCE_ARCHITECTURES,
   type ReferenceArchitecturePattern,
@@ -377,50 +375,9 @@ Select the BEST matching pattern and respond with ONLY a valid JSON object (no m
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {/* Threadlight Integration */}
-            <motion.div 
-              key="threadlight" 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              className="space-y-4"
-            >
-              <ThreadlightPasteCard
-                wizardUrl="https://aka.ms/threadlight"
-                industryLabel={industry}
-                industryValue={industry}
-                shortName={makeThreadlightShortName(currentMapping.useCaseTitle)}
-                processAnalysis={buildThreadlightProcessAnalysis(
-                  currentMapping.businessProcesses.map(bp => ({
-                    processName: bp.processName,
-                    affectedSteps: [],
-                    currentPainPoints: bp.currentPainPoints || [],
-                    proposedImprovement: bp.proposedImprovement,
-                  }))
-                )}
-                pasteText={buildThreadlightByopPasteText({
-                  title: currentMapping.useCaseTitle,
-                  description: currentMapping.useCaseDescription,
-                  industry: industry,
-                  businessProcesses: currentMapping.businessProcesses.map(bp => ({
-                    processName: bp.processName,
-                    affectedSteps: [],
-                    currentPainPoints: bp.currentPainPoints || [],
-                    proposedImprovement: bp.proposedImprovement,
-                  })),
-                  microsoftSolutions: currentMapping.microsoftSolutions.map(s => ({
-                    productFamily: s.productFamily,
-                    services: s.services,
-                  })),
-                })}
-                title="Export to Threadlight"
-                description="Copy the details below and paste into Threadlight's BYOP wizard for professional architecture diagrams and process flows."
-              />
-              
               {/* Business Process Summary */}
               {currentMapping.businessProcesses.length > 0 && (
                 <>
-                  <Separator />
                   <div className="space-y-3">
                     <h4 className="font-semibold text-sm">Business Processes</h4>
                     <div className="space-y-2">
@@ -436,7 +393,6 @@ Select the BEST matching pattern and respond with ONLY a valid JSON object (no m
                   </div>
                 </>
               )}
-            </motion.div>
           </CardContent>
 
           <CardFooter className="flex justify-between border-t pt-6">

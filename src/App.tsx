@@ -55,7 +55,7 @@ const DiscoveryLauncher = lazy(() => import('@/components/DiscoveryLauncher').th
 const DiscoveryWizard = lazy(() => import('@/components/DiscoveryWizard').then(m => ({ default: m.DiscoveryWizard })))
 const DiscoveryResults = lazy(() => import('@/components/DiscoveryResults').then(m => ({ default: m.DiscoveryResults })))
 const DiscoveryNotesInput = lazy(() => import('@/components/DiscoveryNotesInput').then(m => ({ default: m.DiscoveryNotesInput })))
-const AIAssessmentWorkflow = lazy(() => import('@/components/AIAssessmentWorkflow').then(m => ({ default: m.AIAssessmentWorkflow })))
+const SovereignCloudWorkflow = lazy(() => import('@/components/SovereignCloudWorkflow').then(m => ({ default: m.SovereignCloudWorkflow })))
 const EnhancedDiscoveryWorkflow = lazy(() => import('@/components/EnhancedDiscoveryWorkflow').then(m => ({ default: m.EnhancedDiscoveryWorkflow })))
 const LiveDiscoveryMode = lazy(() => import('@/components/LiveDiscoveryMode').then(m => ({ default: m.LiveDiscoveryMode })))
 const LiveDiscoverySetup = lazy(() => import('@/components/LiveDiscoverySetup').then(m => ({ default: m.LiveDiscoverySetup })))
@@ -76,7 +76,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'ai-assessment' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'ai-assessment' | 'sovereign-cloud' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -105,7 +105,7 @@ function App() {
   const [sessionState, setSessionState] = useState<SessionState | null>(null)
   const [pendingSessionMetadata, setPendingSessionMetadata] = useState<SessionMetadata | null>(null)
   const [pendingDiscoveryTrack, setPendingDiscoveryTrack] = useState<DiscoveryTrack | null>(null)
-  const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live' | 'ai-assessment'>('standard')
+  const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live' | 'ai-assessment' | 'sovereign-cloud'>('standard')
   const [notesSession, setNotesSession] = useState<{ metadata: SessionMetadata; notes: string; extractedUseCases: ExtractedUseCase[] } | null>(null)
   
   // Draft persistence for notes - prevents data loss when switching views
@@ -362,12 +362,23 @@ function App() {
 
   const handleStartAIAssessment = () => {
     if (selectedSessionId && selectedSession) {
-      setCurrentView('ai-assessment')
+      setCurrentView('sovereign-cloud')
       return
     }
 
     resetPendingDiscoveryDraft()
-    setDiscoveryMode('ai-assessment')
+    setDiscoveryMode('sovereign-cloud')
+    setCurrentView('session-metadata')
+  }
+
+  const handleStartSovereignCloud = () => {
+    if (selectedSessionId && selectedSession) {
+      setCurrentView('sovereign-cloud')
+      return
+    }
+
+    resetPendingDiscoveryDraft()
+    setDiscoveryMode('sovereign-cloud')
     setCurrentView('session-metadata')
   }
 
@@ -527,7 +538,7 @@ function App() {
   }
   
   const handleSessionMetadataSubmit = (metadata: SessionMetadata) => {
-    if (discoveryMode === 'ai-assessment') {
+    if (discoveryMode === 'ai-assessment' || discoveryMode === 'sovereign-cloud') {
       const session: DiscoverySession = {
         id: `ai-${Date.now()}`,
         customerId: '',
@@ -539,7 +550,7 @@ function App() {
         solutionEngineer: metadata.solutionEngineer,
         stockTicker: metadata.stockTicker,
         accountSegment: metadata.accountSegment,
-        name: `AI Assessment Lite - ${metadata.customerName}`,
+        name: `Sovereign Cloud - ${metadata.customerName}`,
         industry: 'general',
         responses: [],
         suggestedUseCases: [],
@@ -731,7 +742,7 @@ function App() {
     toast.success(`Session saved! Added ${createdUseCases.length} use case${createdUseCases.length !== 1 ? 's' : ''} successfully!`)
 
     // Explicit end-of-mode decision gate (Quick Discovery -> Proceed or Conclude)
-    // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to AI Assessment Lite.
+    // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to Sovereign Cloud Assessment.
     setPostQuickDiscoveryGateOpen(true)
   }
 
@@ -768,7 +779,7 @@ function App() {
           onStartNew={() => {
             handleStartDiscovery()
           }}
-          onStartAIAssessment={handleStartAIAssessment}
+          onStartSovereignCloud={handleStartSovereignCloud}
           onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
           onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
@@ -802,14 +813,14 @@ function App() {
         </>
       )}
 
-      {currentView === 'ai-assessment' && (
+      {(currentView === 'ai-assessment' || currentView === 'sovereign-cloud') && (
         <>
           <NavigationHeader
             onBackToLanding={handleBackToLanding}
             onBack={() => setCurrentView('dashboard')}
             backLabel="Back"
-            title="AI Assessment Lite"
-            subtitle="Process analysis and agent opportunity refinement"
+            title="Sovereign Cloud Assessment"
+            subtitle="Deployment model, sovereign/hybrid strategy, and AI readiness"
           />
           <div className="container mx-auto px-4 md:px-6 py-8 max-w-5xl">
             {!selectedSession ? (
@@ -817,7 +828,7 @@ function App() {
                 <CardHeader>
                   <CardTitle>No active session selected</CardTitle>
                   <CardDescription>
-                    Create or select a discovery session before running an AI Assessment Lite.
+                    Create or select a discovery session before running a Sovereign Cloud Assessment.
                   </CardDescription>
                 </CardHeader>
                 <CardFooter className="flex justify-end">
@@ -825,7 +836,7 @@ function App() {
                 </CardFooter>
               </Card>
             ) : (
-              <AIAssessmentWorkflow
+              <SovereignCloudWorkflow
                 session={selectedSession}
                 useCases={filteredUseCases}
                 onUpdateSession={updateSession}
@@ -961,7 +972,7 @@ function App() {
             setNotesSession(null)
 
             // Explicit end-of-mode decision gate (Notes Analysis -> Proceed or Conclude)
-            // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to AI Assessment Lite.
+            // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to Sovereign Cloud Assessment.
             setPostQuickDiscoveryGateOpen(true)
           }}
           onCancel={() => {
@@ -1089,7 +1100,7 @@ function App() {
               <>
                 <DiscoveryLauncher 
                   onStartDiscovery={handleStartDiscovery} 
-                  onStartAIAssessment={handleStartAIAssessment}
+                  onStartSovereignCloud={handleStartSovereignCloud}
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
@@ -1155,7 +1166,7 @@ function App() {
 
                 <DiscoveryLauncher 
                   onStartDiscovery={handleStartDiscovery} 
-                  onStartAIAssessment={handleStartAIAssessment}
+                  onStartSovereignCloud={handleStartSovereignCloud}
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
@@ -1592,17 +1603,17 @@ function App() {
           <DialogHeader>
             <DialogTitle>Discovery complete</DialogTitle>
             <DialogDescription>
-              Decide whether to proceed to AI Assessment Lite (recommended) or conclude here.
+              Decide whether to proceed to Sovereign Cloud Assessment (recommended) or conclude here.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2">
             <Button
               onClick={() => {
                 setPostQuickDiscoveryGateOpen(false)
-                handleStartAIAssessment()
+                handleStartSovereignCloud()
               }}
             >
-              Proceed to AI Assessment Lite
+              Proceed to Sovereign Cloud Assessment
             </Button>
             <Button
               variant="outline"

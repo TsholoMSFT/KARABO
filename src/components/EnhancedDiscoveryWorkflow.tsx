@@ -22,9 +22,7 @@ import { toast } from 'sonner'
 import { InlineDisclaimer } from '@/components/Disclaimer'
 import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { fetchFinancialStatements } from '@/lib/earnings-service'
-import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'
 import ArchitectureLayerDiagram from '@/components/ArchitectureLayerDiagram'
-import { buildThreadlightByopPasteText, buildThreadlightProcessAnalysis, makeThreadlightShortName } from '@/lib/threadlight-export'
 import { AIGovernanceAssessment } from '@/components/AIGovernanceAssessment'
 
 interface WorkflowUseCase {
@@ -847,52 +845,6 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                   </div>
 
                   <Separator />
-
-                  {/* Threadlight BYOP paste output */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-foreground">Threadlight BYOP Output</h3>
-                    <ThreadlightPasteCard
-                      industryLabel={session.industry ? industryLabels[session.industry] : undefined}
-                      industryValue={session.industry ? industryLabels[session.industry] : undefined}
-                      shortName={makeThreadlightShortName(topScoredUseCase?.title || session.name || 'Discovery')}
-                      topScoredItems={topRankedUseCases.slice(0, 3).map((uc) => ({
-                        title: uc.title,
-                        scoreLabel: 'RICE',
-                        scoreValue: calculateWorkflowRICEScore(uc),
-                      }))}
-                      processAnalysis={buildThreadlightProcessAnalysis({
-                        customerName: session.customerName,
-                        opportunityName: session.name,
-                        industryLabel: session.industry ? industryLabels[session.industry] : undefined,
-                        executiveSummary,
-                        topItems: topRankedUseCases.slice(0, 5).map((uc) => ({
-                          title: uc.title,
-                          description: uc.description,
-                          scoreLabel: 'RICE',
-                          scoreValue: calculateWorkflowRICEScore(uc),
-                        })),
-                      })}
-                      pasteText={buildThreadlightByopPasteText({
-                        customerName: session.customerName,
-                        opportunityName: session.name,
-                        industryLabel: session.industry ? industryLabels[session.industry] : undefined,
-                        executiveSummary,
-                        topItems: topRankedUseCases.slice(0, 5).map((uc) => ({
-                          title: uc.title,
-                          description: uc.description,
-                          scoreLabel: 'RICE',
-                          scoreValue: calculateWorkflowRICEScore(uc),
-                        })),
-                        financials: {
-                          annualCOI: (topScoredUseCase?.manualCOI?.totalAnnualCOI) || (topScoredUseCase?.coiEstimate?.totalAnnualCOI),
-                          annualValue: topScoredUseCase?.manualExpectedValue?.totalAnnualValue,
-                          implementationCost: topScoredUseCase?.manualExpectedValue?.implementationCost,
-                          paybackMonths: topScoredUseCase?.manualExpectedValue?.paybackMonths,
-                          roi3YearPercent: topScoredUseCase?.manualExpectedValue?.threeYearROI,
-                        },
-                      })}
-                    />
-                  </div>
 
                   {/* Financial Quantification (Optional) - COI + ROI for a selected use case */}
                   <div className="space-y-4">

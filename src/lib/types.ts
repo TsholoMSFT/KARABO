@@ -607,6 +607,11 @@ export type SovereignCloudEnvironment =
   | 'azure-government-dod'        // Azure Government DoD (IL5/IL6)
   | 'azure-china-21vianet'        // Azure China operated by 21Vianet
   | 'azure-eu-boundary'           // Azure EU Data Boundary (GDPR/EU AI Act)
+  | 'azure-local'                 // Azure Local (on-premises, formerly Azure Stack HCI)
+  | 'azure-arc'                   // Azure Arc-managed hybrid resources
+  | 'disconnected'                // Fully air-gapped / disconnected cloud
+  | 'private-cloud'               // Non-Azure private cloud infrastructure
+  | 'foundry-local'               // Foundry Local — on-premises AI model runtime
 
 /**
  * Sovereign Azure region codes for data residency.
@@ -700,6 +705,11 @@ export const SOVEREIGN_CLOUD_LABELS: Record<SovereignCloudEnvironment, string> =
   'azure-government-dod': 'Azure Government DoD',
   'azure-china-21vianet': 'Azure China (21Vianet)',
   'azure-eu-boundary': 'Azure EU Data Boundary',
+  'azure-local': 'Azure Local (On-Premises)',
+  'azure-arc': 'Azure Arc (Hybrid)',
+  'disconnected': 'Disconnected / Air-Gapped',
+  'private-cloud': 'Private Cloud',
+  'foundry-local': 'Foundry Local (On-Premises AI)',
 }
 
 export const SOVEREIGN_CLOUD_CONFIG: Record<SovereignCloudEnvironment, {
@@ -762,6 +772,56 @@ export const SOVEREIGN_CLOUD_CONFIG: Record<SovereignCloudEnvironment, {
     apiVersion: '2024-08-01-preview',
     color: '#0ea5e9',
   },
+  'azure-local': {
+    label: 'Azure Local',
+    endpointSuffix: '.local',
+    authType: 'entra-id',
+    openAIDomain: 'N/A — on-premises',
+    cognitiveServicesDomain: 'N/A — on-premises',
+    availableRegions: ['on-premises'],
+    apiVersion: 'N/A',
+    color: '#8b5cf6',
+  },
+  'azure-arc': {
+    label: 'Azure Arc',
+    endpointSuffix: '.azure.com',
+    authType: 'entra-id',
+    openAIDomain: 'arc-managed',
+    cognitiveServicesDomain: 'arc-managed',
+    availableRegions: ['on-premises', 'edge'],
+    apiVersion: '2024-08-01-preview',
+    color: '#06b6d4',
+  },
+  'disconnected': {
+    label: 'Disconnected / Air-Gapped',
+    endpointSuffix: 'N/A',
+    authType: 'key',
+    openAIDomain: 'N/A — air-gapped',
+    cognitiveServicesDomain: 'N/A — air-gapped',
+    availableRegions: ['on-premises'],
+    apiVersion: 'N/A',
+    color: '#f59e0b',
+  },
+  'private-cloud': {
+    label: 'Private Cloud',
+    endpointSuffix: 'N/A',
+    authType: 'both',
+    openAIDomain: 'N/A — private',
+    cognitiveServicesDomain: 'N/A — private',
+    availableRegions: ['on-premises'],
+    apiVersion: 'N/A',
+    color: '#64748b',
+  },
+  'foundry-local': {
+    label: 'Foundry Local',
+    endpointSuffix: '.local',
+    authType: 'key',
+    openAIDomain: 'foundry-local',
+    cognitiveServicesDomain: 'foundry-local',
+    availableRegions: ['on-premises', 'edge'],
+    apiVersion: 'N/A',
+    color: '#ec4899',
+  },
 }
 
 export const SOVEREIGN_REGION_LABELS: Record<string, string> = {
@@ -788,6 +848,154 @@ export const SOVEREIGN_REGION_LABELS: Record<string, string> = {
   uaenorth: 'UAE North',
   qatarcentral: 'Qatar Central',
   israelcentral: 'Israel Central',
+  // On-premises / Edge
+  'on-premises': 'On-Premises',
+  'edge': 'Edge Location',
+}
+
+// ============================================================================
+// DEPLOYMENT MODEL & SOVEREIGN CLOUD TRACK TYPES
+// ============================================================================
+
+/**
+ * Deployment model — the target environment class for workloads.
+ */
+export type DeploymentModel =
+  | 'public-cloud'
+  | 'sovereign-cloud'
+  | 'azure-local'
+  | 'azure-arc'
+  | 'disconnected'
+  | 'foundry-local'
+  | 'private-cloud'
+  | 'hybrid'
+
+export const DEPLOYMENT_MODEL_LABELS: Record<DeploymentModel, string> = {
+  'public-cloud': 'Azure Public Cloud',
+  'sovereign-cloud': 'Sovereign Cloud',
+  'azure-local': 'Azure Local (On-Premises)',
+  'azure-arc': 'Azure Arc (Hybrid)',
+  'disconnected': 'Disconnected / Air-Gapped',
+  'foundry-local': 'Foundry Local (On-Premises AI)',
+  'private-cloud': 'Private Cloud',
+  'hybrid': 'Hybrid (Multi-Environment)',
+}
+
+export const DEPLOYMENT_MODEL_DESCRIPTIONS: Record<DeploymentModel, string> = {
+  'public-cloud': 'Standard Azure commercial cloud with full service catalog and global availability',
+  'sovereign-cloud': 'Azure Government, EU Data Boundary, or China 21Vianet — regulatory-mandated environments',
+  'azure-local': 'Azure Local (formerly Azure Stack HCI) — Azure services running on customer-owned hardware on-premises',
+  'azure-arc': 'Azure Arc-enabled infrastructure — manage on-prem, multi-cloud, and edge resources from Azure control plane',
+  'disconnected': 'Fully air-gapped environment with no internet connectivity — requires offline deployment and update processes',
+  'foundry-local': 'Microsoft Foundry Local — run AI models on-premises with local inference, no cloud dependency',
+  'private-cloud': 'Non-Azure private cloud infrastructure (VMware, OpenStack, Hyper-V)',
+  'hybrid': 'Combination of cloud and on-premises environments connected via Arc or VPN/ExpressRoute',
+}
+
+/**
+ * Connectivity level — determines what deployment models are viable.
+ */
+export type ConnectivityLevel = 'always-on' | 'intermittent' | 'air-gapped'
+
+/**
+ * Data classification level — drives sovereign cloud and deployment model selection.
+ */
+export type DataClassificationLevel = 'public' | 'internal' | 'confidential' | 'restricted' | 'top-secret'
+
+/**
+ * Latency requirement — influences edge/on-prem vs cloud decisions.
+ */
+export type LatencyRequirement = 'tolerant' | 'sensitive' | 'real-time'
+
+/**
+ * Constraints that drive the deployment model decision tree.
+ */
+export interface DeploymentConstraints {
+  connectivity: ConnectivityLevel
+  dataClassification: DataClassificationLevel
+  latencyRequirements: LatencyRequirement
+  regulatoryFrameworks: string[]        // e.g., ['fedramp', 'gdpr', 'popia']
+  physicalLocation?: string             // e.g., 'South Africa', 'UAE'
+  edgeRequirements?: string             // free-text description
+  aiWorkloadType?: string               // e.g., 'inference-only', 'training-and-inference', 'rag'
+  existingInfrastructure?: string        // e.g., 'Azure Local', 'VMware vSphere', 'bare metal'
+  isGovernmentWorkload: boolean
+  governmentClassificationLevel?: string // e.g., 'IL4', 'IL5', 'IL6', 'unclassified'
+  requiresFoundryLocal: boolean
+  requiresAzureArc: boolean
+  hybridAcceptable: boolean
+}
+
+/**
+ * The output of the deployment-model decision engine.
+ */
+export interface DeploymentRecommendation {
+  primaryModel: DeploymentModel
+  primaryCloudEnvironment?: SovereignCloudEnvironment
+  fallbackModel?: DeploymentModel
+  rationale: string
+  architecturePattern: string            // e.g., 'Hub-spoke with Arc-managed edge nodes'
+  serviceAvailability: SovereignServiceCheck[]
+  gaps: SovereignCloudGap[]
+  foundryLocalCapabilities?: FoundryLocalCapability[]
+  readinessScore: number                 // 0-100
+}
+
+/**
+ * Foundry Local model capability — what can run on-premises.
+ */
+export interface FoundryLocalCapability {
+  modelName: string                      // e.g., 'Phi-4', 'Phi-3.5-mini'
+  modelFamily: string                    // e.g., 'Phi', 'Mistral'
+  supportedTasks: string[]               // e.g., ['chat', 'completion', 'embedding']
+  minGPUMemoryGB: number
+  onnxSupported: boolean
+  quantizationOptions: string[]          // e.g., ['INT4', 'INT8', 'FP16']
+  maxContextTokens: number
+}
+
+/**
+ * Current-state maturity — migrated from AI Assessment Lite.
+ */
+export interface CurrentStateMaturity {
+  techStackMaturity: 'legacy' | 'modernizing' | 'modern' | 'cloud-native'
+  dataMaturity: 'siloed' | 'integrated' | 'governed' | 'ai-ready'
+  cloudReadiness: 'on-premises' | 'hybrid' | 'cloud-first' | 'cloud-native'
+  aiUsage: 'none' | 'experimental' | 'pilot' | 'production'
+  aiGovernance: 'yes' | 'no' | 'unknown'
+}
+
+/**
+ * Complete Sovereign Cloud Track Assessment — the extended assessment from the track.
+ */
+export interface SovereignCloudTrackAssessment {
+  // Core sovereign assessment (superset of SovereignCloudAssessment)
+  cloudEnvironment: SovereignCloudEnvironment
+  recommendedRegions: SovereignCloudRegion[]
+  mandateLevel: SovereignCloudMandateLevel
+  dataResidency?: DataResidencyRequirement
+  serviceAvailability: SovereignServiceCheck[]
+  crossBorderFlows: CrossBorderDataFlow[]
+  gaps: SovereignCloudGap[]
+  readinessScore: number
+  assessedAt: number
+
+  // Deployment model decision
+  deploymentModel: DeploymentModel
+  deploymentConstraints: DeploymentConstraints
+  deploymentRecommendation: DeploymentRecommendation
+
+  // Cross-pull assessments
+  landingZoneReadiness?: LandingZoneReadiness
+  cafReadiness?: Record<string, number>  // CAF dimension → maturity score
+  governanceAssessment?: AIGovernanceAssessment
+
+  // Migrated from AI Assessment Lite
+  currentStateMaturity?: CurrentStateMaturity
+  processCandidates?: string
+  processNotes?: string
+  constraints?: string
+  processAnalysis?: string  // AI-generated analysis
 }
 
 // ============================================================================
@@ -834,6 +1042,7 @@ export const USER_ROLE_FEATURES: Record<UserRole, {
   showAccountTechPlan: boolean
   showATMScoring: boolean
   showGovernanceAssessment: boolean
+  showSovereignCloudTrack: boolean
   defaultDiscoveryTrack: string
 }> = {
   'innovation-hub': {
@@ -848,6 +1057,7 @@ export const USER_ROLE_FEATURES: Record<UserRole, {
     showAccountTechPlan: false,
     showATMScoring: true,
     showGovernanceAssessment: true,
+    showSovereignCloudTrack: true,
     defaultDiscoveryTrack: 'use-case',
   },
   'ats': {
@@ -862,6 +1072,7 @@ export const USER_ROLE_FEATURES: Record<UserRole, {
     showAccountTechPlan: true,
     showATMScoring: true,
     showGovernanceAssessment: true,
+    showSovereignCloudTrack: true,
     defaultDiscoveryTrack: 'full-portfolio',
   },
   'csa': {
@@ -876,6 +1087,7 @@ export const USER_ROLE_FEATURES: Record<UserRole, {
     showAccountTechPlan: false,
     showATMScoring: true,
     showGovernanceAssessment: true,
+    showSovereignCloudTrack: true,
     defaultDiscoveryTrack: 'use-case',
   },
   'sales': {
@@ -890,6 +1102,7 @@ export const USER_ROLE_FEATURES: Record<UserRole, {
     showAccountTechPlan: false,
     showATMScoring: true,
     showGovernanceAssessment: false,
+    showSovereignCloudTrack: true,
     defaultDiscoveryTrack: 'use-case',
   },
 }
@@ -2055,6 +2268,10 @@ export interface DiscoverySession {
 
   // Sovereign Cloud Assessment (populated by compliance review step)
   sovereignCloudAssessment?: SovereignCloudAssessment
+
+  // Sovereign Cloud Track Assessment (populated by sovereign cloud track)
+  sovereignCloudTrackAssessment?: SovereignCloudTrackAssessment
+  deploymentModel?: DeploymentModel
 
   // ATS Enablement
   userRole?: UserRole               // Persona that created this session

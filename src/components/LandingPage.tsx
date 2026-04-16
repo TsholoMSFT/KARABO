@@ -19,7 +19,6 @@ import {
   ShoppingCart,
   Bank,
   FileText,
-  TreeStructure,
   ShieldCheck,
   CaretDown,
   CaretUp
@@ -32,7 +31,7 @@ import type { DemoIndustry } from '@/lib/demo-data'
 interface LandingPageProps {
   customers: Customer[]
   onStartNew: () => void
-  onStartAIAssessment?: () => void
+  onStartSovereignCloud?: () => void
   onStartEnterpriseDiscovery: () => void
   onStartNotesAnalysis?: () => void
   onViewExisting: () => void
@@ -49,7 +48,7 @@ interface LandingPageProps {
 export function LandingPage({ 
   customers, 
   onStartNew, 
-  onStartAIAssessment,
+  onStartSovereignCloud,
   onStartEnterpriseDiscovery,
   onStartNotesAnalysis, 
   onViewExisting,
@@ -330,49 +329,49 @@ export function LandingPage({
             </Card>
           </motion.div>
 
-          {/* AI Assessment Lite Card */}
-          {onStartAIAssessment && (
+          {/* Sovereign Cloud Assessment Card */}
+          {onStartSovereignCloud && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.64 }}
             >
-              <Card className="h-full border-2 border-brand-orange/40 hover:shadow-lg transition-all duration-300 hover:border-brand-orange bg-gradient-to-br from-brand-orange/5 to-transparent">
+              <Card className="h-full border-2 border-teal-500/40 hover:shadow-lg transition-all duration-300 hover:border-teal-500 bg-gradient-to-br from-teal-500/5 to-transparent">
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-brand-orange/10">
-                      <TreeStructure size={28} weight="duotone" className="text-brand-orange" />
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-teal-500/10">
+                      <ShieldCheck size={28} weight="duotone" className="text-teal-500" />
                     </div>
-                    <Badge variant="outline" className="text-xs">Process</Badge>
+                    <Badge variant="outline" className="text-xs">Cloud</Badge>
                   </div>
-                  <CardTitle className="text-xl">AI Assessment Lite</CardTitle>
+                  <CardTitle className="text-xl">Sovereign Cloud Assessment</CardTitle>
                   <CardDescription className="text-sm">
-                    Structured process analysis to refine agent opportunities
+                    Assess deployment model, sovereign/hybrid strategy, and AI readiness
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li className="flex items-start gap-2">
-                      <TreeStructure size={16} weight="duotone" className="mt-0.5 text-brand-orange flex-shrink-0" />
-                      <span>Map workflows, handoffs, and constraints</span>
+                      <ShieldCheck size={16} weight="duotone" className="mt-0.5 text-teal-500 flex-shrink-0" />
+                      <span>Map deployment model: public, sovereign, Azure Local, Arc, Foundry Local</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-brand-orange flex-shrink-0" />
-                      <span>Generate value + feasibility analysis</span>
+                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-teal-500 flex-shrink-0" />
+                      <span>Landing Zone, CAF, compliance & regulatory assessment</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-brand-orange flex-shrink-0" />
-                      <span>Feed the portfolio prioritization matrix</span>
+                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-teal-500 flex-shrink-0" />
+                      <span>AI architecture, data, and governance readiness</span>
                     </li>
                   </ul>
                   <Separator />
                   <Button
-                    onClick={onStartAIAssessment}
-                    className="w-full gap-2 bg-brand-orange hover:bg-brand-orange/90 text-brand-orange-foreground"
+                    onClick={onStartSovereignCloud}
+                    className="w-full gap-2 bg-teal-600 hover:bg-teal-700 text-white"
                     size="lg"
                   >
-                    <Sparkle size={20} weight="duotone" />
-                    AI Assessment Lite
+                    <ShieldCheck size={20} weight="duotone" />
+                    Sovereign Cloud Assessment
                   </Button>
                 </CardContent>
               </Card>
@@ -448,20 +447,20 @@ export function LandingPage({
                     </Button>
                   </div>
                   
-                  {/* 2. AI Assessment Lite - Contoso Financial */}
+                  {/* 2. Sovereign Cloud Assessment - Contoso Financial */}
                   <div className="space-y-2">
                     <Button
                       variant="outline"
-                      className="w-full gap-2 h-auto py-3 hover:border-blue-500/50 hover:bg-blue-500/5"
+                      className="w-full gap-2 h-auto py-3 hover:border-teal-500/50 hover:bg-teal-500/5"
                       onClick={() => {
                         onEnterDemoMode?.('financial')
-                        onStartAIAssessment?.()
+                        onStartSovereignCloud?.()
                       }}
                     >
                       <Bank size={18} weight="duotone" className="text-blue-600" />
                       <div className="text-left">
                         <div className="font-medium text-sm">Contoso Financial</div>
-                        <div className="text-[10px] text-muted-foreground">AI Assessment Lite</div>
+                        <div className="text-[10px] text-muted-foreground">Sovereign Cloud</div>
                       </div>
                     </Button>
                   </div>
