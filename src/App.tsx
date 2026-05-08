@@ -107,6 +107,47 @@ function App() {
     'solution-blueprint-usecases',
     {},
   )
+
+  // Phase 4 one-shot: mirror legacy blueprint-usecases drafts onto the canonical
+  // `UseCase.solutionBlueprint` slot. Runs once per browser via a localStorage
+  // sentinel; new draft mutations go through onLinkBlueprint and don't need this.
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return
+      if (window.localStorage.getItem('solution-blueprint-migrated-v1')) return
+      const draftsByCustomer = blueprintUseCasesByCustomer || {}
+      const linkedDrafts = Object.values(draftsByCustomer)
+        .flat()
+        .filter((d) => d.sourceUseCaseId && d.archetypeId)
+      if (linkedDrafts.length === 0) {
+        window.localStorage.setItem('solution-blueprint-migrated-v1', '1')
+        return
+      }
+      const slotById = new Map(
+        linkedDrafts.map((d) => [
+          d.sourceUseCaseId!,
+          {
+            archetypeId: d.archetypeId,
+            sovereigntyRequired: d.sovereigntyRequired,
+            extraCapabilities: d.extraCapabilities ?? [],
+            draftId: d.id,
+            linkedAt: Date.now(),
+          },
+        ]),
+      )
+      setUseCases((current) =>
+        (current || []).map((uc) =>
+          slotById.has(uc.id) && !uc.solutionBlueprint
+            ? { ...uc, solutionBlueprint: slotById.get(uc.id)! }
+            : uc,
+        ),
+      )
+      window.localStorage.setItem('solution-blueprint-migrated-v1', '1')
+    } catch {
+      // best-effort; if it fails the workspace will still relink on next save.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   
   // Demo mode state
   const [isDemoMode, setIsDemoMode] = useState(false)
@@ -156,12 +197,23 @@ function App() {
   // Compute Solution Blueprint signals (reuse %, gaps) for use cases that
   // have an associated blueprint draft. Lazy-loads the recommender to keep
   // the initial bundle small. Re-computes only when inputs change.
+  // Phase 4: signals derive from the canonical `UseCase.solutionBlueprint` slot
+  // (legacy `solution-blueprint-usecases` is read only for back-compat fallback).
   const [blueprintSignals, setBlueprintSignals] = useState<Map<string, import('@/components/PrioritizationMatrix').BlueprintSignal>>(new Map())
   useEffect(() => {
     if (!selectedCustomerId) { setBlueprintSignals(new Map()); return }
     const estate = blueprintEstatesByCustomer[selectedCustomerId]
-    const drafts = blueprintUseCasesByCustomer[selectedCustomerId] ?? []
-    const linked = drafts.filter(d => d.sourceUseCaseId && d.archetypeId)
+    const linked = (useCases ?? [])
+      .filter((uc) => uc.solutionBlueprint?.archetypeId)
+      .map((uc) => ({
+        id: uc.solutionBlueprint!.draftId ?? uc.id,
+        sourceUseCaseId: uc.id,
+        name: uc.title,
+        description: uc.description,
+        archetypeId: uc.solutionBlueprint!.archetypeId,
+        extraCapabilities: uc.solutionBlueprint!.extraCapabilities ?? [],
+        sovereigntyRequired: uc.solutionBlueprint!.sovereigntyRequired,
+      }))
     if (!estate || linked.length === 0) { setBlueprintSignals(new Map()); return }
 
     let cancelled = false
@@ -171,8 +223,7 @@ function App() {
       for (const draft of linked) {
         try {
           const result = generateBlueprints(draft, estate)
-          // Use estate-optimized as the canonical signal source.
-          next.set(draft.sourceUseCaseId!, {
+          next.set(draft.sourceUseCaseId, {
             reuseRatio: result.estateOptimized.reuseRatio,
             gapCount: result.estateOptimized.gapCount,
           })
@@ -183,20 +234,30 @@ function App() {
       setBlueprintSignals(next)
     })
     return () => { cancelled = true }
-  }, [selectedCustomerId, blueprintEstatesByCustomer, blueprintUseCasesByCustomer])
+  }, [selectedCustomerId, blueprintEstatesByCustomer, useCases])
 
   // Deterministic Markdown annex appended to executive summary exports.
   const execSummaryBlueprintAnnex = useMemo(() => {
     if (!selectedCustomerId) return ''
     const estate = blueprintEstatesByCustomer[selectedCustomerId]
-    const drafts = blueprintUseCasesByCustomer[selectedCustomerId] ?? []
+    const drafts = filteredUseCases
+      .filter((uc) => uc.solutionBlueprint?.archetypeId)
+      .map((uc) => ({
+        id: uc.solutionBlueprint!.draftId ?? uc.id,
+        sourceUseCaseId: uc.id,
+        name: uc.title,
+        description: uc.description,
+        archetypeId: uc.solutionBlueprint!.archetypeId,
+        extraCapabilities: uc.solutionBlueprint!.extraCapabilities ?? [],
+        sovereigntyRequired: uc.solutionBlueprint!.sovereigntyRequired,
+      }))
     if (!estate || drafts.length === 0 || filteredUseCases.length === 0) return ''
     try {
       return buildSolutionPathsAnnex(filteredUseCases, drafts, estate)
     } catch {
       return ''
     }
-  }, [selectedCustomerId, blueprintEstatesByCustomer, blueprintUseCasesByCustomer, filteredUseCases])
+  }, [selectedCustomerId, blueprintEstatesByCustomer, filteredUseCases])
 
   
   const customerMetadata: CustomerMetadata | null = selectedSession ? {
@@ -934,6 +995,15 @@ function App() {
               customers={customers}
               initialCustomerId={selectedCustomerId}
               initialUseCase={pendingBlueprintSeed}
+              onLinkBlueprint={(sourceUseCaseId, slot) => {
+                setUseCases((current) =>
+                  (current || []).map((uc) =>
+                    uc.id === sourceUseCaseId
+                      ? { ...uc, solutionBlueprint: slot }
+                      : uc,
+                  ),
+                )
+              }}
             />
           </div>
         </>

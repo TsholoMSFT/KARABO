@@ -15,6 +15,12 @@ param allowedOrigin string = '*'
 @description('Azure OpenAI embedding deployment name.')
 param embeddingDeployment string = 'text-embedding-3-large'
 
+@description('Azure OpenAI chat deployment alias for "gpt-4o" (Foundry: gpt-5.2).')
+param chatDeploymentGpt4o string = 'gpt-5.2'
+
+@description('Azure OpenAI chat deployment alias for "gpt-4o-mini" (Foundry: gpt-5.4-mini).')
+param chatDeploymentGpt4oMini string = 'gpt-5.4-mini'
+
 @description('Azure AI Search endpoint.')
 param searchEndpoint string = 'https://id8-search.search.windows.net'
 
@@ -135,6 +141,8 @@ resource func 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'AZURE_OPENAI_API_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ai-hub-api-key)' }
         { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingDeployment }
         { name: 'AZURE_OPENAI_EMBEDDING_API_VERSION', value: '2024-10-21' }
+        { name: 'AZURE_OPENAI_DEPLOYMENT_GPT4O', value: chatDeploymentGpt4o }
+        { name: 'AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI', value: chatDeploymentGpt4oMini }
         { name: 'AZURE_SEARCH_ENDPOINT', value: searchEndpoint }
         { name: 'AZURE_SEARCH_INDEX', value: searchIndex }
         { name: 'AZURE_SEARCH_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=azure-search-admin-key)' }

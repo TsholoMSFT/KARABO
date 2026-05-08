@@ -85,6 +85,22 @@ interface SolutionBlueprintWorkspaceProps {
     /** Back-link to the originating UseCase.id, if any. */
     sourceUseCaseId?: string
   } | null
+  /**
+   * Phase 4: mirror selected blueprint metadata back onto the canonical
+   * UseCase. Called whenever a draft with a `sourceUseCaseId` is created or
+   * mutated so the prioritization matrix and exec-summary annex can derive
+   * signals from `useCases` directly.
+   */
+  onLinkBlueprint?: (
+    sourceUseCaseId: string,
+    payload: {
+      archetypeId?: string
+      sovereigntyRequired?: boolean
+      extraCapabilities?: string[]
+      draftId?: string
+      linkedAt: number
+    },
+  ) => void
 }
 
 const LAYER_ICONS: Record<BlueprintLayer, React.ReactNode> = {
@@ -102,7 +118,7 @@ function makeId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
-export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initialUseCase }: SolutionBlueprintWorkspaceProps) {
+export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initialUseCase, onLinkBlueprint }: SolutionBlueprintWorkspaceProps) {
   // ── Customer + estate selection ─────────────────────────────
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
     initialCustomerId ?? customers[0]?.id ?? null,
@@ -171,6 +187,15 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
     }
     setUseCases([...useCases, next])
     setActiveUseCaseId(next.id)
+    if (next.sourceUseCaseId && onLinkBlueprint) {
+      onLinkBlueprint(next.sourceUseCaseId, {
+        archetypeId: next.archetypeId,
+        sovereigntyRequired: next.sovereigntyRequired,
+        extraCapabilities: next.extraCapabilities,
+        draftId: next.id,
+        linkedAt: Date.now(),
+      })
+    }
     toast.success(`Pre-filled blueprint from “${initialUseCase.name}”`)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialUseCase, selectedCustomer])
@@ -202,7 +227,18 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
   }
 
   const updateUseCase = (id: string, patch: Partial<UseCaseInput>) => {
-    setUseCases(useCases.map((u) => (u.id === id ? { ...u, ...patch } : u)))
+    const nextList = useCases.map((u) => (u.id === id ? { ...u, ...patch } : u))
+    setUseCases(nextList)
+    const updated = nextList.find((u) => u.id === id)
+    if (updated?.sourceUseCaseId && onLinkBlueprint) {
+      onLinkBlueprint(updated.sourceUseCaseId, {
+        archetypeId: updated.archetypeId,
+        sovereigntyRequired: updated.sovereigntyRequired,
+        extraCapabilities: updated.extraCapabilities,
+        draftId: updated.id,
+        linkedAt: Date.now(),
+      })
+    }
   }
 
   const removeUseCase = (id: string) => {

@@ -1,13 +1,11 @@
 name: Deploy karabo-api Function App
 
+# Disabled — deployments are run from local via `azd up`.
+# To re-enable: configure repo Variables (AZURE_CLIENT_ID, AZURE_TENANT_ID,
+# AZURE_SUBSCRIPTION_ID, AZURE_ENV_NAME, AZURE_LOCATION) and federated credentials,
+# then restore the `push` trigger.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'api/**'
-      - 'infra/**'
-      - 'azure.yaml'
-      - '.github/workflows/azure-dev.yml'
+  workflow_dispatch:
   workflow_dispatch:
 
 permissions:

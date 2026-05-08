@@ -444,6 +444,18 @@ export interface UseCase {
   // Implementation complexity (Solution Envisioning)
   implementationComplexity?: ImplementationComplexityInfo
 
+  // Canonical Solution Blueprint linkage (Phase 4: collapsed shape).
+  // The SolutionBlueprintWorkspace mirrors selected metadata onto the source
+  // UseCase so prioritization, exec summary annex, and exports can derive
+  // signals without reaching into a parallel localStorage shape.
+  solutionBlueprint?: {
+    archetypeId?: string
+    sovereigntyRequired?: boolean
+    extraCapabilities?: string[]
+    draftId?: string
+    linkedAt: number
+  }
+
   // Customer Journey / Engagement Roadmap
   customerJourney?: CustomerJourney
 
