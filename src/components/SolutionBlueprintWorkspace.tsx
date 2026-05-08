@@ -65,6 +65,7 @@ import {
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { EstateBanner } from './solution-blueprint/EstateBanner'
+import { LearnMorePopover } from './solution-blueprint/LearnMorePopover'
 import { lazy, Suspense } from 'react'
 
 const BlueprintDiagram = lazy(() =>
@@ -1034,7 +1035,10 @@ function BlueprintColumn({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
-                          <div className="font-medium truncate">{c.capabilityName}</div>
+                          <div className="font-medium truncate flex items-center gap-1">
+                            <span className="truncate">{c.capabilityName}</span>
+                            {c.service && <LearnMorePopover query={c.service.name} />}
+                          </div>
                           <div className="text-[11px] text-muted-foreground truncate">
                             {c.service ? `${c.service.name} · ${c.service.vendor}` : 'No service available'}
                           </div>
