@@ -116,12 +116,37 @@ export const ICON_REGISTRY: Record<string, IconDescriptor> = {
 
 /** Resolve an icon, with a deterministic fallback for unknown ids. */
 export function getIcon(serviceId: string | undefined, fallback?: Partial<IconDescriptor>): IconDescriptor {
-  if (serviceId && ICON_REGISTRY[serviceId]) return ICON_REGISTRY[serviceId]
-  return {
-    id: serviceId ?? 'unknown',
-    label: fallback?.label ?? serviceId ?? 'Service',
-    glyph: fallback?.glyph ?? (fallback?.label ?? serviceId ?? '?').slice(0, 2).toUpperCase(),
-    vendor: fallback?.vendor ?? 'other',
-    category: fallback?.category ?? 'other',
-  }
+  const base =
+    serviceId && ICON_REGISTRY[serviceId]
+      ? ICON_REGISTRY[serviceId]
+      : {
+          id: serviceId ?? 'unknown',
+          label: fallback?.label ?? serviceId ?? 'Service',
+          glyph: fallback?.glyph ?? (fallback?.label ?? serviceId ?? '?').slice(0, 2).toUpperCase(),
+          vendor: fallback?.vendor ?? 'other',
+          category: fallback?.category ?? 'other',
+        }
+  // Eagerly auto-discover SVGs dropped into `src/assets/azure-icons/`.
+  // The file basename is matched to the service id, e.g.
+  // `src/assets/azure-icons/azure-foundry.svg` → ICON_REGISTRY['azure-foundry'].svgUrl.
+  // This means real Microsoft Azure Architecture Icons can be added without
+  // any code edits — drop the file and rebuild.
+  const url = serviceId ? AUTO_SVG_URLS[serviceId] : undefined
+  return url && !base.svgUrl ? { ...base, svgUrl: url } : base
 }
+
+// Vite glob: eagerly resolves to URL strings. Files are bundled and hashed.
+// Returns an empty object during SSR / non-Vite test runners.
+const AUTO_SVG_MODULES = (typeof import.meta !== 'undefined' && (import.meta as any).glob)
+  ? (import.meta as any).glob('/src/assets/azure-icons/*.svg', { eager: true, import: 'default', query: '?url' })
+  : ({} as Record<string, string>)
+
+const AUTO_SVG_URLS: Record<string, string> = (() => {
+  const out: Record<string, string> = {}
+  for (const [path, url] of Object.entries(AUTO_SVG_MODULES) as [string, string][]) {
+    const match = path.match(/\/([^/]+)\.svg$/)
+    if (match) out[match[1]] = url
+  }
+  return out
+})()
+

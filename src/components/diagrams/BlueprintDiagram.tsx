@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Download, Copy, Code } from 'lucide-react'
+import { Download, Copy, Code, FileText, FileSpreadsheet } from 'lucide-react'
 import { toast } from 'sonner'
 import { LearnMorePopover } from './LearnMorePopover'
 
@@ -192,6 +192,52 @@ export function BlueprintDiagram({ result, defaultPath = 'side-by-side', useCase
             onClick={() => svgB && downloadSvg(svgB, `${slug}-estate-optimized.svg`)}
           >
             <Download className="mr-1 size-3.5" /> Path B SVG
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!svgA || renderer !== 'mermaid'}
+            onClick={async () => {
+              if (!svgA) return
+              try {
+                const { exportBlueprintToPDF } = await import('@/lib/diagram/blueprint-export')
+                await exportBlueprintToPDF({ result, path: 'best-fit', svg: svgA, fileName: `${slug}-best-fit.pdf` })
+                toast.success('Path A PDF exported')
+              } catch (e: any) {
+                toast.error(`PDF export failed: ${e?.message ?? e}`)
+              }
+            }}
+          >
+            <FileText className="mr-1 size-3.5" /> Path A PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!svgB || renderer !== 'mermaid'}
+            onClick={async () => {
+              if (!svgB) return
+              try {
+                const { exportBlueprintToPDF } = await import('@/lib/diagram/blueprint-export')
+                await exportBlueprintToPDF({ result, path: 'estate-optimized', svg: svgB, fileName: `${slug}-estate-optimized.pdf` })
+                toast.success('Path B PDF exported')
+              } catch (e: any) {
+                toast.error(`PDF export failed: ${e?.message ?? e}`)
+              }
+            }}
+          >
+            <FileText className="mr-1 size-3.5" /> Path B PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              const { exportBlueprintToCsv } = await import('@/lib/diagram/blueprint-export')
+              exportBlueprintToCsv(result, 'best-fit', `${slug}-best-fit.csv`)
+              exportBlueprintToCsv(result, 'estate-optimized', `${slug}-estate-optimized.csv`)
+              toast.success('Component CSVs exported')
+            }}
+          >
+            <FileSpreadsheet className="mr-1 size-3.5" /> CSV
           </Button>
         </div>
       </div>

@@ -20,9 +20,9 @@ export interface LearnDocument {
 
 const API_BASE = '/api'
 
-function sanitize(s: string): string {
+function sanitize(s: string, maxLen = 1200): string {
   // Strip embedded HTML to prevent any chance of injection in tooltips.
-  return s.replace(/<[^>]+>/g, '').slice(0, 1200)
+  return s.replace(/<[^>]+>/g, '').slice(0, maxLen)
 }
 
 export async function searchLearn(query: string, top = 5): Promise<LearnSnippet[]> {
@@ -48,14 +48,23 @@ export async function searchLearn(query: string, top = 5): Promise<LearnSnippet[
 export async function fetchLearn(url: string): Promise<LearnDocument | null> {
   if (!url.trim()) return null
   try {
-    const res = await fetch(`${API_BASE}/learn-search`, {
+    // Prefer the dedicated route; fall back to the combined search endpoint
+    // for older deployments that haven't been redeployed yet.
+    let res = await fetch(`${API_BASE}/learn-fetch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     })
+    if (res.status === 404) {
+      res = await fetch(`${API_BASE}/learn-search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+    }
     if (!res.ok) return null
     const body = (await res.json()) as { url?: string; text?: string }
-    return { url: body.url ?? url, text: sanitize(body.text ?? '') }
+    return { url: body.url ?? url, text: sanitize(body.text ?? '', 8000) }
   } catch {
     return null
   }

@@ -15,5 +15,6 @@ import "./functions/rss-feeds";
 import "./functions/regulatory-feeds";
 import "./functions/ocr";
 import "./functions/learn-search";
+import "./functions/learn-fetch";
 import "./functions/embeddings";
 import "./functions/search-knowledge";
