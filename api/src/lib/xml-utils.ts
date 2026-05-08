@@ -27,20 +27,28 @@ export function makeCorsHeaders(methods = 'GET, OPTIONS'): Record<string, string
  * or internal details to the client.
  */
 export function safeErrorMessage(error: unknown, fallback = 'Internal server error'): string {
-  // Only surface the message when it's a known-safe, developer-written string.
-  // Anything else gets the generic fallback.
+  // Surface the message when it's a known-safe, developer-written string.
+  // For other errors, include a sanitized summary so callers can debug.
   if (error instanceof Error) {
-    // Whitelist specific prefixes we control
     const msg = error.message
+    // Whitelist specific prefixes we control
     if (
       msg.startsWith('HTTP ') ||
       msg.startsWith('Missing ') ||
       msg.startsWith('No ') ||
       msg.startsWith('OCR ') ||
-      msg.startsWith('File ')
+      msg.startsWith('File ') ||
+      msg.startsWith('Azure ') ||
+      msg.startsWith('API ') ||
+      msg.startsWith('Prompt ') ||
+      msg.startsWith('Model ') ||
+      msg.startsWith('Timeout')
     ) {
       return msg
     }
+    // For unrecognised errors, return the fallback + a short hint (no stack traces)
+    const hint = msg.length > 0 && msg.length < 200 ? msg : ''
+    return hint ? `${fallback}: ${hint}` : fallback
   }
   return fallback
 }

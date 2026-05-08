@@ -491,7 +491,7 @@ export function ComplianceReviewStep({
           <Separator />
 
           {/* Use case list */}
-          <ScrollArea className="max-h-[500px] pr-4">
+          <ScrollArea className="max-h-[60vh] overflow-hidden pr-4">
             <div className="space-y-3">
               <AnimatePresence>
                 {sortByRisk(assessed.map((a) => ({ ...a, overallRisk: a.assessment.overallRisk }))).map(
@@ -704,7 +704,7 @@ export function ComplianceReviewStep({
           <Disclaimer variant="compact" showLegalDisclaimer showAIDisclaimer={false} />
         </CardContent>
 
-        <CardFooter className="flex justify-between items-center">
+        <CardFooter className="relative z-10 flex justify-between items-center border-t bg-card">
           <Button variant="outline" onClick={onBack} className="gap-2">
             <ArrowLeft size={18} weight="bold" />
             Back

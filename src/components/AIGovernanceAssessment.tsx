@@ -297,12 +297,14 @@ export function AIGovernanceAssessment({ session, useCases, onComplete, onBack }
                       <SelectTrigger className="h-9">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="max-w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]">
                         {MATURITY_LEVELS.map(level => (
                           <SelectItem key={level} value={level}>
                             <span className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: AI_GOVERNANCE_MATURITY_CONFIG[level].color }} />
-                              {AI_GOVERNANCE_MATURITY_CONFIG[level].label} — {AI_GOVERNANCE_MATURITY_CONFIG[level].description}
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: AI_GOVERNANCE_MATURITY_CONFIG[level].color }} />
+                              <span className="truncate">
+                                {AI_GOVERNANCE_MATURITY_CONFIG[level].label}
+                              </span>
                             </span>
                           </SelectItem>
                         ))}

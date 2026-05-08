@@ -50,6 +50,13 @@ export interface RegulationDetail {
   unacceptableKeywords: string[]
   /** Default risk level when framework applies but no specific trigger matches */
   defaultRisk: AIRiskLevel
+  /**
+   * Broad topic keywords that indicate the framework is contextually relevant.
+   * When present AND defaultRisk !== 'minimal', the framework only triggers at
+   * its baseline level if at least one baseline keyword matches the use case.
+   * Omit to always apply when the framework is in scope.
+   */
+  baselineKeywords?: string[]
   /** Remediation templates keyed by risk level */
   remediationTemplates: Partial<Record<AIRiskLevel, string[]>>
 }
@@ -119,6 +126,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'subliminal manipulation', 'exploit vulnerabilities',
       'biometric categorisation sensitive',
     ],
+    baselineKeywords: ['ai', 'automat', 'machine learning', 'model', 'algorithm', 'predict', 'classify', 'decision', 'chatbot', 'generation'],
     defaultRisk: 'limited',
     remediationTemplates: {
       unacceptable: [
@@ -154,6 +162,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'health data', 'genetic data', 'children', 'large scale monitoring',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['data', 'personal', 'user', 'customer', 'patient', 'employee', 'consent', 'privacy', 'record', 'profile', 'track'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -214,6 +223,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://oag.ca.gov/privacy/ccpa',
     highRiskKeywords: ['consumer profiling', 'automated decision', 'personal information', 'behavioral advertising'],
     unacceptableKeywords: [],
+    baselineKeywords: ['consumer', 'personal', 'data', 'privacy', 'user', 'customer', 'profile', 'advertising', 'tracking'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: ['Implement opt-out mechanism for automated decision-making', 'Conduct risk assessment for profiling activities'],
@@ -228,6 +238,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.hhs.gov/hipaa/',
     highRiskKeywords: ['patient data', 'health records', 'diagnosis', 'treatment recommendation', 'medical decision'],
     unacceptableKeywords: [],
+    baselineKeywords: ['health', 'patient', 'medical', 'clinical', 'hospital', 'pharmacy', 'diagnosis', 'treatment', 'care', 'wellness'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: [
@@ -246,6 +257,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.sec.gov/about/laws/soa2002.pdf',
     highRiskKeywords: ['financial reporting', 'audit', 'internal controls', 'accounting'],
     unacceptableKeywords: [],
+    baselineKeywords: ['financ', 'accounting', 'audit', 'reporting', 'revenue', 'compliance', 'earnings', 'sox', 'ledger'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: ['Implement IT general controls (ITGC) for AI system', 'Ensure AI-generated financial data is auditable', 'Document AI model governance for SOX compliance'],
@@ -259,6 +271,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://studentprivacy.ed.gov/',
     highRiskKeywords: ['student records', 'education data', 'academic assessment', 'student profiling'],
     unacceptableKeywords: [],
+    baselineKeywords: ['student', 'education', 'school', 'university', 'academic', 'learning', 'grade', 'enrollment', 'campus'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: ['Ensure AI system does not disclose education records without consent', 'Implement access controls per FERPA requirements'],
@@ -272,6 +285,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.ftc.gov/legal-library/browse/statutes/gramm-leach-bliley-act',
     highRiskKeywords: ['financial data', 'customer financial information', 'banking'],
     unacceptableKeywords: [],
+    baselineKeywords: ['financ', 'bank', 'loan', 'credit', 'insurance', 'mortgage', 'deposit', 'account', 'investment'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: ['Implement Safeguards Rule for AI system processing financial data', 'Ensure AI vendor agreements include GLBA protections'],
@@ -329,6 +343,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'credit scoring', 'employment decision', 'public service',
     ],
     unacceptableKeywords: ['social scoring', 'mass surveillance'],
+    baselineKeywords: ['ai', 'automat', 'machine learning', 'algorithm', 'predict', 'decision', 'data', 'digital', 'model'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -356,6 +371,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'automated decision', 'direct marketing', 'profiling',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['data', 'personal', 'customer', 'employee', 'user', 'consent', 'privacy', 'information', 'record', 'profile'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -387,6 +403,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.dmre.gov.za/',
     highRiskKeywords: ['mining automation', 'underground operation', 'mineral processing', 'mine safety'],
     unacceptableKeywords: [],
+    baselineKeywords: ['mining', 'mine', 'mineral', 'energy', 'drill', 'underground', 'pit', 'ore', 'shaft'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: ['Comply with Mine Health and Safety Act requirements', 'Implement safety case for AI in mining operations'],
@@ -400,6 +417,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.sahpra.org.za/',
     highRiskKeywords: ['medical device', 'diagnostic', 'health product', 'clinical decision'],
     unacceptableKeywords: [],
+    baselineKeywords: ['health', 'medical', 'clinical', 'patient', 'diagnostic', 'pharma', 'drug', 'device', 'treatment', 'hospital'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: ['Register AI-based medical device with SAHPRA', 'Conduct clinical validation study'],
@@ -418,6 +436,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'biometric', 'critical infrastructure', 'public safety',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['ai', 'automat', 'machine learning', 'algorithm', 'decision', 'data', 'predict'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -440,6 +459,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     effectiveDate: '2020-09-18',
     highRiskKeywords: ['personal data', 'automated decision', 'profiling', 'sensitive data'],
     unacceptableKeywords: [],
+    baselineKeywords: ['data', 'personal', 'customer', 'user', 'privacy', 'consent', 'profile'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -457,6 +477,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=2356570',
     highRiskKeywords: ['biometric', 'credit scoring', 'judicial decision', 'law enforcement', 'healthcare decision'],
     unacceptableKeywords: ['social scoring', 'subliminal manipulation'],
+    baselineKeywords: ['ai', 'automat', 'machine learning', 'algorithm', 'decision', 'predict', 'model'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: ['Conduct algorithmic impact assessment', 'Implement human oversight for high-risk AI'],
@@ -512,6 +533,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://ised-isde.canada.ca/site/innovation-better-canada/en/artificial-intelligence-and-data-act',
     highRiskKeywords: ['biometric', 'employment', 'financial service', 'healthcare', 'critical infrastructure'],
     unacceptableKeywords: [],
+    baselineKeywords: ['ai', 'automat', 'machine learning', 'algorithm', 'decision', 'predict'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -547,6 +569,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     effectiveDate: '2023-08-11',
     highRiskKeywords: ['personal data', 'automated decision', 'children data', 'significant decision'],
     unacceptableKeywords: [],
+    baselineKeywords: ['data', 'personal', 'customer', 'user', 'privacy', 'consent', 'citizen'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -582,10 +605,10 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     effectiveDate: '2019-11-25',
     highRiskKeywords: ['personal data', 'automated decision', 'profiling', 'financial data'],
     unacceptableKeywords: [],
+    baselineKeywords: ['data', 'personal', 'customer', 'user', 'privacy', 'consent'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
-        'Register with Office of Data Protection Commissioner',
         'Conduct DPIA for AI processing personal data',
         'Implement data subject rights mechanisms',
       ],
@@ -602,11 +625,10 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     effectiveDate: '2019-01-25',
     highRiskKeywords: ['personal data', 'automated decision', 'profiling'],
     unacceptableKeywords: [],
+    baselineKeywords: ['data', 'personal', 'customer', 'user', 'privacy', 'consent'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
-        'Conduct Data Protection Impact Assessment',
-        'File annual audit report with NDPC',
         'Implement lawful basis for AI data processing',
       ],
     },
@@ -624,6 +646,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'public opinion', 'content generation',
     ],
     unacceptableKeywords: ['undermine state security', 'subvert state power'],
+    baselineKeywords: ['generative', 'content', 'algorithm', 'recommendation', 'synthesis', 'deepfake', 'ai'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -651,6 +674,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'trading', 'banking system', 'settlement', 'custody',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['financ', 'bank', 'payment', 'trading', 'insurance', 'investment', 'settlement', 'ict', 'outsourc'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: [
@@ -675,6 +699,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'data centre', 'content delivery', 'managed service', 'managed security',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['infrastructure', 'energy', 'transport', 'health', 'water', 'cloud', 'dns', 'data centre', 'network', 'security'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: [
@@ -699,6 +724,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'public sector cloud', 'government data', 'federal information',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['federal', 'government', 'public sector', 'agency', 'dod', 'department', 'state'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: [
@@ -721,6 +747,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'market manipulation', 'algorithmic trading', 'customer suitability',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['securities', 'trading', 'broker', 'investment', 'market', 'portfolio', 'stock', 'fund'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: [
@@ -743,6 +770,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'behavioral advertising', 'sensitive personal information', 'opt-out',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['consumer', 'personal', 'data', 'privacy', 'user', 'customer', 'advertising', 'tracking'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -766,6 +794,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'software as medical device', 'samd',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['medical', 'health', 'clinical', 'patient', 'diagnosis', 'treatment', 'radiology', 'pathology', 'device'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: [
@@ -790,6 +819,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'service organization', 'trust services', 'third-party vendor',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['data', 'cloud', 'saas', 'service', 'customer', 'platform', 'vendor', 'process'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -812,6 +842,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
       'security management', 'risk assessment', 'security incident',
     ],
     unacceptableKeywords: [],
+    baselineKeywords: ['security', 'data', 'access', 'encrypt', 'protect', 'information', 'system', 'cloud', 'risk'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: [
@@ -832,6 +863,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.msha.gov/',
     highRiskKeywords: ['mine safety', 'underground', 'mining automation', 'hazard detection'],
     unacceptableKeywords: [],
+    baselineKeywords: ['mine', 'mining', 'underground', 'excavat', 'drill', 'ore', 'safety'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: ['Ensure AI system meets MSHA safety standards', 'Conduct safety validation for mining AI'],
@@ -845,6 +877,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.epa.gov/',
     highRiskKeywords: ['environmental monitoring', 'emissions', 'pollution', 'hazardous waste'],
     unacceptableKeywords: [],
+    baselineKeywords: ['environment', 'emission', 'pollution', 'waste', 'water', 'air quality', 'climate'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: ['Ensure AI monitoring meets EPA reporting standards'],
@@ -858,6 +891,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.osha.gov/',
     highRiskKeywords: ['workplace safety', 'worker monitoring', 'hazard detection', 'safety automation'],
     unacceptableKeywords: [],
+    baselineKeywords: ['safety', 'worker', 'workplace', 'hazard', 'occupational', 'incident', 'injury'],
     defaultRisk: 'limited',
     remediationTemplates: {
       high: ['Validate AI safety system meets OSHA standards', 'Implement fail-safe mechanisms'],
@@ -871,6 +905,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.nerc.com/pa/Stand/Pages/CIPStandards.aspx',
     highRiskKeywords: ['power grid', 'energy infrastructure', 'bulk electric system', 'SCADA'],
     unacceptableKeywords: [],
+    baselineKeywords: ['power', 'grid', 'energy', 'electric', 'utility', 'substation', 'scada'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: ['Ensure AI system meets NERC CIP cybersecurity requirements', 'Conduct BES Cyber System categorisation'],
@@ -884,6 +919,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     url: 'https://www.pcisecuritystandards.org/',
     highRiskKeywords: ['payment processing', 'cardholder data', 'transaction', 'card data'],
     unacceptableKeywords: [],
+    baselineKeywords: ['payment', 'card', 'transaction', 'checkout', 'merchant', 'pos', 'credit card'],
     defaultRisk: 'high',
     remediationTemplates: {
       high: ['Ensure AI system processing payment data meets PCI DSS v4.0', 'Implement network segmentation for AI components'],
@@ -1195,8 +1231,14 @@ function assessAgainstFramework(
     }
   }
 
-  // Apply default risk if the framework is applicable
+  // Apply default risk only when the use case is contextually relevant to this framework.
+  // If baselineKeywords are defined, at least one must match; otherwise always apply.
   if (detail.defaultRisk !== 'minimal') {
+    const baselineRelevant = !detail.baselineKeywords
+      || detail.baselineKeywords.some(kw => keywordMatches(text, kw))
+
+    if (!baselineRelevant) return null
+
     return {
       framework: detail.code,
       risk: detail.defaultRisk,

@@ -28,6 +28,7 @@ interface UseCaseCardProps {
   onUpdate: (useCase: UseCase) => void
   onDelete: (id: string) => void
   onEdit: (useCase: UseCase) => void
+  onGenerateBlueprint?: (useCase: UseCase) => void
 }
 
 export function UseCaseCard({
@@ -38,6 +39,7 @@ export function UseCaseCard({
   onUpdate,
   onDelete,
   onEdit,
+  onGenerateBlueprint,
 }: UseCaseCardProps) {
   const [showCompliance, setShowCompliance] = useState(false)
   const [showCOI, setShowCOI] = useState(false)
@@ -228,6 +230,16 @@ export function UseCaseCard({
             )}
           </div>
           <div className="flex gap-2">
+            {onGenerateBlueprint && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={() => onGenerateBlueprint(useCase)}>
+                    <TreeStructure size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Generate Solution Blueprint</TooltipContent>
+              </Tooltip>
+            )}
             <Button variant="ghost" size="icon" onClick={() => onEdit(useCase)}>
               <PencilSimple size={18} />
             </Button>

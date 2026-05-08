@@ -21,7 +21,8 @@ import {
   FileText,
   ShieldCheck,
   CaretDown,
-  CaretUp
+  CaretUp,
+  Buildings
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AboutSection } from '@/components/AboutSection'
@@ -32,12 +33,12 @@ interface LandingPageProps {
   customers: Customer[]
   onStartNew: () => void
   onStartSovereignCloud?: () => void
+  onStartSolutionBlueprint?: () => void
   onStartEnterpriseDiscovery: () => void
   onStartNotesAnalysis?: () => void
   onViewExisting: () => void
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
-  onSkipToUseCases?: () => void
   onSelectTemplate?: (template: SessionTemplate) => void
   // Demo mode props
   isDemoMode?: boolean
@@ -49,12 +50,12 @@ export function LandingPage({
   customers, 
   onStartNew, 
   onStartSovereignCloud,
+  onStartSolutionBlueprint,
   onStartEnterpriseDiscovery,
   onStartNotesAnalysis, 
   onViewExisting,
   onStartDemo,
   onStartEnterpriseDemo,
-  onSkipToUseCases,
   onSelectTemplate,
   onEnterDemoMode
 }: LandingPageProps) {
@@ -203,13 +204,28 @@ export function LandingPage({
           </AnimatePresence>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Quick Discovery Card */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6 }}
-          >
+        <div className="space-y-10">
+          {/* ── Discover lane ────────────────────────────────────── */}
+          <section aria-labelledby="discover-lane-heading">
+            <div className="flex items-baseline justify-between mb-4 gap-3 flex-wrap">
+              <div>
+                <h2 id="discover-lane-heading" className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+                  <MagnifyingGlass size={22} weight="duotone" className="text-primary" />
+                  Discover
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Understand the customer — capture context, use cases, and cloud posture.
+                </p>
+              </div>
+              <Badge variant="outline" className="text-xs">Stage 1</Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Quick Discovery Card */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6 }}
+              >
             <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-primary/50">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between mb-2">
@@ -254,16 +270,6 @@ export function LandingPage({
                       >
                         <FileText size={18} weight="duotone" />
                         Analyze Notes (Optional)
-                      </Button>
-                    )}
-                    {onSkipToUseCases && (
-                      <Button
-                        onClick={onSkipToUseCases}
-                        variant="ghost"
-                        className="w-full gap-2 text-muted-foreground hover:text-foreground"
-                      >
-                        <Lightbulb size={18} weight="duotone" />
-                        Skip to Use Case Entry
                       </Button>
                     )}
                     {onSelectTemplate && (
@@ -377,13 +383,81 @@ export function LandingPage({
               </Card>
             </motion.div>
           )}
+            </div>
+          </section>
 
-          {/* Continue Existing (secondary action) */}
+          {/* ── Build lane ───────────────────────────────────────── */}
+          <section aria-labelledby="build-lane-heading">
+            <div className="flex items-baseline justify-between mb-4 gap-3 flex-wrap">
+              <div>
+                <h2 id="build-lane-heading" className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+                  <Buildings size={22} weight="duotone" className="text-purple-500" />
+                  Build
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Synthesize architectures &mdash; turn discovered use cases into best-fit and estate-optimized blueprints.
+                </p>
+              </div>
+              <Badge variant="outline" className="text-xs">Stage 2</Badge>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Solution Blueprint Card (use-case-led envisioning) */}
+              {onStartSolutionBlueprint && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.65 }}
+                  className="md:col-span-2"
+                >
+              <Card className="h-full border-2 border-purple-500/40 hover:shadow-lg transition-all duration-300 hover:border-purple-500 bg-gradient-to-br from-purple-500/5 to-transparent">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-500/10">
+                      <Buildings size={28} weight="duotone" className="text-purple-500" />
+                    </div>
+                    <Badge variant="outline" className="text-xs">Use-case led</Badge>
+                  </div>
+                  <CardTitle className="text-xl">Solution Blueprint</CardTitle>
+                  <CardDescription className="text-sm">
+                    Customer arrived with use cases? Generate dual blueprints — best-fit vs estate-optimized.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <Buildings size={16} weight="duotone" className="mt-0.5 text-purple-500 flex-shrink-0" />
+                      <span>Capture the customer's existing technology estate once</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-purple-500 flex-shrink-0" />
+                      <span>Pick an archetype per use case to derive required capabilities</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ShieldCheck size={16} weight="duotone" className="mt-0.5 text-purple-500 flex-shrink-0" />
+                      <span>Side-by-side stack with security &amp; identity overlays</span>
+                    </li>
+                  </ul>
+                  <Separator />
+                  <Button
+                    onClick={onStartSolutionBlueprint}
+                    className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                    size="lg"
+                  >
+                    <Buildings size={20} weight="duotone" />
+                    Open Solution Blueprint
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+            </div>
+          </section>
+
+          {/* Continue Existing (secondary action, footer) */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.66 }}
-            className="md:col-span-3"
           >
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <Button

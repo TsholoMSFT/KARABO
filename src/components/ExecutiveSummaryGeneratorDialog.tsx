@@ -41,6 +41,8 @@ interface ExecutiveSummaryGeneratorDialogProps {
   session: DiscoverySession
   useCases: UseCase[]
   onSaveSummary: (summary: string) => void
+  /** Optional Markdown annex appended to the saved summary (e.g. Solution Paths). */
+  blueprintAnnex?: string
 }
 
 function getIndustryLabel(session: DiscoverySession): string {
@@ -148,6 +150,7 @@ export function ExecutiveSummaryGeneratorDialog({
   session,
   useCases,
   onSaveSummary,
+  blueprintAnnex,
 }: ExecutiveSummaryGeneratorDialogProps) {
   const [preset, setPreset] = useState<ExecutiveSummaryPreset>('standard')
   const [pastedText, setPastedText] = useState('')
@@ -229,12 +232,12 @@ export function ExecutiveSummaryGeneratorDialog({
       }
 
       const summary = await window.llm(prompt, 'gpt-4o-mini')
-      onSaveSummary(summary)
+      onSaveSummary(blueprintAnnex ? `${summary}${blueprintAnnex}` : summary)
       toast.success('Executive summary saved')
       onOpenChange(false)
     } catch (err) {
       const fallback = buildFallbackSummary({ session, useCases, pastedText })
-      onSaveSummary(fallback)
+      onSaveSummary(blueprintAnnex ? `${fallback}${blueprintAnnex}` : fallback)
       toast.warning('Saved a fallback summary', {
         description: err instanceof Error ? err.message : String(err),
       })

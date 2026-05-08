@@ -190,32 +190,60 @@ async function callViaProxy(
   if (systemPrompt) requestBody.systemPrompt = systemPrompt
   if (cloudEnvironment) requestBody.cloudEnvironment = cloudEnvironment
 
-  const response = await fetch(`${API_ENDPOINT}/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-  })
+  const maxRetries = 2
+  let lastError: Error | null = null
 
-  const rawText = await response.text()
-  let data: ProxyResponse | null = null
-  try {
-    data = rawText ? (JSON.parse(rawText) as ProxyResponse) : null
-  } catch {
-    data = null
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        // Exponential back-off: 1s, 2s
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000))
+        console.log(`[AI] Retry ${attempt}/${maxRetries} for ${model}...`)
+      }
+
+      const response = await fetch(`${API_ENDPOINT}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      const rawText = await response.text()
+      let data: ProxyResponse | null = null
+      try {
+        data = rawText ? (JSON.parse(rawText) as ProxyResponse) : null
+      } catch {
+        data = null
+      }
+
+      if (!response.ok || data?.error) {
+        const details = data?.details || (rawText && rawText.length < 500 ? rawText : '')
+        const errMsg = data?.error || `API error: ${response.status}${details ? ` (${details})` : ''}`
+        // Retry on 5xx errors only
+        if (response.status >= 500 && attempt < maxRetries) {
+          lastError = new Error(errMsg)
+          continue
+        }
+        throw new Error(errMsg)
+      }
+
+      if (!data?.content) {
+        if (attempt < maxRetries) {
+          lastError = new Error('Empty response from AI proxy')
+          continue
+        }
+        throw new Error('Empty response from AI proxy')
+      }
+
+      return data.content
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      if (attempt >= maxRetries) throw lastError
+    }
   }
 
-  if (!response.ok || data?.error) {
-    const details = data?.details || (rawText && rawText.length < 500 ? rawText : '')
-    throw new Error(data?.error || `API error: ${response.status}${details ? ` (${details})` : ''}`)
-  }
-
-  if (!data?.content) {
-    throw new Error('Empty response from AI proxy')
-  }
-
-  return data.content
+  throw lastError || new Error('AI call failed after retries')
 }
 
 /**

@@ -55,6 +55,8 @@ import { DEMO_PROCESS_ANALYSIS } from '@/lib/demo-data'
 import type { DemoIndustry } from '@/lib/demo-data'
 import LandingZoneAssessment, { EMPTY_LANDING_ZONE } from '@/components/LandingZoneAssessment'
 import CAFReadinessPanel from '@/components/CAFReadinessPanel'
+import type { TechnologyEstate } from '@/lib/solution-blueprint/types'
+import { estateFromSovereign, landingZoneFromEstate } from '@/lib/solution-blueprint/estate-mapping'
 
 type SovereignCloudStep = 'inputs' | 'review'
 
@@ -68,6 +70,10 @@ interface SovereignCloudWorkflowProps {
   onConclude: () => void
   isDemoMode?: boolean
   demoIndustry?: DemoIndustry
+  /** Customer-scoped TechnologyEstate (Solution Blueprint source-of-truth). */
+  initialEstate?: TechnologyEstate | null
+  /** Called with a partial estate patch when the assessment is finalized. */
+  onEstatePatch?: (patch: Partial<TechnologyEstate>) => void
 }
 
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
@@ -86,6 +92,8 @@ export function SovereignCloudWorkflow({
   onConclude,
   isDemoMode,
   demoIndustry,
+  initialEstate,
+  onEstatePatch,
 }: SovereignCloudWorkflowProps) {
   const [step, setStep] = useState<SovereignCloudStep>('inputs')
   const [selectedUseCaseIds, setSelectedUseCaseIds] = useState<string[]>(useCases.map((u) => u.id))
@@ -117,7 +125,12 @@ export function SovereignCloudWorkflow({
   })
 
   // ── Landing Zone & CAF ──
-  const [landingZone, setLandingZone] = useState<LandingZoneReadiness>(EMPTY_LANDING_ZONE)
+  const [landingZone, setLandingZone] = useState<LandingZoneReadiness>(() => {
+    if (initialEstate) {
+      return { ...EMPTY_LANDING_ZONE, ...landingZoneFromEstate(initialEstate) }
+    }
+    return EMPTY_LANDING_ZONE
+  })
   const [cafStage, setCafStage] = useState<CAFLifecycleStage | undefined>(undefined)
   const [cafMaturity, setCafMaturity] = useState<Partial<Record<CAFCapability, CAFMaturityLevel>>>({})
 
@@ -437,6 +450,15 @@ RULES
         sovereignCloudTrackAssessment: trackAssessment,
         deploymentModel: recommendation.primaryModel,
       })
+
+      // Write-back to canonical TechnologyEstate (Solution Blueprint master).
+      if (onEstatePatch) {
+        try {
+          onEstatePatch(estateFromSovereign(trackAssessment))
+        } catch (e) {
+          console.warn('Estate patch from sovereign assessment failed', e)
+        }
+      }
 
       toast.success('Sovereign Cloud Assessment complete', {
         description: `Recommended: ${DEPLOYMENT_MODEL_LABELS[recommendation.primaryModel]} — ${recommendation.architecturePattern}`,

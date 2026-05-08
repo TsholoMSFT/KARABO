@@ -13,10 +13,12 @@
   "dependencies": {
     "@azure/functions": "^4.0.0",
     "@azure/identity": "^4.5.0",
+    "@azure/search-documents": "^13.0.0",
     "@azure/storage-blob": "^12.29.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.0.0"
   }
 }

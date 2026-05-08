@@ -1,4 +1,5 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
+import { buildSolutionPathsAnnex } from '@/lib/solution-blueprint/annex-builder'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import '@/lib/openai-service' // Initialize OpenAI service
 import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType, AccountSegment } from '@/lib/types'
@@ -56,6 +57,7 @@ const DiscoveryWizard = lazy(() => import('@/components/DiscoveryWizard').then(m
 const DiscoveryResults = lazy(() => import('@/components/DiscoveryResults').then(m => ({ default: m.DiscoveryResults })))
 const DiscoveryNotesInput = lazy(() => import('@/components/DiscoveryNotesInput').then(m => ({ default: m.DiscoveryNotesInput })))
 const SovereignCloudWorkflow = lazy(() => import('@/components/SovereignCloudWorkflow').then(m => ({ default: m.SovereignCloudWorkflow })))
+const SolutionBlueprintWorkspace = lazy(() => import('@/components/SolutionBlueprintWorkspace').then(m => ({ default: m.SolutionBlueprintWorkspace })))
 const EnhancedDiscoveryWorkflow = lazy(() => import('@/components/EnhancedDiscoveryWorkflow').then(m => ({ default: m.EnhancedDiscoveryWorkflow })))
 const LiveDiscoveryMode = lazy(() => import('@/components/LiveDiscoveryMode').then(m => ({ default: m.LiveDiscoveryMode })))
 const LiveDiscoverySetup = lazy(() => import('@/components/LiveDiscoverySetup').then(m => ({ default: m.LiveDiscoverySetup })))
@@ -76,7 +78,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'ai-assessment' | 'sovereign-cloud' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -94,6 +96,17 @@ function App() {
   const [selectedCustomerId, setSelectedCustomerId] = useLocalStorage<string | null>('selected-customer-id', null)
   const [enterpriseSessions, setEnterpriseSessions] = useLocalStorage<AnyEnterpriseSession[]>('enterprise-sessions', [])
   const [currentEnterpriseSession, setCurrentEnterpriseSession] = useState<AnyEnterpriseSession | null>(null)
+
+  // Per-customer Solution Blueprint state (read-only here \u2014 owned by SolutionBlueprintWorkspace).
+  // We surface its signals (reuse %, gap count) on the prioritization matrix.
+  const [blueprintEstatesByCustomer, setBlueprintEstatesByCustomer] = useLocalStorage<Record<string, import('@/lib/solution-blueprint/types').TechnologyEstate>>(
+    'solution-blueprint-estates',
+    {},
+  )
+  const [blueprintUseCasesByCustomer] = useLocalStorage<Record<string, Array<import('@/lib/solution-blueprint/types').UseCaseInput & { id: string; sourceUseCaseId?: string }>>>(
+    'solution-blueprint-usecases',
+    {},
+  )
   
   // Demo mode state
   const [isDemoMode, setIsDemoMode] = useState(false)
@@ -105,7 +118,7 @@ function App() {
   const [sessionState, setSessionState] = useState<SessionState | null>(null)
   const [pendingSessionMetadata, setPendingSessionMetadata] = useState<SessionMetadata | null>(null)
   const [pendingDiscoveryTrack, setPendingDiscoveryTrack] = useState<DiscoveryTrack | null>(null)
-  const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live' | 'ai-assessment' | 'sovereign-cloud'>('standard')
+  const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live' | 'sovereign-cloud'>('standard')
   const [notesSession, setNotesSession] = useState<{ metadata: SessionMetadata; notes: string; extractedUseCases: ExtractedUseCase[] } | null>(null)
   
   // Draft persistence for notes - prevents data loss when switching views
@@ -139,6 +152,52 @@ function App() {
   const useCasesList = filteredUseCases
   const topUseCases = getTopUseCases(useCasesList, scoringMethod, 5)
   const topUseCaseIds = new Set(topUseCases.map((uc) => uc.id))
+
+  // Compute Solution Blueprint signals (reuse %, gaps) for use cases that
+  // have an associated blueprint draft. Lazy-loads the recommender to keep
+  // the initial bundle small. Re-computes only when inputs change.
+  const [blueprintSignals, setBlueprintSignals] = useState<Map<string, import('@/components/PrioritizationMatrix').BlueprintSignal>>(new Map())
+  useEffect(() => {
+    if (!selectedCustomerId) { setBlueprintSignals(new Map()); return }
+    const estate = blueprintEstatesByCustomer[selectedCustomerId]
+    const drafts = blueprintUseCasesByCustomer[selectedCustomerId] ?? []
+    const linked = drafts.filter(d => d.sourceUseCaseId && d.archetypeId)
+    if (!estate || linked.length === 0) { setBlueprintSignals(new Map()); return }
+
+    let cancelled = false
+    import('@/lib/solution-blueprint/recommender').then(({ generateBlueprints }) => {
+      if (cancelled) return
+      const next = new Map<string, import('@/components/PrioritizationMatrix').BlueprintSignal>()
+      for (const draft of linked) {
+        try {
+          const result = generateBlueprints(draft, estate)
+          // Use estate-optimized as the canonical signal source.
+          next.set(draft.sourceUseCaseId!, {
+            reuseRatio: result.estateOptimized.reuseRatio,
+            gapCount: result.estateOptimized.gapCount,
+          })
+        } catch {
+          // Skip drafts that fail to generate (e.g., missing capabilities).
+        }
+      }
+      setBlueprintSignals(next)
+    })
+    return () => { cancelled = true }
+  }, [selectedCustomerId, blueprintEstatesByCustomer, blueprintUseCasesByCustomer])
+
+  // Deterministic Markdown annex appended to executive summary exports.
+  const execSummaryBlueprintAnnex = useMemo(() => {
+    if (!selectedCustomerId) return ''
+    const estate = blueprintEstatesByCustomer[selectedCustomerId]
+    const drafts = blueprintUseCasesByCustomer[selectedCustomerId] ?? []
+    if (!estate || drafts.length === 0 || filteredUseCases.length === 0) return ''
+    try {
+      return buildSolutionPathsAnnex(filteredUseCases, drafts, estate)
+    } catch {
+      return ''
+    }
+  }, [selectedCustomerId, blueprintEstatesByCustomer, blueprintUseCasesByCustomer, filteredUseCases])
+
   
   const customerMetadata: CustomerMetadata | null = selectedSession ? {
     customerName: selectedSession.customerName,
@@ -360,7 +419,7 @@ function App() {
     setCurrentView('session-metadata')
   }
 
-  const handleStartAIAssessment = () => {
+  const handleStartSovereignCloud = () => {
     if (selectedSessionId && selectedSession) {
       setCurrentView('sovereign-cloud')
       return
@@ -371,15 +430,32 @@ function App() {
     setCurrentView('session-metadata')
   }
 
-  const handleStartSovereignCloud = () => {
-    if (selectedSessionId && selectedSession) {
-      setCurrentView('sovereign-cloud')
+  const [pendingBlueprintSeed, setPendingBlueprintSeed] = useState<{
+    name: string
+    description?: string
+    archetypeId?: string
+    sovereigntyRequired?: boolean
+    sourceUseCaseId?: string
+  } | null>(null)
+
+  const handleStartSolutionBlueprint = (opts?: { fromUseCase?: UseCase }) => {
+    if (opts?.fromUseCase) {
+      const uc = opts.fromUseCase
+      // Lazy-load to keep landing bundle small.
+      import('@/lib/solution-blueprint/archetype-inference').then(m => {
+        const inferred = m.inferArchetype(uc)
+        setPendingBlueprintSeed({
+          name: uc.title,
+          description: uc.description,
+          archetypeId: inferred?.archetype.id,
+          sourceUseCaseId: uc.id,
+        })
+        setCurrentView('solution-blueprint')
+      })
       return
     }
-
-    resetPendingDiscoveryDraft()
-    setDiscoveryMode('sovereign-cloud')
-    setCurrentView('session-metadata')
+    setPendingBlueprintSeed(null)
+    setCurrentView('solution-blueprint')
   }
 
   const handleStartLiveDiscovery = () => {
@@ -538,7 +614,7 @@ function App() {
   }
   
   const handleSessionMetadataSubmit = (metadata: SessionMetadata) => {
-    if (discoveryMode === 'ai-assessment' || discoveryMode === 'sovereign-cloud') {
+    if (discoveryMode === 'sovereign-cloud') {
       const session: DiscoverySession = {
         id: `ai-${Date.now()}`,
         customerId: '',
@@ -564,7 +640,7 @@ function App() {
       setSelectedCustomerId(customer.id)
       setSelectedSessionId(session.id)
       setDiscoveryMode('standard')
-      setCurrentView('ai-assessment')
+      setCurrentView('sovereign-cloud')
       return
     }
 
@@ -647,38 +723,6 @@ function App() {
   const handleNotesCancel = () => {
     setCurrentView('landing')
     setNotesSession(null)
-  }
-
-  const handleSkipToUseCases = () => {
-    // Create a minimal session for direct use case entry
-    const minimalSession: DiscoverySession = {
-      id: `direct-${Date.now()}`,
-      customerId: '',
-      customerName: 'Quick Session',
-      name: 'Quick Session',
-      innovationHubSPOC: '',
-      primaryStakeholder: '',
-      accountTeamRep: '',
-      innovationHubLocation: '',
-      solutionEngineer: '',
-      industry: 'general',
-      responses: [],
-      suggestedUseCases: [],
-      creationSource: 'skip-to-use-cases',
-      createdAt: Date.now(),
-      completedAt: Date.now(),
-    }
-    
-    const customer = findOrCreateCustomer('Quick Session', '', undefined)
-    minimalSession.customerId = customer.id
-    addSession(minimalSession)
-    setSelectedCustomerId(customer.id)
-    setSelectedSessionId(minimalSession.id)
-    setCurrentView('dashboard')
-    
-    toast.success('Ready to add use cases!', {
-      description: 'You can edit customer details anytime.',
-    })
   }
 
   // Handle template selection from industry templates
@@ -780,10 +824,10 @@ function App() {
             handleStartDiscovery()
           }}
           onStartSovereignCloud={handleStartSovereignCloud}
+          onStartSolutionBlueprint={handleStartSolutionBlueprint}
           onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
           onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
-          onSkipToUseCases={handleSkipToUseCases}
           onSelectTemplate={handleSelectTemplate}
           isDemoMode={isDemoMode}
           demoIndustry={demoIndustry}
@@ -813,7 +857,7 @@ function App() {
         </>
       )}
 
-      {(currentView === 'ai-assessment' || currentView === 'sovereign-cloud') && (
+      {currentView === 'sovereign-cloud' && (
         <>
           <NavigationHeader
             onBackToLanding={handleBackToLanding}
@@ -849,8 +893,48 @@ function App() {
                 onConclude={() => setCurrentView('dashboard')}
                 isDemoMode={isDemoMode}
                 demoIndustry={demoIndustry}
+                initialEstate={selectedSession.customerId ? blueprintEstatesByCustomer[selectedSession.customerId] ?? null : null}
+                onEstatePatch={async (patch) => {
+                  const cid = selectedSession.customerId
+                  if (!cid) return
+                  const { EMPTY_ESTATE } = await import('@/lib/solution-blueprint/types')
+                  setBlueprintEstatesByCustomer((prev) => {
+                    const existing = prev[cid]
+                    const customerName = customers.find(c => c.id === cid)?.name ?? selectedSession.customerName ?? 'Unknown'
+                    const base: import('@/lib/solution-blueprint/types').TechnologyEstate = existing ?? {
+                      ...EMPTY_ESTATE,
+                      id: `estate-${cid}`,
+                      customerId: cid,
+                      customerName,
+                      updatedAt: Date.now(),
+                    }
+                    return {
+                      ...prev,
+                      [cid]: { ...base, ...patch, updatedAt: Date.now() },
+                    }
+                  })
+                }}
               />
             )}
+          </div>
+        </>
+      )}
+
+      {currentView === 'solution-blueprint' && (
+        <>
+          <NavigationHeader
+            onBackToLanding={handleBackToLanding}
+            onBack={handleBackToLanding}
+            backLabel="Back"
+            title="Solution Blueprint"
+            subtitle="Use-case led envisioning \u2014 best-fit vs estate-optimized"
+          />
+          <div className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
+            <SolutionBlueprintWorkspace
+              customers={customers}
+              initialCustomerId={selectedCustomerId}
+              initialUseCase={pendingBlueprintSeed}
+            />
           </div>
         </>
       )}
@@ -1287,6 +1371,7 @@ function App() {
                         onSelectUseCase={setSelectedUseCaseId}
                         showDescription={showImpactFeasibilityDesc}
                         onToggleDescription={() => setShowImpactFeasibilityDesc(!showImpactFeasibilityDesc)}
+                        blueprintSignals={blueprintSignals}
                       />
                     </motion.div>
                   )}
@@ -1532,6 +1617,7 @@ function App() {
                           onUpdate={handleUpdateUseCase}
                           onDelete={handleDeleteUseCase}
                           onEdit={handleEditUseCase}
+                          onGenerateBlueprint={(uc) => handleStartSolutionBlueprint({ fromUseCase: uc })}
                         />
                       ))}
                     </AnimatePresence>
@@ -1587,6 +1673,7 @@ function App() {
               onOpenChange={setExecSummaryGeneratorOpen}
               session={selectedSession}
               useCases={filteredUseCases}
+              blueprintAnnex={execSummaryBlueprintAnnex}
               onSaveSummary={(summary) => {
                 if (!selectedSessionId) return
                 updateSession(selectedSessionId, { executiveSummary: summary })
