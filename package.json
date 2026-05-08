@@ -8,7 +8,8 @@
         "dev": "vite",
         "build": "tsc -b --noCheck && vite build",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "fetch-icons": "node scripts/fetch-architecture-icons.mjs"
     },
     "dependencies": {
         "@hookform/resolvers": "^4.1.3",
