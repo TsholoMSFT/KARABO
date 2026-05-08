@@ -13,12 +13,19 @@ const MermaidDiagram = lazy(() =>
   import('./MermaidDiagram').then(m => ({ default: m.MermaidDiagram })),
 )
 
+const FlowDiagram = lazy(() =>
+  import('./FlowDiagram').then(m => ({ default: m.FlowDiagram })),
+)
+
 interface BlueprintDiagramProps {
   result: BlueprintResult
   defaultPath?: BlueprintPathKind | 'side-by-side'
+  /** Optional — used to persist Flow layout drags per use case. */
+  useCaseId?: string
 }
 
 type ViewMode = BlueprintPathKind | 'side-by-side'
+type Renderer = 'mermaid' | 'interactive'
 
 function downloadSvg(svg: string, filename: string) {
   const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
@@ -33,10 +40,14 @@ function downloadSvg(svg: string, filename: string) {
 function PathPanel({
   result,
   path,
+  renderer,
+  flowLayoutKey,
   onSvgReady,
 }: {
   result: BlueprintResult
   path: BlueprintPathKind
+  renderer: Renderer
+  flowLayoutKey?: string
   onSvgReady?: (svg: string) => void
 }) {
   const source = useMemo(() => toMermaid(result, path), [result, path])
@@ -69,11 +80,20 @@ function PathPanel({
       </div>
 
       <Suspense fallback={<Skeleton className="h-72 w-full" />}>
-        <MermaidDiagram
-          source={source}
-          onRendered={svg => onSvgReady?.(svg.outerHTML)}
-          className="rounded-md border bg-card p-3"
-        />
+        {renderer === 'mermaid' ? (
+          <MermaidDiagram
+            source={source}
+            onRendered={svg => onSvgReady?.(svg.outerHTML)}
+            className="rounded-md border bg-card p-3"
+          />
+        ) : (
+          <FlowDiagram
+            result={result}
+            pathKind={path}
+            flowLayoutKey={flowLayoutKey ? `${flowLayoutKey}:${path}` : undefined}
+            className="rounded-md border bg-card"
+          />
+        )}
       </Suspense>
 
       <ComponentsLegend blueprint={blueprint} />
@@ -129,28 +149,38 @@ function ComponentsLegend({ blueprint }: { blueprint: import('@/lib/solution-blu
   )
 }
 
-export function BlueprintDiagram({ result, defaultPath = 'side-by-side' }: BlueprintDiagramProps) {
+export function BlueprintDiagram({ result, defaultPath = 'side-by-side', useCaseId }: BlueprintDiagramProps) {
   const [mode, setMode] = useState<ViewMode>(defaultPath)
+  const [renderer, setRenderer] = useState<Renderer>('mermaid')
   const [svgA, setSvgA] = useState<string | null>(null)
   const [svgB, setSvgB] = useState<string | null>(null)
 
   const slug = result.useCase.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'blueprint'
+  const flowLayoutKey = useCaseId ? `karabo:flow-layout:${useCaseId}` : undefined
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Tabs value={mode} onValueChange={v => setMode(v as ViewMode)}>
-          <TabsList>
-            <TabsTrigger value="best-fit">Path A</TabsTrigger>
-            <TabsTrigger value="estate-optimized">Path B</TabsTrigger>
-            <TabsTrigger value="side-by-side">Side-by-side</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-wrap items-center gap-2">
+          <Tabs value={mode} onValueChange={v => setMode(v as ViewMode)}>
+            <TabsList>
+              <TabsTrigger value="best-fit">Path A</TabsTrigger>
+              <TabsTrigger value="estate-optimized">Path B</TabsTrigger>
+              <TabsTrigger value="side-by-side">Side-by-side</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Tabs value={renderer} onValueChange={v => setRenderer(v as Renderer)}>
+            <TabsList>
+              <TabsTrigger value="mermaid">Mermaid</TabsTrigger>
+              <TabsTrigger value="interactive">Interactive</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
         <div className="flex gap-1">
           <Button
             variant="outline"
             size="sm"
-            disabled={!svgA}
+            disabled={!svgA || renderer !== 'mermaid'}
             onClick={() => svgA && downloadSvg(svgA, `${slug}-best-fit.svg`)}
           >
             <Download className="mr-1 size-3.5" /> Path A SVG
@@ -158,7 +188,7 @@ export function BlueprintDiagram({ result, defaultPath = 'side-by-side' }: Bluep
           <Button
             variant="outline"
             size="sm"
-            disabled={!svgB}
+            disabled={!svgB || renderer !== 'mermaid'}
             onClick={() => svgB && downloadSvg(svgB, `${slug}-estate-optimized.svg`)}
           >
             <Download className="mr-1 size-3.5" /> Path B SVG
@@ -168,15 +198,15 @@ export function BlueprintDiagram({ result, defaultPath = 'side-by-side' }: Bluep
 
       <Tabs value={mode}>
         <TabsContent value="best-fit" className="mt-0">
-          <PathPanel result={result} path="best-fit" onSvgReady={setSvgA} />
+          <PathPanel result={result} path="best-fit" renderer={renderer} flowLayoutKey={flowLayoutKey} onSvgReady={setSvgA} />
         </TabsContent>
         <TabsContent value="estate-optimized" className="mt-0">
-          <PathPanel result={result} path="estate-optimized" onSvgReady={setSvgB} />
+          <PathPanel result={result} path="estate-optimized" renderer={renderer} flowLayoutKey={flowLayoutKey} onSvgReady={setSvgB} />
         </TabsContent>
         <TabsContent value="side-by-side" className="mt-0">
           <div className="grid gap-4 lg:grid-cols-2">
-            <PathPanel result={result} path="best-fit" onSvgReady={setSvgA} />
-            <PathPanel result={result} path="estate-optimized" onSvgReady={setSvgB} />
+            <PathPanel result={result} path="best-fit" renderer={renderer} flowLayoutKey={flowLayoutKey} onSvgReady={setSvgA} />
+            <PathPanel result={result} path="estate-optimized" renderer={renderer} flowLayoutKey={flowLayoutKey} onSvgReady={setSvgB} />
           </div>
         </TabsContent>
       </Tabs>

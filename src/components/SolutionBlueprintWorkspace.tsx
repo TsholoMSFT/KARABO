@@ -367,7 +367,10 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
                 </CardHeader>
                 <CardContent>
                   <Suspense fallback={<div className="h-72 animate-pulse rounded-md bg-muted" />}>
-                    <BlueprintDiagram result={blueprintResult} />
+                    <BlueprintDiagram
+                      result={blueprintResult}
+                      useCaseId={activeUseCase?.sourceUseCaseId ?? activeUseCaseId ?? undefined}
+                    />
                   </Suspense>
                 </CardContent>
               </Card>

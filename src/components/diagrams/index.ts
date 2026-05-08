@@ -1,3 +1,5 @@
 export { BlueprintDiagram } from './BlueprintDiagram'
 export { MermaidDiagram } from './MermaidDiagram'
+export { FlowDiagram } from './FlowDiagram'
 export { AzureIcon } from './AzureIcon'
+export { AzureServiceNode } from './AzureServiceNode'
