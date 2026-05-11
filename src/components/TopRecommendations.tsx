@@ -1,7 +1,9 @@
 import type { UseCase, ScoringMethod } from '@/lib/types'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Sparkle, TrendUp, Lightning, Calculator, CurrencyDollar } from '@phosphor-icons/react'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Sparkle, TrendUp, Lightning, Calculator, CurrencyDollar, TreeStructure } from '@phosphor-icons/react'
 import { calculateFinancialImpactScore, calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { motion } from 'framer-motion'
 import { useMemo } from 'react'
@@ -10,12 +12,15 @@ interface TopRecommendationsProps {
   topUseCases: UseCase[]
   scoringMethod: ScoringMethod
   onSelectUseCase: (id: string) => void
+  /** Optional: when provided, each row shows a "Generate blueprint" action. */
+  onGenerateBlueprint?: (useCase: UseCase) => void
 }
 
 export function TopRecommendations({
   topUseCases,
   scoringMethod,
   onSelectUseCase,
+  onGenerateBlueprint,
 }: TopRecommendationsProps) {
   // Calculate aggregate financial impact
   const financialSummary = useMemo(() => {
@@ -188,6 +193,26 @@ export function TopRecommendations({
                     )}
                   </div>
                 </div>
+                {onGenerateBlueprint && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="flex-shrink-0 self-center"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onGenerateBlueprint(useCase)
+                        }}
+                      >
+                        <TreeStructure size={18} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {useCase.solutionBlueprint ? 'Open Solution Blueprint' : 'Generate Solution Blueprint'}
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </motion.div>
               </motion.div>
             )

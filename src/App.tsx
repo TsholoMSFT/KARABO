@@ -512,6 +512,11 @@ function App() {
           sourceUseCaseId: uc.id,
         })
         setCurrentView('solution-blueprint')
+        if (inferred) {
+          toast.success(inferred.rationale, { duration: 5000 })
+        } else {
+          toast.message('Pre-filled blueprint — pick an archetype to continue.', { duration: 4000 })
+        }
       })
       return
     }
@@ -1424,6 +1429,7 @@ function App() {
                   topUseCases={topUseCases}
                   scoringMethod={scoringMethod}
                   onSelectUseCase={setSelectedUseCaseId}
+                  onGenerateBlueprint={(uc) => handleStartSolutionBlueprint({ fromUseCase: uc })}
                 />
 
                 <AnimatePresence mode="wait">
