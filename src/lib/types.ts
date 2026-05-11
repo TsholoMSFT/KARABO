@@ -469,6 +469,18 @@ export interface UseCase {
   consumptionEstimate?: ConsumptionEstimate
   partner?: WorkloadPartner
   linkedWorkloadIds?: string[]      // Workloads this use case depends on or enhances
+
+  // ============================================================================
+  // LGROLNP (Khalsa) — "Move off the solution" gate + qualify-out support.
+  // ============================================================================
+  /** Pursue/defer/no-go disposition. Defaults to 'pursue' implicitly when undefined. */
+  disposition?: 'pursue' | 'defer' | 'no-go'
+  /** Why this was deferred or no-go'd (so future sessions don't re-litigate). */
+  dispositionNote?: string
+  /** True when the customer has confirmed the problem statement in their words. */
+  problemConfirmed?: boolean
+  /** Customer's problem statement (their words, not the seller's framing). */
+  problemStatement?: string
 }
 
 // ============================================================================

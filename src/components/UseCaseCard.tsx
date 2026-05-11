@@ -12,7 +12,7 @@ import { UseCaseSourceBadges } from '@/components/ui/use-case-source-badge'
 import { REFERENCE_ARCHITECTURES } from '@/lib/microsoft-solutions'
 import { calculateATMScore } from '@/lib/atm-scoring'
 import { ATMBadge } from '@/components/ATMBadge'
-import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight } from '@phosphor-icons/react'
+import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight, CheckCircle, Question, Pause, Prohibit } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
 import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
@@ -44,6 +44,18 @@ export function UseCaseCard({
   const [showCompliance, setShowCompliance] = useState(false)
   const [showCOI, setShowCOI] = useState(false)
   const [showInnovationHub, setShowInnovationHub] = useState(false)
+  const [showProblemEditor, setShowProblemEditor] = useState(false)
+  const [problemDraft, setProblemDraft] = useState(useCase.problemStatement ?? '')
+  const disposition = useCase.disposition ?? 'pursue'
+  const problemConfirmed = !!useCase.problemConfirmed
+  const cycleDisposition = () => {
+    const next = disposition === 'pursue' ? 'defer' : disposition === 'defer' ? 'no-go' : 'pursue'
+    onUpdate({ ...useCase, disposition: next })
+  }
+  const confirmProblem = () => {
+    onUpdate({ ...useCase, problemStatement: problemDraft.trim(), problemConfirmed: true })
+    setShowProblemEditor(false)
+  }
   const riceScore = calculateRICEScore(useCase)
   const impactFeasScore = useCase.impact * useCase.feasibility
   const quadrant = getQuadrant(useCase.impact, useCase.feasibility)
@@ -230,14 +242,56 @@ export function UseCaseCard({
             )}
           </div>
           <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-8 px-2 gap-1 text-xs ${
+                    disposition === 'pursue'
+                      ? 'text-emerald-600 hover:text-emerald-700'
+                      : disposition === 'defer'
+                        ? 'text-amber-600 hover:text-amber-700'
+                        : 'text-rose-600 hover:text-rose-700'
+                  }`}
+                  onClick={cycleDisposition}
+                >
+                  {disposition === 'pursue' && <CheckCircle size={14} weight="fill" />}
+                  {disposition === 'defer' && <Pause size={14} weight="fill" />}
+                  {disposition === 'no-go' && <Prohibit size={14} weight="fill" />}
+                  <span className="capitalize">{disposition === 'no-go' ? 'No-Go' : disposition}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Click to cycle disposition (Pursue → Defer → No-Go)</TooltipContent>
+            </Tooltip>
             {onGenerateBlueprint && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={() => onGenerateBlueprint(useCase)}>
-                    <TreeStructure size={18} />
-                  </Button>
+                  <span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (!problemConfirmed) {
+                          setShowProblemEditor(true)
+                          return
+                        }
+                        onGenerateBlueprint(useCase)
+                      }}
+                      disabled={disposition === 'no-go'}
+                      className={!problemConfirmed ? 'text-amber-600' : ''}
+                    >
+                      {problemConfirmed ? <TreeStructure size={18} /> : <Question size={18} />}
+                    </Button>
+                  </span>
                 </TooltipTrigger>
-                <TooltipContent>Generate Solution Blueprint</TooltipContent>
+                <TooltipContent>
+                  {disposition === 'no-go'
+                    ? 'Marked No-Go — change disposition to generate a blueprint'
+                    : problemConfirmed
+                      ? 'Generate Solution Blueprint'
+                      : 'Confirm problem statement first (move off the solution)'}
+                </TooltipContent>
               </Tooltip>
             )}
             <Button variant="ghost" size="icon" onClick={() => onEdit(useCase)}>
@@ -248,6 +302,53 @@ export function UseCaseCard({
             </Button>
           </div>
         </div>
+
+        {(showProblemEditor || (problemConfirmed && useCase.problemStatement)) && (
+          <div className="mt-3 rounded-md border border-border/60 bg-muted/30 p-3">
+            <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
+              <Question size={14} weight="bold" />
+              <span className="font-medium">Problem statement (in the customer's words)</span>
+              {problemConfirmed && (
+                <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+                  Confirmed
+                </Badge>
+              )}
+            </div>
+            {showProblemEditor ? (
+              <div className="space-y-2">
+                <textarea
+                  value={problemDraft}
+                  onChange={(e) => setProblemDraft(e.target.value)}
+                  placeholder="What outcome is the customer trying to achieve, in their words? (Khalsa: move off the solution.)"
+                  className="w-full min-h-[72px] rounded border bg-background px-2 py-1.5 text-xs"
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" className="h-7 text-xs" onClick={confirmProblem} disabled={!problemDraft.trim()}>
+                    <CheckCircle size={12} className="mr-1" /> Confirm & generate blueprint
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowProblemEditor(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs italic text-foreground/80 flex-1">“{useCase.problemStatement}”</p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => {
+                    setProblemDraft(useCase.problemStatement ?? '')
+                    setShowProblemEditor(true)
+                  }}
+                >
+                  Edit
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
 
         <motion.div
           key={scoringMethod}
