@@ -3,10 +3,10 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Sparkle, TrendUp, Lightning, Calculator, CurrencyDollar, TreeStructure } from '@phosphor-icons/react'
+import { Sparkle, TrendUp, Lightning, Calculator, CurrencyDollar, TreeStructure, Eye } from '@phosphor-icons/react'
 import { calculateFinancialImpactScore, calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { motion } from 'framer-motion'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 interface TopRecommendationsProps {
   topUseCases: UseCase[]
@@ -22,6 +22,12 @@ export function TopRecommendations({
   onSelectUseCase,
   onGenerateBlueprint,
 }: TopRecommendationsProps) {
+  // LGROLNP: hide No-Go by default; show Defer rows muted.
+  const [showHidden, setShowHidden] = useState(false)
+  const hiddenCount = topUseCases.filter(uc => (uc.disposition ?? 'pursue') === 'no-go').length
+  const visibleUseCases = showHidden
+    ? topUseCases
+    : topUseCases.filter(uc => (uc.disposition ?? 'pursue') !== 'no-go')
   // Calculate aggregate financial impact
   const financialSummary = useMemo(() => {
     const withCOI = topUseCases.filter(uc => uc.costOfInaction?.totalAnnualCOI)
@@ -50,7 +56,18 @@ export function TopRecommendations({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sparkle size={24} weight="fill" className="text-accent" />
-            <h2 className="text-xl font-bold text-foreground">Top Recommendations</h2>
+            <h2 className="text-xl font-bold text-foreground">Highest mutual-fit use cases</h2>
+            {hiddenCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[11px] text-muted-foreground"
+                onClick={() => setShowHidden(s => !s)}
+              >
+                <Eye size={12} className="mr-1" />
+                {showHidden ? `Hide ${hiddenCount} No-Go` : `Show ${hiddenCount} No-Go`}
+              </Button>
+            )}
           </div>
           
           {/* Financial Impact Summary */}
@@ -74,7 +91,7 @@ export function TopRecommendations({
           )}
         </div>
         <div className="space-y-3">
-          {topUseCases.map((useCase, index) => {
+          {visibleUseCases.map((useCase, index) => {
             const score = scoringMethod === 'rice'
               ? calculateRICEScore(useCase)
               : scoringMethod === 'impact-feasibility'
@@ -83,6 +100,9 @@ export function TopRecommendations({
 
             const quadrant = getQuadrant(useCase.impact, useCase.feasibility)
             const isQuickWin = quadrant === 'Quick Wins'
+            const disposition = useCase.disposition ?? 'pursue'
+            const isDeferred = disposition === 'defer'
+            const isNoGo = disposition === 'no-go'
             const scoreLabel = scoringMethod === 'rice' ? 'RICE' : scoringMethod === 'impact-feasibility' ? 'Score' : 'Impact'
 
             return (
@@ -97,7 +117,7 @@ export function TopRecommendations({
                   default: { delay: index * 0.08, duration: 0.4 }
                 }}
                 onClick={() => onSelectUseCase(useCase.id)}
-                className="cursor-pointer"
+                className={`cursor-pointer ${isDeferred || isNoGo ? 'opacity-60' : ''}`}
               >
                 <motion.div
                   animate={{
@@ -200,6 +220,7 @@ export function TopRecommendations({
                         variant="ghost"
                         size="icon"
                         className="flex-shrink-0 self-center"
+                        disabled={isNoGo}
                         onClick={(e) => {
                           e.stopPropagation()
                           onGenerateBlueprint(useCase)
@@ -209,7 +230,9 @@ export function TopRecommendations({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {useCase.solutionBlueprint ? 'Open Solution Blueprint' : 'Generate Solution Blueprint'}
+                      {isNoGo
+                        ? 'Marked No-Go'
+                        : useCase.solutionBlueprint ? 'Open Solution Blueprint' : 'Draft solution to discuss'}
                     </TooltipContent>
                   </Tooltip>
                 )}

@@ -137,6 +137,14 @@ function ComponentsLegend({ blueprint }: { blueprint: import('@/lib/solution-blu
                     {c.service && <span className="text-muted-foreground"> — {c.service.name}</span>}
                     {c.gap && <Badge variant="destructive" className="ml-2 text-[10px]">gap</Badge>}
                     {c.reused && <Badge variant="outline" className="ml-2 text-[10px]">reused</Badge>}
+                    {c.kpiImpact && (
+                      <Badge variant="outline" className="ml-2 text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+                        {c.kpiImpact.deltaPct != null
+                          ? `${c.kpiImpact.deltaPct > 0 ? '+' : ''}${c.kpiImpact.deltaPct}% ${c.kpiImpact.kpiId}`
+                          : c.kpiImpact.kpiId}
+                        {c.kpiImpact.timeToValueMonths != null && ` · ${c.kpiImpact.timeToValueMonths}mo`}
+                      </Badge>
+                    )}
                   </span>
                   {c.service && <LearnMorePopover query={`${c.service.name} Azure`} />}
                 </li>

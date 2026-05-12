@@ -12,7 +12,7 @@ import { UseCaseSourceBadges } from '@/components/ui/use-case-source-badge'
 import { REFERENCE_ARCHITECTURES } from '@/lib/microsoft-solutions'
 import { calculateATMScore } from '@/lib/atm-scoring'
 import { ATMBadge } from '@/components/ATMBadge'
-import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight, CheckCircle, Question, Pause, Prohibit } from '@phosphor-icons/react'
+import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight, CheckCircle, Question, Pause, Prohibit, X } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
 import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
@@ -46,6 +46,33 @@ export function UseCaseCard({
   const [showInnovationHub, setShowInnovationHub] = useState(false)
   const [showProblemEditor, setShowProblemEditor] = useState(false)
   const [problemDraft, setProblemDraft] = useState(useCase.problemStatement ?? '')
+  const [showQuestions, setShowQuestions] = useState(false)
+  const [newQuestion, setNewQuestion] = useState('')
+  const openQuestions = useCase.openQuestions ?? []
+  const unansweredCount = openQuestions.filter(q => !q.answeredAt).length
+  const addQuestion = () => {
+    const q = newQuestion.trim()
+    if (!q) return
+    onUpdate({
+      ...useCase,
+      openQuestions: [
+        ...openQuestions,
+        { id: Math.random().toString(36).slice(2), question: q, askedAt: Date.now() },
+      ],
+    })
+    setNewQuestion('')
+  }
+  const answerQuestion = (id: string, answer: string) => {
+    onUpdate({
+      ...useCase,
+      openQuestions: openQuestions.map(q =>
+        q.id === id ? { ...q, answer, answeredAt: Date.now() } : q,
+      ),
+    })
+  }
+  const removeQuestion = (id: string) => {
+    onUpdate({ ...useCase, openQuestions: openQuestions.filter(q => q.id !== id) })
+  }
   const disposition = useCase.disposition ?? 'pursue'
   const problemConfirmed = !!useCase.problemConfirmed
   const cycleDisposition = () => {
@@ -287,9 +314,9 @@ export function UseCaseCard({
                 </TooltipTrigger>
                 <TooltipContent>
                   {disposition === 'no-go'
-                    ? 'Marked No-Go — change disposition to generate a blueprint'
+                    ? 'Marked No-Go — change disposition to draft a solution'
                     : problemConfirmed
-                      ? 'Generate Solution Blueprint'
+                      ? 'Draft solution to discuss'
                       : 'Confirm problem statement first (move off the solution)'}
                 </TooltipContent>
               </Tooltip>
@@ -324,7 +351,7 @@ export function UseCaseCard({
                 />
                 <div className="flex gap-2">
                   <Button size="sm" className="h-7 text-xs" onClick={confirmProblem} disabled={!problemDraft.trim()}>
-                    <CheckCircle size={12} className="mr-1" /> Confirm & generate blueprint
+                    <CheckCircle size={12} className="mr-1" /> Confirm & draft solution
                   </Button>
                   <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowProblemEditor(false)}>
                     Cancel
@@ -349,6 +376,76 @@ export function UseCaseCard({
             )}
           </div>
         )}
+
+        {/* LGROLNP: explicit ignorance — open questions */}
+        <div className="mt-3">
+          <button
+            onClick={() => setShowQuestions(!showQuestions)}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+          >
+            <Question size={14} weight="bold" />
+            <span className="font-medium">Open questions</span>
+            {openQuestions.length > 0 && (
+              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${unansweredCount > 0 ? 'bg-amber-500/10 text-amber-700 border-amber-500/30' : 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'}`}>
+                {unansweredCount > 0 ? `${unansweredCount} open` : `${openQuestions.length} resolved`}
+              </Badge>
+            )}
+            {showQuestions ? <CaretUp size={12} className="ml-auto" /> : <CaretDown size={12} className="ml-auto" />}
+          </button>
+          <AnimatePresence>
+            {showQuestions && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-2 space-y-2">
+                  {openQuestions.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground italic">No open questions yet. Capturing what you don't know is as valuable as what you do.</p>
+                  )}
+                  {openQuestions.map(q => (
+                    <div key={q.id} className="rounded-md border border-border/60 bg-muted/20 px-2 py-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className={`text-xs flex-1 ${q.answeredAt ? 'text-muted-foreground line-through' : ''}`}>{q.question}</p>
+                        <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => removeQuestion(q.id)}>
+                          <X size={10} />
+                        </Button>
+                      </div>
+                      {q.answer ? (
+                        <p className="mt-1 text-[11px] text-emerald-700">→ {q.answer}</p>
+                      ) : (
+                        <input
+                          type="text"
+                          placeholder="Answer (Enter to save)"
+                          className="mt-1 w-full rounded border bg-background px-2 py-1 text-[11px]"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && (e.currentTarget.value || '').trim()) {
+                              answerQuestion(q.id, e.currentTarget.value.trim())
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <Input
+                      value={newQuestion}
+                      onChange={(e) => setNewQuestion(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') addQuestion() }}
+                      placeholder="What don't we know yet?"
+                      className="h-7 text-xs"
+                    />
+                    <Button size="sm" className="h-7 text-xs" onClick={addQuestion} disabled={!newQuestion.trim()}>
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
         <motion.div
           key={scoringMethod}

@@ -245,6 +245,21 @@ export interface BlueprintComponent {
   /** True if no acceptable service was found for this capability. */
   gap: boolean
   rationale: string
+  /**
+   * LGROLNP outcome contract: ties this component to a measurable KPI.
+   * Captured manually post-generation; lets exec summary + exports answer
+   * "why does this service exist in the blueprint?".
+   */
+  kpiImpact?: {
+    /** KPI id from src/lib/kpis (or freeform string for unlisted KPIs). */
+    kpiId: string
+    /** Expected % movement on the KPI. Negative = reduction (e.g. cycle time). */
+    deltaPct?: number
+    /** How the delta will be measured (telemetry source, query, baseline). */
+    measurementMethod?: string
+    /** Time to first observable impact, in months. */
+    timeToValueMonths?: number
+  }
 }
 
 export type BlueprintPathKind = 'best-fit' | 'estate-optimized'

@@ -481,6 +481,18 @@ export interface UseCase {
   problemConfirmed?: boolean
   /** Customer's problem statement (their words, not the seller's framing). */
   problemStatement?: string
+  /**
+   * Khalsa: explicit ignorance. Open questions surfaced during discovery
+   * that block confident progression. Each item can be resolved (answered)
+   * inline so the audit trail of what was unknown survives.
+   */
+  openQuestions?: Array<{
+    id: string
+    question: string
+    answer?: string
+    askedAt: number
+    answeredAt?: number
+  }>
 }
 
 // ============================================================================
