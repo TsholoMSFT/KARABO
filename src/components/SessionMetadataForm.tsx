@@ -10,6 +10,7 @@ import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { useCustomers } from '@/hooks/use-customers'
 import { lookupTickerSymbol, TickerLookupResult } from '@/lib/earnings-service'
+import { fetchCompanyFinancials } from '@/lib/economic-context-service'
 import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext, AccountSegment, ACCOUNT_SEGMENT_LABELS, ACCOUNT_SEGMENT_DESCRIPTIONS, ACCOUNT_SEGMENT_META, UserRole, USER_ROLE_LABELS, USER_ROLE_DESCRIPTIONS, USER_ROLE_ICONS } from '@/lib/types'
 import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info, ShieldCheck, CurrencyDollar, Buildings, UsersThree } from '@phosphor-icons/react'
 import { toast } from 'sonner'
@@ -102,6 +103,8 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
   const [isSearchingTicker, setIsSearchingTicker] = useState(false)
   const [showTickerSuggestions, setShowTickerSuggestions] = useState(false)
   const [tickerAutoPopulated, setTickerAutoPopulated] = useState(false)
+  const [enrichmentSources, setEnrichmentSources] = useState<string[]>([])
+  const [isEnriching, setIsEnriching] = useState(false)
 
   // Pre-fill with demo data when demo mode is active
   useEffect(() => {
@@ -168,6 +171,46 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
     setTickerAutoPopulated(true)
     toast.success(`Ticker ${ticker.ticker} selected`)
   }
+
+  // Auto-enrich from public financial sources whenever a ticker becomes available
+  useEffect(() => {
+    const ticker = metadata.stockTicker?.trim()
+    if (!ticker || ticker.length < 1 || ticker.length > 8) return
+    if (isEnriching) return
+    let cancelled = false
+    const run = async () => {
+      setIsEnriching(true)
+      try {
+        const region = /\./.test(ticker) ? 'GLOBAL' : 'US'
+        const snap = await fetchCompanyFinancials(ticker, region as any)
+        if (cancelled) return
+        setMetadata((current) => {
+          const fin = current.manualFinancials || {}
+          const next = { ...fin }
+          if (snap.revenueUSD && !fin.annualRevenue) next.annualRevenue = Math.round(snap.revenueUSD)
+          if (snap.employees && !fin.employeeCount) next.employeeCount = snap.employees
+          if (!fin.financialSource) next.financialSource = 'document-extraction'
+          if (snap.industry && !fin.keyFinancialMetrics) {
+            next.keyFinancialMetrics = `${snap.industry}${snap.sector ? ' / ' + snap.sector : ''}${snap.country ? ' (' + snap.country + ')' : ''}`
+          }
+          return { ...current, manualFinancials: next }
+        })
+        setEnrichmentSources(snap.sources?.map((s) => s.name) || [])
+        if ((snap.sources?.length ?? 0) > 0) {
+          toast.success(`Auto-enriched from ${snap.sources!.map((s) => s.name).join(', ')}`)
+        }
+      } catch (err) {
+        console.warn('Company financials enrichment failed', err)
+      } finally {
+        if (!cancelled) setIsEnriching(false)
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metadata.stockTicker])
 
   const handleChange = (field: keyof SessionMetadata, value: string) => {
     setMetadata((current) => ({ ...current, [field]: value }))
@@ -537,6 +580,14 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <CurrencyDollar size={16} />
                   Financial Context (Optional)
+                  {isEnriching && (
+                    <Badge variant="outline" className="text-[10px]">Enriching…</Badge>
+                  )}
+                  {!isEnriching && enrichmentSources.length > 0 && (
+                    <Badge variant="secondary" className="text-[10px]" title={enrichmentSources.join(', ')}>
+                      AI inferred · {enrichmentSources.length} source{enrichmentSources.length !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground -mt-2">
                   {metadata.entityType === 'government' 
