@@ -49,6 +49,7 @@ const UseCaseDialog = lazy(() => import('@/components/UseCaseDialog').then(m => 
 const TableExportView = lazy(() => import('@/components/TableExportView').then(m => ({ default: m.TableExportView })))
 const PrioritizationMatrix = lazy(() => import('@/components/PrioritizationMatrix').then(m => ({ default: m.PrioritizationMatrix })))
 const TopRecommendations = lazy(() => import('@/components/TopRecommendations').then(m => ({ default: m.TopRecommendations })))
+const MutualSuccessPlanDialog = lazy(() => import('@/components/MutualSuccessPlan').then(m => ({ default: m.MutualSuccessPlanDialog })))
 const CustomerMetadataComponent = lazy(() => import('@/components/CustomerMetadata').then(m => ({ default: m.CustomerMetadata })))
 const ExecutiveSummary = lazy(() => import('@/components/ExecutiveSummary').then(m => ({ default: m.ExecutiveSummary })))
 const ExecutiveSummaryGeneratorDialog = lazy(() => import('@/components/ExecutiveSummaryGeneratorDialog').then(m => ({ default: m.ExecutiveSummaryGeneratorDialog })))
@@ -1422,6 +1423,10 @@ function App() {
                       <Plus size={20} weight="bold" />
                       Add Use Case
                     </Button>
+                    <MutualSuccessPlanDialog
+                      customerId={selectedCustomerId}
+                      customerName={selectedCustomerId ? customers.find(c => c.id === selectedCustomerId)?.name : undefined}
+                    />
                   </div>
                 </div>
 
