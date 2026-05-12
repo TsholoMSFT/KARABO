@@ -55,6 +55,7 @@ import {
   Database,
   Lightning,
   Lightbulb,
+  Plugs,
   Plus,
   ShieldCheck,
   Sparkle,
@@ -68,6 +69,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { EstateBanner } from './solution-blueprint/EstateBanner'
 import { LearnMorePopover } from './solution-blueprint/LearnMorePopover'
+import { IQConnectionsPanel, type IQInsightHint } from './solution-blueprint/IQConnectionsPanel'
 import { lazy, Suspense } from 'react'
 
 const BlueprintDiagram = lazy(() =>
@@ -313,6 +315,9 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
             <TabsTrigger value="estate" className="gap-2">
               <Buildings size={16} weight="duotone" /> Technology estate
             </TabsTrigger>
+            <TabsTrigger value="connect-data" className="gap-2">
+              <Plugs size={16} weight="duotone" /> Connect data
+            </TabsTrigger>
             <TabsTrigger value="use-cases" className="gap-2">
               <Lightbulb size={16} weight="duotone" /> Use cases ({useCases.length})
             </TabsTrigger>
@@ -329,6 +334,22 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
 
           <TabsContent value="estate">
             <EstatePanel estate={estate} onChange={updateEstate} />
+          </TabsContent>
+
+          <TabsContent value="connect-data">
+            <IQConnectionsPanel
+              customerName={selectedCustomer.name}
+              onApplyHints={(hints: IQInsightHint[]) => {
+                if (!hints.length) return
+                const stamp = new Date().toISOString().slice(0, 10)
+                const lines = hints.map(
+                  (h) => `- [${h.source.toUpperCase()}] ${h.label}${h.detail ? ` — ${h.detail}` : ''}`,
+                )
+                const block = `\n\n## IQ insights (${stamp})\n${lines.join('\n')}`
+                updateEstate({ notes: `${estate.notes || ''}${block}`.trim() })
+                toast.success('Insights appended to estate notes — they will ground the blueprint generator.')
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="use-cases">

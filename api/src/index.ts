@@ -21,3 +21,7 @@ import "./functions/search-knowledge";
 import "./functions/exchange-rates";
 import "./functions/economic-data";
 import "./functions/company-financials";
+import "./functions/graph-query";
+import "./functions/foundry-iq";
+import "./functions/fabric-iq";
+import "./functions/work-iq";

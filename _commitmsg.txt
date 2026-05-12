@@ -1,7 +1,17 @@
-feat(metadata): auto-enrich customer financials from ticker
+feat(blueprint): add Graph/Foundry/Fabric/Work IQ connectors + intern-friendly Connect Data tab
 
-When a stock ticker is set in Session Metadata (manually, via demo
-mode, or via the auto-suggest), call /api/company-financials and
-back-fill annualRevenue, employeeCount, and industry/sector context
-into manualFinancials when fields are empty. Surfaces an "AI inferred"
-badge with the source list (Yahoo / SEC EDGAR / Alpha Vantage / etc.).
+Backend (Azure Functions):
+- api/src/lib/iq-credential.ts: shared SP/MI bearer-token helper with graceful "not configured" payloads
+- api/src/functions/graph-query.ts: Microsoft Graph universal search (search/people/files/messages/org)
+- api/src/functions/foundry-iq.ts: Foundry knowledge index search + agents/models listing
+- api/src/functions/fabric-iq.ts: Fabric workspaces/items/semantic-models + Power BI DAX execute
+- api/src/functions/work-iq.ts: Graph external connectors + Copilot retrieval over LOB content
+- api/src/index.ts: register the four new HTTP triggers
+
+Frontend:
+- src/lib/iq-service.ts: typed client (graphSearch, foundryKnowledge, fabricWorkspaces, workRetrieval, probe)
+- src/components/solution-blueprint/IQConnectionsPanel.tsx: guided wizard
+  * Per-connector card: explainer, status badge, one-click "Pull insights", results list, Apply-to-blueprint
+  * "Pull all" master action; safe fallback to demo when not configured
+- src/components/SolutionBlueprintWorkspace.tsx: new "Connect data" tab between estate and use-cases;
+  applied hints append into TechnologyEstate.notes so the existing recommender grounds on real customer signals
