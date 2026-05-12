@@ -1,8 +1,9 @@
 import type { UseCase, ScoringMethod } from './types'
 
 export function calculateRICEScore(useCase: UseCase): number {
+  if (!useCase.rice) return 0
   const { reach, impact, confidence, effort } = useCase.rice
-  if (effort === 0) return 0
+  if (!effort) return 0
   return (reach * impact * (confidence / 100)) / Math.max(effort, 0.1)
 }
 

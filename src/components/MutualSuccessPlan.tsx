@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Handshake, Plus, X, Download, CheckCircle, Question, Target, Users, FileText } from '@phosphor-icons/react'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
+import { useLocalStorage } from '@/hooks/use-local-storage'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Type

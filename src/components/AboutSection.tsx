@@ -34,7 +34,6 @@ import {
   Factory,
   MagnifyingGlass,
   Briefcase,
-  ShieldCheck,
   Microphone,
   ChartScatter,
   FileMagnifyingGlass,
