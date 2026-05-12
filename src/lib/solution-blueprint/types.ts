@@ -232,6 +232,23 @@ export interface UseCaseInput {
   sovereigntyRequired?: boolean
   /** Back-link to the originating discovered UseCase.id (if any). */
   sourceUseCaseId?: string
+  /**
+   * LGROLNP “Resources” — customer-side commitment required to make this real.
+   * Captured here (not just in CRM) so blueprint discussions stay honest about cost.
+   */
+  customerCommitment?: {
+    decisionMakers?: Array<{ name: string; role: string }>
+    hoursPerWeek?: number
+    dataAccess?: string
+    changeManagementBudget?: number
+    notes?: string
+  }
+  /** Symmetric Microsoft-side commitment so both sides see what's being put in. */
+  microsoftCommitment?: {
+    team?: Array<{ name: string; role: string }>
+    hoursPerWeek?: number
+    notes?: string
+  }
 }
 
 /** A single resolved component in a blueprint — capability + chosen service. */

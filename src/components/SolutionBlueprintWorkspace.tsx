@@ -61,6 +61,8 @@ import {
   TreeStructure,
   Trash,
   Warning,
+  Handshake,
+  X,
 } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
@@ -320,6 +322,9 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
             <TabsTrigger value="diagrams" className="gap-2" disabled={!blueprintResult}>
               <TreeStructure size={16} weight="duotone" /> Diagrams
             </TabsTrigger>
+            <TabsTrigger value="commitments" className="gap-2" disabled={!activeUseCase}>
+              <Handshake size={16} weight="duotone" /> Mutual commitments
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="estate">
@@ -379,6 +384,22 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
                 <CardHeader>
                   <CardTitle>No diagram yet</CardTitle>
                   <CardDescription>Generate a blueprint first to render its architecture diagram.</CardDescription>
+                </CardHeader>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="commitments">
+            {activeUseCase ? (
+              <CommitmentsPanel
+                useCase={activeUseCase}
+                onUpdate={(patch) => updateUseCase(activeUseCase.id, patch)}
+              />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>No use case selected</CardTitle>
+                  <CardDescription>Pick a use case in the Use cases tab to capture mutual commitments.</CardDescription>
                 </CardHeader>
               </Card>
             )}
@@ -658,6 +679,193 @@ function PostureToggle({
 // ───────────────────────────────────────────────────────────────────────────
 // Use cases panel
 // ───────────────────────────────────────────────────────────────────────────
+
+function CommitmentsPanel({
+  useCase,
+  onUpdate,
+}: {
+  useCase: UseCaseInput
+  onUpdate: (patch: Partial<UseCaseInput>) => void
+}) {
+  const cust = useCase.customerCommitment ?? {}
+  const ms = useCase.microsoftCommitment ?? {}
+  const setCust = (patch: Partial<NonNullable<UseCaseInput['customerCommitment']>>) =>
+    onUpdate({ customerCommitment: { ...cust, ...patch } })
+  const setMs = (patch: Partial<NonNullable<UseCaseInput['microsoftCommitment']>>) =>
+    onUpdate({ microsoftCommitment: { ...ms, ...patch } })
+
+  const dms = cust.decisionMakers ?? []
+  const team = ms.team ?? []
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Buildings size={18} weight="duotone" /> Customer commitment
+          </CardTitle>
+          <CardDescription>What the customer puts in. Without this, the blueprint is hypothetical.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label className="text-xs">Decision makers &amp; sponsors</Label>
+            <div className="space-y-1 mt-1">
+              {dms.map((dm, i) => (
+                <div key={i} className="flex gap-1">
+                  <Input
+                    value={dm.name}
+                    placeholder="Name"
+                    className="h-8 text-xs"
+                    onChange={(e) =>
+                      setCust({ decisionMakers: dms.map((d, j) => (j === i ? { ...d, name: e.target.value } : d)) })
+                    }
+                  />
+                  <Input
+                    value={dm.role}
+                    placeholder="Role"
+                    className="h-8 text-xs"
+                    onChange={(e) =>
+                      setCust({ decisionMakers: dms.map((d, j) => (j === i ? { ...d, role: e.target.value } : d)) })
+                    }
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setCust({ decisionMakers: dms.filter((_, j) => j !== i) })}
+                  >
+                    <X size={12} />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setCust({ decisionMakers: [...dms, { name: '', role: '' }] })}
+              >
+                <Plus size={12} className="mr-1" /> Add decision maker
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Hours / week</Label>
+              <Input
+                type="number"
+                min={0}
+                value={cust.hoursPerWeek ?? ''}
+                onChange={(e) => setCust({ hoursPerWeek: e.target.value === '' ? undefined : Number(e.target.value) })}
+                className="h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Change-mgmt budget ($)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={cust.changeManagementBudget ?? ''}
+                onChange={(e) =>
+                  setCust({ changeManagementBudget: e.target.value === '' ? undefined : Number(e.target.value) })
+                }
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Data access required</Label>
+            <textarea
+              value={cust.dataAccess ?? ''}
+              onChange={(e) => setCust({ dataAccess: e.target.value })}
+              placeholder="e.g. read-only access to production CRM by Mar 1"
+              className="w-full min-h-[60px] rounded border bg-background px-2 py-1.5 text-xs"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Notes</Label>
+            <textarea
+              value={cust.notes ?? ''}
+              onChange={(e) => setCust({ notes: e.target.value })}
+              placeholder="Customer-side notes"
+              className="w-full min-h-[40px] rounded border bg-background px-2 py-1.5 text-xs"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sparkle size={18} weight="duotone" /> Microsoft commitment
+          </CardTitle>
+          <CardDescription>What we put in. Symmetric accountability — Khalsa's mutual agenda.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label className="text-xs">Team</Label>
+            <div className="space-y-1 mt-1">
+              {team.map((t, i) => (
+                <div key={i} className="flex gap-1">
+                  <Input
+                    value={t.name}
+                    placeholder="Name"
+                    className="h-8 text-xs"
+                    onChange={(e) =>
+                      setMs({ team: team.map((m, j) => (j === i ? { ...m, name: e.target.value } : m)) })
+                    }
+                  />
+                  <Input
+                    value={t.role}
+                    placeholder="Role"
+                    className="h-8 text-xs"
+                    onChange={(e) =>
+                      setMs({ team: team.map((m, j) => (j === i ? { ...m, role: e.target.value } : m)) })
+                    }
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setMs({ team: team.filter((_, j) => j !== i) })}
+                  >
+                    <X size={12} />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => setMs({ team: [...team, { name: '', role: '' }] })}
+              >
+                <Plus size={12} className="mr-1" /> Add team member
+              </Button>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Hours / week</Label>
+            <Input
+              type="number"
+              min={0}
+              value={ms.hoursPerWeek ?? ''}
+              onChange={(e) => setMs({ hoursPerWeek: e.target.value === '' ? undefined : Number(e.target.value) })}
+              className="h-8 text-xs"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Notes</Label>
+            <textarea
+              value={ms.notes ?? ''}
+              onChange={(e) => setMs({ notes: e.target.value })}
+              placeholder="Microsoft-side notes"
+              className="w-full min-h-[40px] rounded border bg-background px-2 py-1.5 text-xs"
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
 
 function UseCasesPanel({
   useCases,
