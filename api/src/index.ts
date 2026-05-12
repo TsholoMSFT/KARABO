@@ -18,3 +18,6 @@ import "./functions/learn-search";
 import "./functions/learn-fetch";
 import "./functions/embeddings";
 import "./functions/search-knowledge";
+import "./functions/exchange-rates";
+import "./functions/economic-data";
+import "./functions/company-financials";

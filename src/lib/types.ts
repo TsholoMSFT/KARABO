@@ -382,6 +382,49 @@ export interface UseCaseExpectedValue {
   notes?: string                // Calculation assumptions / derived notes (editable)
 }
 
+/**
+ * Deterministic per-use-case Azure run-cost estimate.
+ * Produced by `src/lib/cost-engine.ts` from selected microsoftSolutions +
+ * referenceArchitecture + aiEffortEstimate + assumed users/transactions.
+ */
+export interface UseCaseRunCost {
+  /** Display currency. Defaults to USD; auto-converted via /api/exchange-rates. */
+  currency: 'USD' | 'EUR' | 'GBP' | 'ZAR'
+  /** Monthly Azure compute cost (AOAI + AI Search + Functions + storage etc.). */
+  monthlyComputeUSD: number
+  /** Monthly per-user license cost (M365 Copilot, Power Platform, Fabric). */
+  monthlyLicenseUSD: number
+  /** Monthly external data / egress / API cost (FRED, market data, etc.). */
+  monthlyDataUSD: number
+  /** One-time implementation cost (effortWeeks × loaded weekly rate). */
+  oneTimeImplementationUSD: number
+  /** Total monthly run cost (compute + license + data). */
+  totalMonthlyUSD: number
+  /** Total annual run cost = totalMonthlyUSD × 12. */
+  totalAnnualUSD: number
+  /** Assumptions / line items (one per major SKU). */
+  assumptions: string[]
+  /** Inputs the engine used so the user can tweak and recalc. */
+  inputs?: {
+    activeUsers?: number
+    monthlyTransactions?: number
+    region?: string
+  }
+  lastEstimatedAt: number
+  /** Pricing-table version used. */
+  pricingVersion?: string
+}
+
+/** AI-suggested SKU swap to reduce run cost (Phase 8 — cost optimization). */
+export interface UseCaseCostOptimization {
+  id: string
+  title: string             // e.g. "Switch GPT-4o → GPT-4o-mini for analysis"
+  rationale: string
+  estimatedMonthlySavingsUSD: number
+  confidence: 'low' | 'medium' | 'high'
+  appliesTo?: string        // service / SKU label
+}
+
 export interface UseCase {
   id: string
   discoverySessionId?: string
@@ -417,6 +460,18 @@ export interface UseCase {
   // Financial quantification (optional)
   costOfInaction?: UseCaseCOI
   expectedValue?: UseCaseExpectedValue
+  // Deterministic Azure run-cost estimate (Phase 1: cost engine).
+  // Auto-derived from microsoftSolutions + referenceArchitecture + aiEffortEstimate
+  // via src/lib/cost-engine.ts. User editable.
+  runCost?: UseCaseRunCost
+  // AI-suggested cheaper SKU swaps for this use case (Phase 8).
+  costOptimizations?: UseCaseCostOptimization[]
+  // AI-generated executive Business Case markdown (Phase 2).
+  businessCase?: {
+    markdown: string
+    generatedAt: number
+    model?: string
+  }
   // Contextual data from discovery
   earningsContext?: string[]    // Key earnings insights relevant to this use case
   industryContext?: string[]    // Industry trends/standards addressed

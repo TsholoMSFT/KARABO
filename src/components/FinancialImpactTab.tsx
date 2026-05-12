@@ -8,8 +8,10 @@ import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
 import { calculatePaybackPeriod, calculateROI } from '@/lib/financial-calculations'
 import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
-import { Calculator, TrendUp, WarningCircle, Target } from '@phosphor-icons/react'
+import { Calculator, TrendUp, WarningCircle, Target, CurrencyDollar } from '@phosphor-icons/react'
 import { InlineDisclaimer } from '@/components/Disclaimer'
+import { UseCaseCostBreakdown } from '@/components/UseCaseCostBreakdown'
+import { portfolioRunCost } from '@/lib/cost-engine'
 
 const DEFAULT_COST_PER_WEEK_USD = 8000
 
@@ -114,7 +116,8 @@ export function FinancialImpactTab({
     const totalValue = useCases.reduce((sum, uc) => sum + (uc.expectedValue?.totalAnnualValue || 0), 0)
     const withCOI = useCases.filter((u) => (u.costOfInaction?.totalAnnualCOI || 0) > 0).length
     const withEV = useCases.filter((u) => (u.expectedValue?.totalAnnualValue || 0) > 0).length
-    return { totalCOI, totalValue, withCOI, withEV }
+    const run = portfolioRunCost(useCases)
+    return { totalCOI, totalValue, withCOI, withEV, run }
   }, [useCases])
 
   const selected = useMemo(
@@ -151,6 +154,19 @@ export function FinancialImpactTab({
               <span className="text-sm font-semibold text-green-600">{formatMoney(totals.totalValue)}/yr</span>
               <Badge variant="outline" className="ml-1">{totals.withEV}/{useCases.length}</Badge>
             </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded bg-emerald-500/10 border border-emerald-500/20">
+              <CurrencyDollar size={16} className="text-emerald-600" />
+              <span className="text-xs text-muted-foreground">Run cost:</span>
+              <span className="text-sm font-semibold text-emerald-700">{formatMoney(totals.run.totalAnnualUSD)}/yr</span>
+              <Badge variant="outline" className="ml-1">{totals.run.withRunCost}/{useCases.length}</Badge>
+            </div>
+            {totals.run.totalImplementationUSD > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded bg-amber-500/10 border border-amber-500/20">
+                <Calculator size={16} className="text-amber-600" />
+                <span className="text-xs text-muted-foreground">One-time impl:</span>
+                <span className="text-sm font-semibold text-amber-700">{formatMoney(totals.run.totalImplementationUSD)}</span>
+              </div>
+            )}
             {(totals.withCOI === 0 || totals.withEV === 0) && (
               <div className="flex items-center gap-2 px-3 py-2 rounded bg-amber-500/10 border border-amber-500/20">
                 <WarningCircle size={16} className="text-amber-500" />
@@ -313,6 +329,8 @@ export function FinancialImpactTab({
                   </div>
                 </CardContent>
               </Card>
+
+              <UseCaseCostBreakdown useCase={selected} onUpdate={onUpdateUseCase} />
 
               <QuickCOICalculator
                 variant="compact"

@@ -1,0 +1,21 @@
+feat: cost engine + business case + free economic data sources
+
+Phase 1 (Cost Engine):
+- src/lib/azure-pricing.json: Azure OpenAI/Search/Compute/Storage/Licenses 2026-05 catalogue
+- src/lib/cost-engine.ts: deterministic per-use-case run + implementation cost estimator
+- src/components/UseCaseCostBreakdown.tsx: live cost panel (users/transactions/region)
+- types: UseCase.runCost + costOptimizations + businessCase
+- FinancialImpactTab: portfolio run-cost + impl badges; cost panel on selection
+- tsconfig: resolveJsonModule
+
+Phase 2 (Business Case):
+- src/lib/business-case-service.ts: AI-routed exec one-pager generator
+- src/components/BusinessCase.tsx: render/copy/download/print PDF
+- UseCaseCard: toolbar buttons + drawers for cost & business case
+- openai-service: 'business-case' & 'cost-optimization' tasks (gpt-4o-mini)
+
+Phase 3 (Free external data sources):
+- api/exchange-rates: exchangerate.host (ECB), 6h cache
+- api/economic-data: FRED + Eurostat HICP + World Bank, 12h cache
+- api/company-financials: SEC EDGAR + Yahoo + Alpha Vantage + Companies House, 24h cache
+- src/lib/economic-context-service.ts: typed client + region inference

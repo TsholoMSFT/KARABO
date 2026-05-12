@@ -126,6 +126,8 @@ export type AITask =
   | 'architecture'    // Solution architecture → GPT-4o-mini
   | 'journey'         // Customer journey generation → GPT-4o-mini
   | 'governance'      // AI governance recommendations → GPT-4o-mini
+  | 'business-case'   // Per-use-case business case markdown → GPT-4o-mini
+  | 'cost-optimization' // SKU swap suggestions → GPT-4o-mini
   | 'executive'       // Executive summaries → GPT-4o (premium)
   | 'general'         // Default → Phi-4-mini-instruct
 
@@ -146,6 +148,8 @@ export function getModelForTask(task: AITask): ModelType {
     architecture: 'gpt-4o-mini',
     journey: 'gpt-4o-mini',
     governance: 'gpt-4o-mini',
+    'business-case': 'gpt-4o-mini',
+    'cost-optimization': 'gpt-4o-mini',
     executive: 'gpt-4o',
   }
   return taskModelMap[task] || 'phi-4-mini-instruct'

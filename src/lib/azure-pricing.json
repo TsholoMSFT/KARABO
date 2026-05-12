@@ -1,0 +1,72 @@
+{
+  "version": "2026-05",
+  "currency": "USD",
+  "note": "Public list-price reference for KARABO's deterministic cost engine. Refreshed periodically. Real engagement should use Azure Pricing Calculator and EA discounts.",
+  "azureOpenAI": {
+    "gpt-4o":            { "inputPer1M": 2.50, "outputPer1M": 10.00 },
+    "gpt-4o-mini":       { "inputPer1M": 0.15, "outputPer1M": 0.60 },
+    "gpt-5-nano":        { "inputPer1M": 0.05, "outputPer1M": 0.40 },
+    "phi-4-mini":        { "inputPer1M": 0.075, "outputPer1M": 0.30 },
+    "text-embedding-3-large": { "inputPer1M": 0.13, "outputPer1M": 0 }
+  },
+  "aiSearch": {
+    "free":     { "monthlyUSD": 0,    "label": "Free (50MB, dev only)" },
+    "basic":    { "monthlyUSD": 75,   "label": "Basic (2GB, 1 replica)" },
+    "standard1":{ "monthlyUSD": 250,  "label": "Standard S1 (25GB)" },
+    "standard2":{ "monthlyUSD": 1000, "label": "Standard S2 (100GB)" },
+    "storageOptimized": { "monthlyUSD": 2500, "label": "Storage-optimized L1" }
+  },
+  "documentIntelligence": {
+    "perPagePrebuilt": 0.0015,
+    "perPageCustom":   0.05,
+    "tier": "S0"
+  },
+  "compute": {
+    "functionsConsumption": { "perMillionExecutionsUSD": 0.20, "perGBSecondUSD": 0.000016 },
+    "functionsFlex":         { "monthlyBaseUSD": 50, "perGBSecondUSD": 0.000023 },
+    "appServiceB1":          { "monthlyUSD": 55 },
+    "appServiceP1v3":        { "monthlyUSD": 175 },
+    "containerAppsBase":     { "monthlyUSD": 35 },
+    "aksNodeStandardD4sV5":  { "monthlyUSD": 195 },
+    "vmStandardD4sV5":       { "monthlyUSD": 165 }
+  },
+  "storage": {
+    "blobHotPerGBMonth":  0.0184,
+    "blobCoolPerGBMonth": 0.01,
+    "egressPerGBUSD":     0.087
+  },
+  "messaging": {
+    "serviceBusStandardMonthlyUSD": 10,
+    "eventHubsStandardMonthlyUSD":  11,
+    "eventGridPerMillion":          0.60
+  },
+  "data": {
+    "cosmosDBServerlessPer1MRUUSD": 0.25,
+    "sqlGeneralPurposePerVCoreMonth": 175,
+    "fabricF2MonthlyUSD": 263,
+    "fabricF8MonthlyUSD": 1051,
+    "synapseDWUMonthlyUSDPer100": 909
+  },
+  "licenses": {
+    "m365CopilotPerUserMonth":      30,
+    "copilotStudioPerTenantMonth":  200,
+    "powerAppsPerUserMonth":        20,
+    "powerAutomatePerUserMonth":    15,
+    "dynamics365CopilotPerUserMonth": 50,
+    "githubCopilotBusinessPerUserMonth": 19,
+    "fabricCapacityNote": "Fabric is capacity-based, see fabricF2/F8 above"
+  },
+  "implementation": {
+    "loadedWeeklyRateUSD": 8000,
+    "note": "Microsoft Industry Solutions blended rate. Override per engagement."
+  },
+  "regionMultipliers": {
+    "eastus": 1.0,
+    "westeurope": 1.05,
+    "northeurope": 1.05,
+    "uksouth": 1.07,
+    "southafricanorth": 1.12,
+    "southeastasia": 1.04,
+    "default": 1.0
+  }
+}

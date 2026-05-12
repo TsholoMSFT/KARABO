@@ -12,13 +12,15 @@ import { UseCaseSourceBadges } from '@/components/ui/use-case-source-badge'
 import { REFERENCE_ARCHITECTURES } from '@/lib/microsoft-solutions'
 import { calculateATMScore } from '@/lib/atm-scoring'
 import { ATMBadge } from '@/components/ATMBadge'
-import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight, CheckCircle, Question, Pause, Prohibit, X } from '@phosphor-icons/react'
+import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight, CheckCircle, Question, Pause, Prohibit, X, FileText } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
 import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
 import { RISK_LEVEL_CONFIG } from '@/lib/regulatory-engine'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getServiceLabel, COMPLEXITY_INDICATORS } from '@/lib/microsoft-solutions'
+import { BusinessCase } from '@/components/BusinessCase'
+import { UseCaseCostBreakdown } from '@/components/UseCaseCostBreakdown'
 
 interface UseCaseCardProps {
   useCase: UseCase
@@ -45,6 +47,8 @@ export function UseCaseCard({
   const [showCOI, setShowCOI] = useState(false)
   const [showInnovationHub, setShowInnovationHub] = useState(false)
   const [showProblemEditor, setShowProblemEditor] = useState(false)
+  const [showBusinessCase, setShowBusinessCase] = useState(false)
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false)
   const [problemDraft, setProblemDraft] = useState(useCase.problemStatement ?? '')
   const [showQuestions, setShowQuestions] = useState(false)
   const [newQuestion, setNewQuestion] = useState('')
@@ -329,6 +333,24 @@ export function UseCaseCard({
                 </TooltipContent>
               </Tooltip>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowCostBreakdown(v => !v)}
+              aria-label={showCostBreakdown ? 'Hide run-cost estimate' : 'Show run-cost estimate'}
+              className={useCase.runCost ? 'text-emerald-600' : ''}
+            >
+              <CurrencyDollar size={18} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowBusinessCase(v => !v)}
+              aria-label={showBusinessCase ? 'Hide business case' : 'View business case'}
+              className={useCase.businessCase ? 'text-primary' : ''}
+            >
+              <FileText size={18} />
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => onEdit(useCase)} aria-label={`Edit use case: ${useCase.title}`}>
               <PencilSimple size={18} />
             </Button>
@@ -1314,6 +1336,17 @@ export function UseCaseCard({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {showCostBreakdown && (
+            <div className="mt-3">
+              <UseCaseCostBreakdown useCase={useCase} onUpdate={onUpdate} />
+            </div>
+          )}
+          {showBusinessCase && (
+            <div className="mt-3">
+              <BusinessCase useCase={useCase} onUpdate={onUpdate} onClose={() => setShowBusinessCase(false)} />
+            </div>
+          )}
         </div>
         </Card>
         </motion.div>
