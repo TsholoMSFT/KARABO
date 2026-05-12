@@ -302,7 +302,7 @@ export function MutualSuccessPlanDialog({ customerId, customerName, trigger }: P
           <Button variant="outline" onClick={handleExport} disabled={!customerId} className="gap-1.5">
             <Download size={14} /> Export PDF
           </Button>
-          <Button onClick={() => setOpen(false)}>Close</Button>
+          <Button onClick={() => setOpen(false)}>Done</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

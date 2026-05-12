@@ -148,6 +148,7 @@ export function PrioritizationMatrix({
             const fx = effectiveFeasibility(useCase)
             const cx = scaleX(fx)
             const cy = scaleY(useCase.impact)
+            if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null
             const isSelected = useCase.id === selectedId
             const sig = blueprintSignals?.get(useCase.id)
             const tooltipExtra = sig

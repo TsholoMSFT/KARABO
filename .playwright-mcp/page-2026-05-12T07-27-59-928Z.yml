@@ -1,0 +1,170 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e208]:
+    - banner [ref=e209]:
+      - generic [ref=e211]:
+        - button "Home" [ref=e213]:
+          - img
+          - generic [ref=e214]: Home
+        - generic [ref=e215]:
+          - img [ref=e217]
+          - generic [ref=e220]:
+            - heading "Microsoft Innovation Hub" [level=1] [ref=e221]
+            - paragraph [ref=e222]: Use Case Assessment Platform
+    - generic [ref=e223]:
+      - banner [ref=e224]:
+        - heading "Microsoft Innovation Hub Use Case Assessment" [level=1] [ref=e225]
+      - generic [ref=e226]:
+        - generic [ref=e229]:
+          - generic [ref=e230]:
+            - img [ref=e231]
+            - text: Customer & Sessions
+          - generic [ref=e234]: Viewing 0 sessions for Acme Corp
+        - generic [ref=e235]:
+          - generic [ref=e236]:
+            - text: Filter by Customer
+            - combobox [ref=e237]:
+              - generic:
+                - generic:
+                  - generic: Acme Corp
+                  - generic: 0 sessions
+              - img
+          - generic [ref=e238]:
+            - generic [ref=e239]:
+              - img [ref=e240]
+              - generic [ref=e243]:
+                - paragraph [ref=e244]: Innovation Hub SPOC
+                - paragraph [ref=e245]: Not specified
+            - generic [ref=e246]:
+              - img [ref=e247]
+              - generic [ref=e250]:
+                - paragraph [ref=e251]: Customer Since
+                - paragraph [ref=e252]: 2026/05/12
+      - generic [ref=e253]:
+        - generic [ref=e254]:
+          - img [ref=e255]
+          - heading "Customer Information" [level=2] [ref=e258]
+        - generic [ref=e259]:
+          - generic [ref=e260]:
+            - generic [ref=e261]:
+              - img [ref=e262]
+              - text: Customer Name
+            - textbox "Customer Name" [ref=e264]:
+              - /placeholder: Enter customer name
+          - generic [ref=e265]:
+            - generic [ref=e266]:
+              - img [ref=e267]
+              - text: Innovation Hub SPOC
+            - textbox "Innovation Hub SPOC" [ref=e269]:
+              - /placeholder: Enter Hub SPOC name
+          - generic [ref=e270]:
+            - generic [ref=e271]:
+              - img [ref=e272]
+              - text: Primary Stakeholder
+            - textbox "Primary Stakeholder" [ref=e274]:
+              - /placeholder: Enter primary stakeholder name
+          - generic [ref=e275]:
+            - generic [ref=e276]:
+              - img [ref=e277]
+              - text: Account Team Representative
+            - textbox "Account Team Representative" [ref=e279]:
+              - /placeholder: Enter account team rep name
+          - generic [ref=e280]:
+            - generic [ref=e281]:
+              - img [ref=e282]
+              - text: Innovation Hub Location
+            - combobox "Innovation Hub Location" [ref=e284]:
+              - generic: Select hub location
+              - img
+          - generic [ref=e285]:
+            - generic [ref=e286]:
+              - img [ref=e287]
+              - text: Innovation Hub Solution Engineer
+            - textbox "Innovation Hub Solution Engineer" [ref=e289]:
+              - /placeholder: Enter solution engineer name
+      - button "Important Disclaimers & Legal Notices" [ref=e291]:
+        - generic [ref=e292]:
+          - img
+          - generic [ref=e293]: Important Disclaimers & Legal Notices
+        - img
+      - generic [ref=e294]:
+        - generic [ref=e295]:
+          - tablist [ref=e297]:
+            - tab "Discovery" [selected] [ref=e298]:
+              - img
+              - text: Discovery
+            - tab "Sovereign Cloud" [ref=e299]:
+              - img
+              - text: Sovereign Cloud
+            - tab "Strategic Assessment" [ref=e300]:
+              - img
+              - text: Strategic Assessment
+            - tab "Tools" [ref=e301]:
+              - img
+              - text: Tools
+          - button "AI Settings" [ref=e302]:
+            - img
+            - text: AI Settings
+        - generic [ref=e303]:
+          - generic [ref=e305]:
+            - generic [ref=e306]:
+              - generic [ref=e307]:
+                - img [ref=e308]
+                - text: Use Case Discovery
+              - generic [ref=e310]: AI-powered discovery with guided questions. Identify, validate, and prioritize use cases across the full Innovation Hub methodology.
+              - generic [ref=e311]:
+                - generic [ref=e312]:
+                  - img
+                  - text: Industry-Specific Templates
+                - generic [ref=e313]:
+                  - img
+                  - text: AI-Powered Suggestions
+            - generic [ref=e314]:
+              - button "Start Discovery" [ref=e315]:
+                - img
+                - text: Start Discovery
+              - button "Live Discovery" [ref=e316]:
+                - img
+                - text: Live Discovery
+          - generic [ref=e318]:
+            - generic [ref=e319]:
+              - img [ref=e321]
+              - generic [ref=e323]:
+                - heading "Select Industry & Answer Questions" [level=4] [ref=e324]
+                - paragraph [ref=e325]: Choose your industry for tailored questions about your business, challenges, and goals
+            - generic [ref=e326]:
+              - img [ref=e328]
+              - generic [ref=e330]:
+                - heading "Get Suggestions" [level=4] [ref=e331]
+                - paragraph [ref=e332]: AI analyzes your responses to identify relevant use cases for innovation
+            - generic [ref=e333]:
+              - img [ref=e335]
+              - generic [ref=e337]:
+                - heading "Prioritize & Assess" [level=4] [ref=e338]
+                - paragraph [ref=e339]: Add selected use cases to your dashboard for detailed scoring and comparison
+      - generic [ref=e342]:
+        - generic [ref=e343]:
+          - generic [ref=e344]:
+            - img [ref=e345]
+            - text: Discovery Sessions
+          - generic [ref=e348]: View and compare your saved discovery sessions
+        - button "Manage Sessions" [ref=e349]:
+          - img
+          - text: Manage Sessions
+      - generic [ref=e350]:
+        - img [ref=e352]
+        - heading "No Use Cases Yet" [level=2] [ref=e354]
+        - paragraph [ref=e355]: Start prioritizing by adding your first use case, or import from an existing document. Evaluate using Impact vs. Feasibility or RICE scoring to identify top opportunities.
+        - generic [ref=e356]:
+          - button "Import from Document" [ref=e357]:
+            - img
+            - text: Import from Document
+          - button "Add Your First Use Case" [ref=e358]:
+            - img
+            - text: Add Your First Use Case
+  - contentinfo [ref=e202]:
+    - generic [ref=e203]:
+      - generic [ref=e204]: Developed by
+      - generic [ref=e205]: Tsholo K. Setati
+      - generic [ref=e206]: —
+      - generic [ref=e207]: Innovation Hub

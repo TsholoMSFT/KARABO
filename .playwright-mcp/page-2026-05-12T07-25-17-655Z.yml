@@ -1,0 +1,156 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e217]:
+    - generic [ref=e218]:
+      - generic [ref=e219]:
+        - img
+        - text: Demo Mode
+      - generic [ref=e220]:
+        - img [ref=e222]
+        - generic [ref=e225]: Zava Mining
+      - button "About demo mode" [ref=e226]:
+        - img [ref=e227]
+    - button "Exit Demo" [ref=e229]:
+      - img
+      - text: Exit Demo
+  - generic [ref=e230]:
+    - generic [ref=e233]:
+      - button "Home" [ref=e234]:
+        - img
+        - text: Home
+      - button "Cancel" [ref=e235]:
+        - img
+        - text: Cancel
+    - generic [ref=e237]:
+      - generic [ref=e239]:
+        - generic [ref=e240]:
+          - generic [ref=e241]: Session Information
+          - generic [ref=e242]: Provide information about the customer and this discovery session
+        - button "Settings" [ref=e243]:
+          - img
+          - text: Settings
+      - generic [ref=e244]:
+        - generic [ref=e245]:
+          - generic [ref=e246]:
+            - img [ref=e247]
+            - text: Your Role
+          - generic [ref=e249]:
+            - button "💡 Innovation Hub Innovation Hub facilitated customer engagement with AI-focused discovery" [active] [ref=e250]:
+              - generic [ref=e251]:
+                - generic [ref=e252]: 💡
+                - generic [ref=e253]: Innovation Hub
+                - img [ref=e345]
+              - paragraph [ref=e254]: Innovation Hub facilitated customer engagement with AI-focused discovery
+            - button "🗺️ Account Technology Strategist Account-level technology strategy with full portfolio, MACC tracking, and workload planning" [ref=e255]:
+              - generic [ref=e256]:
+                - generic [ref=e257]: 🗺️
+                - generic [ref=e258]: Account Technology Strategist
+              - paragraph [ref=e259]: Account-level technology strategy with full portfolio, MACC tracking, and workload planning
+            - button "🏗️ Cloud Solution Architect Azure solution architecture, Well-Architected Review, and technical assessments" [ref=e260]:
+              - generic [ref=e261]:
+                - generic [ref=e262]: 🏗️
+                - generic [ref=e263]: Cloud Solution Architect
+              - paragraph [ref=e264]: Azure solution architecture, Well-Architected Review, and technical assessments
+            - button "📊 Account Executive / Sales Opportunity qualification, stakeholder mapping, and executive business cases" [ref=e265]:
+              - generic [ref=e266]:
+                - generic [ref=e267]: 📊
+                - generic [ref=e268]: Account Executive / Sales
+              - paragraph [ref=e269]: Opportunity qualification, stakeholder mapping, and executive business cases
+        - generic [ref=e270]:
+          - generic [ref=e271]:
+            - img [ref=e272]
+            - text: Account Segment
+          - generic [ref=e274]:
+            - 'button "Enterprise Full-depth discovery with financial modeling and multi-stakeholder mapping Deal: $150 K – $5 M+ · 2–4 hours" [ref=e275]':
+              - paragraph [ref=e276]: Enterprise
+              - paragraph [ref=e277]: Full-depth discovery with financial modeling and multi-stakeholder mapping
+              - generic [ref=e278]:
+                - generic [ref=e279]: "Deal: $150 K – $5 M+"
+                - generic [ref=e280]: ·
+                - generic [ref=e281]: 2–4 hours
+            - 'button "Majors Growth Streamlined discovery focused on business value and quick ROI Deal: $25 K – $250 K · 30–60 min" [ref=e282]':
+              - paragraph [ref=e283]: Majors Growth
+              - paragraph [ref=e284]: Streamlined discovery focused on business value and quick ROI
+              - generic [ref=e285]:
+                - generic [ref=e286]: "Deal: $25 K – $250 K"
+                - generic [ref=e287]: ·
+                - generic [ref=e288]: 30–60 min
+            - 'button "SME & Commercial Rapid value assessment — identify 1–3 high-impact use cases in 15 minutes Deal: $5 K – $75 K · 15–30 min" [ref=e289]':
+              - paragraph [ref=e290]: SME & Commercial
+              - paragraph [ref=e291]: Rapid value assessment — identify 1–3 high-impact use cases in 15 minutes
+              - generic [ref=e292]:
+                - generic [ref=e293]: "Deal: $5 K – $75 K"
+                - generic [ref=e294]: ·
+                - generic [ref=e295]: 15–30 min
+        - generic [ref=e296]:
+          - generic [ref=e297]:
+            - generic [ref=e298]:
+              - img [ref=e299]
+              - text: Customer Name
+            - textbox "Customer Name" [ref=e301]:
+              - /placeholder: Enter customer name
+              - text: Contoso Mining
+          - generic [ref=e302]:
+            - generic [ref=e303]:
+              - img [ref=e304]
+              - text: Innovation Hub SPOC
+            - textbox "Innovation Hub SPOC" [ref=e306]:
+              - /placeholder: Enter Hub SPOC name
+              - text: Thabo Molefe
+          - generic [ref=e307]:
+            - generic [ref=e308]:
+              - img [ref=e309]
+              - text: Primary Stakeholder
+            - textbox "Primary Stakeholder" [ref=e311]:
+              - /placeholder: Enter primary stakeholder name
+              - text: Lindiwe Nkosi (Chief Operations Officer)
+          - generic [ref=e312]:
+            - generic [ref=e313]:
+              - img [ref=e314]
+              - text: Account Team Representative
+            - textbox "Account Team Representative" [ref=e316]:
+              - /placeholder: Enter account team rep name
+              - text: Sarah van der Merwe
+          - generic [ref=e317]:
+            - generic [ref=e318]:
+              - img [ref=e319]
+              - text: Innovation Hub Location
+            - combobox "Innovation Hub Location" [ref=e321]:
+              - generic: Johannesburg, South Africa
+              - img
+          - generic [ref=e322]:
+            - generic [ref=e323]:
+              - img [ref=e324]
+              - text: Innovation Hub Solution Engineer
+            - textbox "Innovation Hub Solution Engineer" [ref=e326]:
+              - /placeholder: Enter solution engineer name
+              - text: James Ndlovu
+          - generic [ref=e327]:
+            - generic [ref=e328]:
+              - img [ref=e329]
+              - text: Organization Type
+            - combobox "Organization Type" [ref=e331]:
+              - generic:
+                - generic:
+                  - generic: Public Company
+              - img
+            - paragraph [ref=e332]: Publicly traded on stock exchanges (NYSE, NASDAQ, JSE, etc.)
+          - generic [ref=e333]:
+            - generic [ref=e334]:
+              - img [ref=e335]
+              - text: Compliance Gate Mode
+            - combobox "Compliance Gate Mode" [ref=e337]:
+              - generic: Advisory — Show warnings, never block
+              - img
+            - generic [ref=e338]:
+              - img [ref=e339]
+              - generic [ref=e341]: Risk assessments are shown as warnings. All use cases can proceed regardless of risk level.
+        - generic [ref=e342]:
+          - button "Cancel" [ref=e343]
+          - button "Continue to Discovery" [ref=e344]
+  - contentinfo [ref=e202]:
+    - generic [ref=e203]:
+      - generic [ref=e204]: Developed by
+      - generic [ref=e205]: Tsholo K. Setati
+      - generic [ref=e206]: —
+      - generic [ref=e207]: Innovation Hub

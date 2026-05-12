@@ -1,0 +1,63 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e217]:
+    - generic [ref=e218]:
+      - generic [ref=e219]:
+        - img
+        - text: Demo Mode
+      - generic [ref=e220]:
+        - img [ref=e222]
+        - generic [ref=e225]: Zava Mining
+      - button "About demo mode" [ref=e226]:
+        - img [ref=e227]
+    - button "Exit Demo" [ref=e229]:
+      - img
+      - text: Exit Demo
+  - generic [ref=e347]:
+    - generic [ref=e350]:
+      - button "Home" [ref=e351]:
+        - img
+        - text: Home
+      - button "Cancel" [ref=e352]:
+        - img
+        - text: Cancel
+    - generic [ref=e355]:
+      - generic [ref=e356]:
+        - generic [ref=e357]:
+          - generic [ref=e358]:
+            - img [ref=e359]
+            - generic [ref=e361]:
+              - generic [ref=e362]: Discovery Process
+              - generic [ref=e363]: Energy & Utilities
+          - generic [ref=e364]: Question 1 of 11
+        - progressbar [ref=e365]
+        - generic [ref=e367]: Help us understand your needs to identify potential use cases
+      - generic [ref=e369]:
+        - generic [ref=e371]: business
+        - generic [ref=e372]:
+          - heading "What are the primary business objectives or goals you want to achieve?" [level=3] [ref=e373]
+          - textbox "E.g., Increase operational efficiency, reduce costs, improve customer satisfaction..." [active] [ref=e374]: Our primary objectives are to improve mine safety through predictive analytics, reduce unplanned equipment downtime by 40%, and optimize our ore extraction processes. We also want to achieve carbon neutrality targets by 2030 and improve operational visibility across our 5 mine sites in Limpopo and Mpumalanga provinces.
+          - generic [ref=e375]:
+            - paragraph [ref=e376]: "Optional: You can skip questions and come back later"
+            - button "Need help?" [ref=e377]:
+              - img
+              - text: Need help?
+      - generic [ref=e378]:
+        - generic [ref=e379]:
+          - button "Cancel" [ref=e380]
+          - button "Back" [ref=e381]:
+            - img
+            - text: Back
+        - generic [ref=e382]:
+          - button "Switch to Live" [ref=e383]:
+            - img
+            - text: Switch to Live
+          - button "Next" [ref=e384]:
+            - text: Next
+            - img
+  - contentinfo [ref=e202]:
+    - generic [ref=e203]:
+      - generic [ref=e204]: Developed by
+      - generic [ref=e205]: Tsholo K. Setati
+      - generic [ref=e206]: —
+      - generic [ref=e207]: Innovation Hub

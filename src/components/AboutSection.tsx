@@ -1,7 +1,7 @@
 /**
  * AboutSection
  *
- * Collapsible "About ID-8" section for the landing page.
+ * Collapsible "About the Innovation Hub" section for the landing page.
  * Contains four subsections:
  *   A — AI Regulations & Compliance (static framework list + live regulatory news)
  *   B — Financial Analysis Methodology (COI, ROI, NPV, IRR, ATM scoring)
@@ -264,7 +264,7 @@ export function AboutSection() {
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="mx-auto flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <Info size={18} weight="duotone" className="text-primary" />
-        About ID-8
+        About the Innovation Hub
         {open ? <CaretUp size={14} /> : <CaretDown size={14} />}
       </CollapsibleTrigger>
 
@@ -277,7 +277,7 @@ export function AboutSection() {
               <Card className="mt-4 border border-muted bg-gradient-to-br from-muted/10 to-transparent">
                 <CardContent className="pt-5 pb-5 space-y-1">
                   <p className="text-sm text-muted-foreground mb-3">
-                    ID-8 is an enterprise-grade AI discovery and use case assessment platform built on Microsoft Azure OpenAI.
+                    The Microsoft Innovation Hub is an enterprise-grade AI discovery and use case assessment platform built on Microsoft Azure OpenAI.
                     It combines regulatory compliance intelligence, financial impact modelling, and structured discovery
                     frameworks to help organisations identify, evaluate, and prioritise AI opportunities.
                   </p>
@@ -288,7 +288,7 @@ export function AboutSection() {
                   <SubSection icon={Scales} title={`AI Regulations & Compliance (${allPolicies.length}+ Frameworks)`}>
                     <div className="space-y-4">
                       <p className="text-sm text-muted-foreground">
-                        ID-8 references a comprehensive library of AI policies, regulations, and standards across multiple
+                        The platform references a comprehensive library of AI policies, regulations, and standards across multiple
                         jurisdictions. The regulatory engine uses deterministic keyword matching (no AI hallucinations)
                         with industry-aware risk modulation to classify use cases against applicable frameworks.
                       </p>
@@ -333,7 +333,7 @@ export function AboutSection() {
                   <SubSection icon={Calculator} title="Financial Analysis Methodology">
                     <div className="space-y-4 text-sm text-muted-foreground">
                       <p>
-                        ID-8 provides a full financial analysis toolkit to quantify the business case for each AI use case.
+                        The platform provides a full financial analysis toolkit to quantify the business case for each AI use case.
                         All calculators support AI-powered auto-fill from use case context and manual override.
                       </p>
 
@@ -497,7 +497,7 @@ export function AboutSection() {
                   <SubSection icon={ShieldCheck} title="Responsible AI & Disclaimers">
                     <div className="space-y-3 text-sm text-muted-foreground">
                       <p>
-                        ID-8 follows the <strong>Microsoft Responsible AI Principles</strong> — fairness, reliability & safety,
+                        The Microsoft Innovation Hub follows the <strong>Microsoft Responsible AI Principles</strong> — fairness, reliability & safety,
                         privacy & security, inclusiveness, transparency, and accountability.
                       </p>
                       <ul className="list-disc pl-5 space-y-1">
@@ -510,7 +510,7 @@ export function AboutSection() {
                           All AI outputs should be reviewed by qualified personnel before decision-making.
                         </li>
                         <li>
-                          <strong>Not legal, financial, or regulatory advice</strong> — ID-8 outputs are for informational and
+                          <strong>Not legal, financial, or regulatory advice</strong> — Platform outputs are for informational and
                           planning purposes only. Organisations should consult qualified professionals.
                         </li>
                         <li>

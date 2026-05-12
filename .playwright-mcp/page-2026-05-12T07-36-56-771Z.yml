@@ -1,0 +1,491 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e210]:
+    - banner [ref=e211]:
+      - generic [ref=e213]:
+        - button "Home" [ref=e215]:
+          - img
+          - generic [ref=e216]: Home
+        - generic [ref=e217]:
+          - img [ref=e219]
+          - generic [ref=e222]:
+            - heading "Microsoft Innovation Hub" [level=1] [ref=e223]
+            - paragraph [ref=e224]: Use Case Assessment Platform
+    - generic [ref=e225]:
+      - banner [ref=e226]:
+        - heading "Microsoft Innovation Hub Use Case Assessment" [level=1] [ref=e227]
+      - generic [ref=e228]:
+        - generic [ref=e231]:
+          - generic [ref=e232]:
+            - img [ref=e233]
+            - text: Customer & Sessions
+          - generic [ref=e236]: Viewing 1 session for Acme Corp
+        - generic [ref=e237]:
+          - generic [ref=e238]:
+            - text: Filter by Customer
+            - combobox [ref=e239]:
+              - generic:
+                - generic:
+                  - generic: Acme Corp
+                  - generic: 1 session
+              - img
+          - generic [ref=e240]:
+            - generic [ref=e241]:
+              - img [ref=e242]
+              - generic [ref=e245]:
+                - paragraph [ref=e246]: Innovation Hub SPOC
+                - paragraph [ref=e247]: Not specified
+            - generic [ref=e248]:
+              - img [ref=e249]
+              - generic [ref=e252]:
+                - paragraph [ref=e253]: Customer Since
+                - paragraph [ref=e254]: 2026/05/12
+      - generic [ref=e255]:
+        - generic [ref=e256]:
+          - img [ref=e257]
+          - heading "Customer Information" [level=2] [ref=e260]
+        - generic [ref=e261]:
+          - generic [ref=e262]:
+            - generic [ref=e263]:
+              - img [ref=e264]
+              - text: Customer Name
+            - textbox "Customer Name" [ref=e266]:
+              - /placeholder: Enter customer name
+              - text: Acme Corp
+          - generic [ref=e267]:
+            - generic [ref=e268]:
+              - img [ref=e269]
+              - text: Innovation Hub SPOC
+            - textbox "Innovation Hub SPOC" [ref=e271]:
+              - /placeholder: Enter Hub SPOC name
+          - generic [ref=e272]:
+            - generic [ref=e273]:
+              - img [ref=e274]
+              - text: Primary Stakeholder
+            - textbox "Primary Stakeholder" [ref=e276]:
+              - /placeholder: Enter primary stakeholder name
+          - generic [ref=e277]:
+            - generic [ref=e278]:
+              - img [ref=e279]
+              - text: Account Team Representative
+            - textbox "Account Team Representative" [ref=e281]:
+              - /placeholder: Enter account team rep name
+          - generic [ref=e282]:
+            - generic [ref=e283]:
+              - img [ref=e284]
+              - text: Innovation Hub Location
+            - combobox "Innovation Hub Location" [ref=e286]:
+              - generic: Select hub location
+              - img
+          - generic [ref=e287]:
+            - generic [ref=e288]:
+              - img [ref=e289]
+              - text: Innovation Hub Solution Engineer
+            - textbox "Innovation Hub Solution Engineer" [ref=e291]:
+              - /placeholder: Enter solution engineer name
+      - button "Important Disclaimers & Legal Notices" [ref=e293]:
+        - generic [ref=e294]:
+          - img
+          - generic [ref=e295]: Important Disclaimers & Legal Notices
+        - img
+      - generic [ref=e296]:
+        - generic [ref=e297]:
+          - tablist [ref=e299]:
+            - tab "Discovery" [selected] [ref=e300]:
+              - img
+              - text: Discovery
+            - tab "Sovereign Cloud" [ref=e301]:
+              - img
+              - text: Sovereign Cloud
+            - tab "Strategic Assessment" [ref=e302]:
+              - img
+              - text: Strategic Assessment
+            - tab "Tools" [ref=e303]:
+              - img
+              - text: Tools
+          - button "AI Settings" [ref=e304]:
+            - img
+            - text: AI Settings
+        - generic [ref=e305]:
+          - generic [ref=e307]:
+            - generic [ref=e308]:
+              - generic [ref=e309]:
+                - img [ref=e310]
+                - text: Use Case Discovery
+              - generic [ref=e312]: AI-powered discovery with guided questions. Identify, validate, and prioritize use cases across the full Innovation Hub methodology.
+              - generic [ref=e313]:
+                - generic [ref=e314]:
+                  - img
+                  - text: Industry-Specific Templates
+                - generic [ref=e315]:
+                  - img
+                  - text: AI-Powered Suggestions
+            - generic [ref=e316]:
+              - button "Start Discovery" [ref=e317]:
+                - img
+                - text: Start Discovery
+              - button "Live Discovery" [ref=e318]:
+                - img
+                - text: Live Discovery
+          - generic [ref=e320]:
+            - generic [ref=e321]:
+              - img [ref=e323]
+              - generic [ref=e325]:
+                - heading "Select Industry & Answer Questions" [level=4] [ref=e326]
+                - paragraph [ref=e327]: Choose your industry for tailored questions about your business, challenges, and goals
+            - generic [ref=e328]:
+              - img [ref=e330]
+              - generic [ref=e332]:
+                - heading "Get Suggestions" [level=4] [ref=e333]
+                - paragraph [ref=e334]: AI analyzes your responses to identify relevant use cases for innovation
+            - generic [ref=e335]:
+              - img [ref=e337]
+              - generic [ref=e339]:
+                - heading "Prioritize & Assess" [level=4] [ref=e340]
+                - paragraph [ref=e341]: Add selected use cases to your dashboard for detailed scoring and comparison
+      - generic [ref=e344]:
+        - generic [ref=e345]:
+          - generic [ref=e346]:
+            - img [ref=e347]
+            - text: Discovery Sessions
+          - generic [ref=e350]: View and compare your saved discovery sessions
+        - button "Manage Sessions" [ref=e351]:
+          - img
+          - text: Manage Sessions
+      - generic [ref=e352]:
+        - generic [ref=e353]:
+          - tablist [ref=e356]:
+            - tab "Impact/Feasibility" [selected] [ref=e357]:
+              - img
+              - generic [ref=e358]: Impact/Feasibility
+            - tab "RICE" [ref=e359]:
+              - img
+              - text: RICE
+            - tab "Financial Impact" [ref=e360]:
+              - img
+              - generic [ref=e361]: Financial Impact
+          - generic [ref=e362]:
+            - button "Export" [ref=e363]:
+              - img
+              - text: Export
+            - button "Import" [ref=e364]:
+              - img
+              - text: Import
+            - button "Re-assess" [ref=e365]:
+              - img
+              - text: Re-assess
+            - button "Add Use Case" [ref=e366]:
+              - img
+              - text: Add Use Case
+            - button "Mutual Success Plan" [ref=e367]:
+              - img
+              - text: Mutual Success Plan
+        - generic [ref=e369]:
+          - generic [ref=e371]:
+            - img [ref=e372]
+            - heading "Highest mutual-fit use cases" [level=2] [ref=e374]
+            - button "Show 1 No-Go" [active] [ref=e850]:
+              - img
+              - text: Show 1 No-Go
+          - generic [ref=e376]:
+            - generic [ref=e378] [cursor=pointer]:
+              - generic [ref=e380]: "1"
+              - generic [ref=e381]:
+                - generic [ref=e382]:
+                  - heading "AI-Powered Quality Inspection" [level=3] [ref=e383]
+                  - img [ref=e384]
+                - paragraph [ref=e386]: AI-Powered Quality Inspection description.
+                - generic [ref=e387]:
+                  - generic [ref=e388]:
+                    - img [ref=e389]
+                    - generic [ref=e391]: "Score:"
+                    - generic [ref=e392]: "72.0"
+                  - generic [ref=e394]: Quick Wins
+              - button [ref=e395]:
+                - img
+            - generic [ref=e397] [cursor=pointer]:
+              - generic [ref=e399]: "2"
+              - generic [ref=e400]:
+                - generic [ref=e401]:
+                  - heading "Predictive Maintenance for Production Lines" [level=3] [ref=e402]
+                  - img [ref=e403]
+                - paragraph [ref=e405]: Predictive Maintenance for Production Lines description.
+                - generic [ref=e406]:
+                  - generic [ref=e407]:
+                    - img [ref=e408]
+                    - generic [ref=e410]: "Score:"
+                    - generic [ref=e411]: "56.0"
+                  - generic [ref=e413]: Quick Wins
+              - button [ref=e414]:
+                - img
+            - generic [ref=e416] [cursor=pointer]:
+              - generic [ref=e418]: "3"
+              - generic [ref=e419]:
+                - generic [ref=e420]:
+                  - heading "Demand Forecasting" [level=3] [ref=e421]
+                  - img [ref=e422]
+                - paragraph [ref=e424]: Demand Forecasting description.
+                - generic [ref=e425]:
+                  - generic [ref=e426]:
+                    - img [ref=e427]
+                    - generic [ref=e429]: "Score:"
+                    - generic [ref=e430]: "42.0"
+                  - generic [ref=e432]: Quick Wins
+              - button [ref=e433]:
+                - img
+        - generic [ref=e435]:
+          - img [ref=e437]:
+            - generic [ref=e442]: Strategic Bets
+            - generic [ref=e443]: Quick Wins
+            - generic [ref=e444]: Time Sinks
+            - generic [ref=e445]: Fill-ins
+            - generic [ref=e446]: Feasibility
+            - generic [ref=e447]: Impact
+            - 'generic "Predictive Maintenance for Production Lines Impact: 8/10 · Feasibility: 7/10 Score: 56 · Quadrant: Quick Wins" [ref=e448]'
+            - 'generic "AI-Powered Quality Inspection Impact: 9/10 · Feasibility: 8/10 Score: 72 · Quadrant: Quick Wins" [ref=e450]'
+            - 'generic "Supply Chain Optimization Impact: 6/10 · Feasibility: 5/10 Score: 30 · Quadrant: Strategic Bets" [ref=e452]'
+            - 'generic "Demand Forecasting Impact: 7/10 · Feasibility: 6/10 Score: 42 · Quadrant: Quick Wins" [ref=e454]'
+          - generic [ref=e456]:
+            - generic [ref=e457]: "Dot color (Impact × Feasibility):"
+            - generic [ref=e458]: ≥ 70 (Strong)
+            - generic [ref=e460]: 40–69 (Moderate)
+            - generic [ref=e462]: 20–39 (Low)
+            - generic [ref=e464]: < 20 (Minimal)
+          - button "Understanding the Quadrants Click to learn about each quadrant" [ref=e467]:
+            - generic [ref=e468]:
+              - heading "Understanding the Quadrants" [level=3] [ref=e469]
+              - paragraph [ref=e470]: Click to learn about each quadrant
+            - img [ref=e471]
+        - generic [ref=e473]:
+          - generic [ref=e474]:
+            - generic [ref=e475]: "Portfolio/Matrix: Next step"
+            - generic [ref=e476]: When you’re ready, proceed to Enterprise Discovery or conclude this assessment.
+          - generic [ref=e477]:
+            - button "Proceed to Strategic Assessment" [ref=e478]
+            - button "Conclude" [ref=e479]
+        - generic [ref=e480]:
+          - generic [ref=e481]:
+            - heading "All Use Cases (4)" [level=2] [ref=e482]
+            - generic [ref=e483]:
+              - img [ref=e484]
+              - combobox [ref=e486]:
+                - generic: All Sources
+                - img
+          - generic [ref=e487]:
+            - generic [ref=e491]:
+              - generic [ref=e492]:
+                - generic [ref=e493]:
+                  - generic [ref=e494]:
+                    - generic [ref=e496]:
+                      - img
+                      - text: "#1"
+                    - heading "AI-Powered Quality Inspection" [level=3] [ref=e497]
+                  - paragraph [ref=e498]: AI-Powered Quality Inspection description.
+                  - generic [ref=e500]:
+                    - generic [ref=e501]: …
+                    - text: "ATM: Incomplete"
+                - generic [ref=e502]:
+                  - button "defer" [ref=e832]:
+                    - img
+                    - generic [ref=e504]: defer
+                  - button [ref=e506]:
+                    - img
+                  - button [ref=e507]:
+                    - img
+                  - button [ref=e508]:
+                    - img
+              - generic [ref=e509]:
+                - button "Open questions 2 resolved" [ref=e830]:
+                  - img [ref=e511]
+                  - generic [ref=e513]: Open questions
+                  - generic [ref=e514]: 2 resolved
+                  - img [ref=e814]
+                - generic [ref=e817]:
+                  - generic [ref=e818]:
+                    - generic [ref=e819]:
+                      - paragraph [ref=e820]: What is the current defect rate baseline?
+                      - button [ref=e821]:
+                        - img
+                    - paragraph [ref=e831]: → 2.4% measured weekly across 4 production lines
+                  - generic [ref=e823]:
+                    - generic [ref=e824]:
+                      - paragraph [ref=e825]: Who owns the line cameras?
+                      - button [ref=e826]:
+                        - img
+                    - paragraph [ref=e827]: → Plant Ops manager Maria
+                  - generic [ref=e828]:
+                    - textbox "What don't we know yet?" [ref=e829]
+                    - button "Add" [disabled]
+              - generic [ref=e518]:
+                - generic [ref=e519]:
+                  - generic [ref=e520]:
+                    - generic [ref=e521]: Impact
+                    - generic [ref=e522]: "9"
+                  - slider [ref=e527] [cursor=pointer]
+                - generic [ref=e528]:
+                  - generic [ref=e529]:
+                    - generic [ref=e530]: Feasibility
+                    - generic [ref=e531]: "8"
+                  - slider [ref=e536] [cursor=pointer]
+                - generic [ref=e537]:
+                  - generic [ref=e538]: Quadrant
+                  - generic [ref=e539]: Quick Wins
+                - generic [ref=e540]:
+                  - generic [ref=e541]: Score
+                  - generic [ref=e542]: "72.0"
+              - button "Financial Impact (Not calculated)" [ref=e544]:
+                - img [ref=e545]
+                - img [ref=e547]
+                - generic [ref=e549]: Financial Impact (Not calculated)
+                - img [ref=e550]
+            - generic [ref=e555]:
+              - generic [ref=e556]:
+                - generic [ref=e557]:
+                  - generic [ref=e558]:
+                    - generic [ref=e560]:
+                      - img
+                      - text: "#2"
+                    - heading "Predictive Maintenance for Production Lines" [level=3] [ref=e561]
+                  - paragraph [ref=e562]: Predictive Maintenance for Production Lines description.
+                  - generic [ref=e564]:
+                    - generic [ref=e565]: …
+                    - text: "ATM: Incomplete"
+                - generic [ref=e566]:
+                  - button "pursue" [ref=e567]:
+                    - img
+                    - generic [ref=e568]: pursue
+                  - button [ref=e570]:
+                    - img
+                  - button [ref=e571]:
+                    - img
+                  - button [ref=e572]:
+                    - img
+              - button "Open questions" [ref=e574]:
+                - img [ref=e575]
+                - generic [ref=e577]: Open questions
+                - img [ref=e578]
+              - generic [ref=e581]:
+                - generic [ref=e582]:
+                  - generic [ref=e583]:
+                    - generic [ref=e584]: Impact
+                    - generic [ref=e585]: "8"
+                  - slider [ref=e590] [cursor=pointer]
+                - generic [ref=e591]:
+                  - generic [ref=e592]:
+                    - generic [ref=e593]: Feasibility
+                    - generic [ref=e594]: "7"
+                  - slider [ref=e599] [cursor=pointer]
+                - generic [ref=e600]:
+                  - generic [ref=e601]: Quadrant
+                  - generic [ref=e602]: Quick Wins
+                - generic [ref=e603]:
+                  - generic [ref=e604]: Score
+                  - generic [ref=e605]: "56.0"
+              - button "Financial Impact (Not calculated)" [ref=e607]:
+                - img [ref=e608]
+                - img [ref=e610]
+                - generic [ref=e612]: Financial Impact (Not calculated)
+                - img [ref=e613]
+            - generic [ref=e618]:
+              - generic [ref=e619]:
+                - generic [ref=e620]:
+                  - generic [ref=e621]:
+                    - generic [ref=e623]:
+                      - img
+                      - text: "#3"
+                    - heading "Demand Forecasting" [level=3] [ref=e624]
+                  - paragraph [ref=e625]: Demand Forecasting description.
+                  - generic [ref=e627]:
+                    - generic [ref=e628]: …
+                    - text: "ATM: Incomplete"
+                - generic [ref=e629]:
+                  - button "defer" [ref=e630]:
+                    - img
+                    - generic [ref=e631]: defer
+                  - button [ref=e633]:
+                    - img
+                  - button [ref=e634]:
+                    - img
+                  - button [ref=e635]:
+                    - img
+              - button "Open questions" [ref=e637]:
+                - img [ref=e638]
+                - generic [ref=e640]: Open questions
+                - img [ref=e641]
+              - generic [ref=e644]:
+                - generic [ref=e645]:
+                  - generic [ref=e646]:
+                    - generic [ref=e647]: Impact
+                    - generic [ref=e648]: "7"
+                  - slider [ref=e653] [cursor=pointer]
+                - generic [ref=e654]:
+                  - generic [ref=e655]:
+                    - generic [ref=e656]: Feasibility
+                    - generic [ref=e657]: "6"
+                  - slider [ref=e662] [cursor=pointer]
+                - generic [ref=e663]:
+                  - generic [ref=e664]: Quadrant
+                  - generic [ref=e665]: Quick Wins
+                - generic [ref=e666]:
+                  - generic [ref=e667]: Score
+                  - generic [ref=e668]: "42.0"
+              - button "Financial Impact (Not calculated)" [ref=e670]:
+                - img [ref=e671]
+                - img [ref=e673]
+                - generic [ref=e675]: Financial Impact (Not calculated)
+                - img [ref=e676]
+            - generic [ref=e681]:
+              - generic [ref=e682]:
+                - generic [ref=e683]:
+                  - generic [ref=e684]:
+                    - generic [ref=e686]:
+                      - img
+                      - text: "#4"
+                    - heading "Supply Chain Optimization" [level=3] [ref=e687]
+                  - paragraph [ref=e688]: Supply Chain Optimization description.
+                  - generic [ref=e690]:
+                    - generic [ref=e691]: …
+                    - text: "ATM: Incomplete"
+                - generic [ref=e692]:
+                  - button "No-Go" [ref=e693]:
+                    - img
+                    - generic [ref=e694]: No-Go
+                  - generic [ref=e695]:
+                    - button [disabled]:
+                      - img
+                  - button [ref=e696]:
+                    - img
+                  - button [ref=e697]:
+                    - img
+              - button "Open questions" [ref=e699]:
+                - img [ref=e700]
+                - generic [ref=e702]: Open questions
+                - img [ref=e703]
+              - generic [ref=e706]:
+                - generic [ref=e707]:
+                  - generic [ref=e708]:
+                    - generic [ref=e709]: Impact
+                    - generic [ref=e710]: "6"
+                  - slider [ref=e715] [cursor=pointer]
+                - generic [ref=e716]:
+                  - generic [ref=e717]:
+                    - generic [ref=e718]: Feasibility
+                    - generic [ref=e719]: "5"
+                  - slider [ref=e724] [cursor=pointer]
+                - generic [ref=e725]:
+                  - generic [ref=e726]: Quadrant
+                  - generic [ref=e727]: Strategic Bets
+                - generic [ref=e728]:
+                  - generic [ref=e729]: Score
+                  - generic [ref=e730]: "30.0"
+              - button "Financial Impact (Not calculated)" [ref=e732]:
+                - img [ref=e733]
+                - img [ref=e735]
+                - generic [ref=e737]: Financial Impact (Not calculated)
+                - img [ref=e738]
+  - contentinfo [ref=e202]:
+    - generic [ref=e203]:
+      - generic [ref=e204]: Developed by
+      - generic [ref=e205]: Tsholo K. Setati
+      - generic [ref=e206]: —
+      - generic [ref=e207]: Innovation Hub

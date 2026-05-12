@@ -1,0 +1,167 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - img [ref=e8]
+      - 'heading "Microsoft Innovation Hub: ID-8" [level=1] [ref=e11]'
+      - paragraph [ref=e12]: AI Discovery and Assessment Platform
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - img
+          - text: AI-Powered Discovery
+        - generic [ref=e15]:
+          - img
+          - text: Smart Recommendations
+        - generic [ref=e16]:
+          - img
+          - text: Innovation Hub Methodology
+    - button "Security & Compliance" [ref=e18]:
+      - img [ref=e19]
+      - text: Security & Compliance
+      - img [ref=e22]
+    - generic [ref=e24]:
+      - region "Discover" [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - heading "Discover" [level=2] [ref=e28]:
+              - img [ref=e29]
+              - text: Discover
+            - paragraph [ref=e32]: Understand the customer — capture context, use cases, and cloud posture.
+          - generic [ref=e33]: Stage 1
+        - generic [ref=e34]:
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e38]:
+                - img [ref=e40]
+                - generic [ref=e43]: Use Cases
+              - generic [ref=e44]: Discovery
+              - generic [ref=e45]: Guided questions + AI suggestions to identify and assess use cases
+            - generic [ref=e46]:
+              - list [ref=e47]:
+                - listitem [ref=e48]:
+                  - img [ref=e49]
+                  - generic [ref=e52]: Answer guided questions (industry-aware)
+                - listitem [ref=e53]:
+                  - img [ref=e54]
+                  - generic [ref=e57]: Generate and refine AI-powered use case suggestions
+                - listitem [ref=e58]:
+                  - img [ref=e59]
+                  - generic [ref=e62]: Prioritize with impact + feasibility scoring
+              - generic [ref=e63]:
+                - button "Start Discovery" [ref=e64]:
+                  - img
+                  - text: Start Discovery
+                - generic [ref=e65]:
+                  - button "Analyze Notes (Optional)" [ref=e66]:
+                    - img
+                    - text: Analyze Notes (Optional)
+                  - button "Use Industry Template" [ref=e67]:
+                    - img
+                    - text: Use Industry Template
+          - generic [ref=e69]:
+            - generic [ref=e70]:
+              - generic [ref=e71]:
+                - img [ref=e73]
+                - generic [ref=e76]: Framework
+              - generic [ref=e77]: Strategic Assessment
+              - generic [ref=e78]: 5-stage framework with financial impact and prioritization outputs
+            - generic [ref=e79]:
+              - list [ref=e80]:
+                - listitem [ref=e81]:
+                  - img [ref=e82]
+                  - generic [ref=e85]: Business envisioning + problem framing
+                - listitem [ref=e86]:
+                  - img [ref=e87]
+                  - generic [ref=e90]: Financial impact modeling and prioritization
+                - listitem [ref=e91]:
+                  - img [ref=e92]
+                  - generic [ref=e95]: Outputs ready for stakeholder alignment
+              - button "Start Strategic Assessment" [ref=e96]:
+                - img
+                - text: Start Strategic Assessment
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - generic [ref=e100]:
+                - img [ref=e102]
+                - generic [ref=e105]: Cloud
+              - generic [ref=e106]: Sovereign Cloud Assessment
+              - generic [ref=e107]: Assess deployment model, sovereign/hybrid strategy, and AI readiness
+            - generic [ref=e108]:
+              - list [ref=e109]:
+                - listitem [ref=e110]:
+                  - img [ref=e111]
+                  - generic [ref=e114]: "Map deployment model: public, sovereign, Azure Local, Arc, Foundry Local"
+                - listitem [ref=e115]:
+                  - img [ref=e116]
+                  - generic [ref=e119]: Landing Zone, CAF, compliance & regulatory assessment
+                - listitem [ref=e120]:
+                  - img [ref=e121]
+                  - generic [ref=e124]: AI architecture, data, and governance readiness
+              - button "Sovereign Cloud Assessment" [ref=e125]:
+                - img
+                - text: Sovereign Cloud Assessment
+      - region "Build" [ref=e126]:
+        - generic [ref=e127]:
+          - generic [ref=e128]:
+            - heading "Build" [level=2] [ref=e129]:
+              - img [ref=e130]
+              - text: Build
+            - paragraph [ref=e133]: Synthesize architectures — turn discovered use cases into best-fit and estate-optimized blueprints.
+          - generic [ref=e134]: Stage 2
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - generic [ref=e139]:
+              - img [ref=e141]
+              - generic [ref=e144]: Use-case led
+            - generic [ref=e145]: Solution Blueprint
+            - generic [ref=e146]: Customer arrived with use cases? Generate dual blueprints — best-fit vs estate-optimized.
+          - generic [ref=e147]:
+            - list [ref=e148]:
+              - listitem [ref=e149]:
+                - img [ref=e150]
+                - generic [ref=e153]: Capture the customer's existing technology estate once
+              - listitem [ref=e154]:
+                - img [ref=e155]
+                - generic [ref=e158]: Pick an archetype per use case to derive required capabilities
+              - listitem [ref=e159]:
+                - img [ref=e160]
+                - generic [ref=e163]: Side-by-side stack with security & identity overlays
+            - button "Open Solution Blueprint" [ref=e164]:
+              - img
+              - text: Open Solution Blueprint
+      - button "Continue Existing" [ref=e167]:
+        - img
+        - text: Continue Existing
+    - button "About ID-8" [ref=e170]:
+      - img [ref=e171]
+      - text: About ID-8
+      - img [ref=e174]
+    - generic [ref=e178]:
+      - generic [ref=e179]:
+        - generic [ref=e180]:
+          - img [ref=e181]
+          - heading "Try Demo Mode" [level=3] [ref=e183]
+        - paragraph [ref=e184]: Enter demo mode with pre-filled forms to explore all features
+      - generic [ref=e185]:
+        - button "Zava Mining Discovery" [ref=e187]:
+          - img
+          - generic [ref=e188]:
+            - generic [ref=e189]: Zava Mining
+            - generic [ref=e190]: Discovery
+        - button "Contoso Financial Sovereign Cloud" [ref=e192]:
+          - img
+          - generic [ref=e193]:
+            - generic [ref=e194]: Contoso Financial
+            - generic [ref=e195]: Sovereign Cloud
+        - button "MegaMart Retail Strategic Assessment" [ref=e197]:
+          - img
+          - generic [ref=e198]:
+            - generic [ref=e199]: MegaMart Retail
+            - generic [ref=e200]: Strategic Assessment
+    - paragraph [ref=e201]: Powered by Microsoft Azure OpenAI
+  - contentinfo [ref=e202]:
+    - generic [ref=e203]:
+      - generic [ref=e204]: Developed by
+      - generic [ref=e205]: Tsholo K. Setati
+      - generic [ref=e206]: —
+      - generic [ref=e207]: Innovation Hub

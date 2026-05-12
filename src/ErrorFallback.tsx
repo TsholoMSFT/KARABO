@@ -12,7 +12,7 @@ export const ErrorFallback = ({ error, resetErrorBoundary }) => {
       <div className="w-full max-w-md">
         <Alert variant="destructive" className="mb-6">
           <AlertTriangleIcon />
-          <AlertTitle>ID-8 has encountered a runtime error</AlertTitle>
+          <AlertTitle>The application has encountered a runtime error</AlertTitle>
           <AlertDescription>
             Something unexpected happened while running the application. The error details are shown below. Please try refreshing the page or contact support if the issue persists.
           </AlertDescription>

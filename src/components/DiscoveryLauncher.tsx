@@ -43,9 +43,9 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onS
     <>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 space-y-4">
         {/* Mode Toggle with Settings */}
-        <div className="flex justify-center items-center gap-3">
-          <Tabs value={mode} onValueChange={(v) => setMode(v as DiscoveryMode)} className="w-auto">
-            <TabsList className={`grid w-[680px] grid-cols-${availableTabs.length}`}>
+        <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3">
+          <Tabs value={mode} onValueChange={(v) => setMode(v as DiscoveryMode)} className="w-full sm:w-auto overflow-x-auto">
+            <TabsList className={`grid w-full sm:w-[680px] min-w-[320px] grid-cols-${availableTabs.length}`}>
               {availableTabs.map(tab => (
                 <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
                   {tab.id === 'quick' && <><Rocket size={16} /> Discovery</>}
@@ -66,7 +66,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onS
         {mode === 'quick' && (
           <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-secondary/5">
             <CardHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                 <div className="space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
                     <MagnifyingGlass size={28} weight="bold" className="text-primary" />
@@ -86,7 +86,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onS
                     </Badge>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
                   <Button onClick={onStartDiscovery} size="lg" className="gap-2">
                     <Sparkle size={20} weight="fill" />
                     {getDiscoveryButtonLabel(accountSegment)}
@@ -144,7 +144,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onS
         {mode === 'sovereign-cloud' && (
           <Card className="border-2 border-teal-500/30 bg-gradient-to-br from-teal-500/5 to-secondary/5">
             <CardHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                 <div className="space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
                     <ShieldCheck size={28} weight="fill" className="text-teal-500" />
@@ -168,7 +168,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onS
                     </Badge>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
                   <Button
                     onClick={() => {
                       if (!onStartSovereignCloud) {
@@ -236,7 +236,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onS
             
             <Card className="border-2 border-brand-blue/30 bg-gradient-to-br from-brand-blue/5 to-secondary/5">
             <CardHeader>
-              <div className="flex items-start justify-between">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                 <div className="space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
                     <Briefcase size={28} weight="bold" className="text-brand-blue" />
@@ -260,7 +260,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onS
                     </Badge>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
                   <Button 
                     onClick={onStartEnterpriseDiscovery}
                     size="lg" 

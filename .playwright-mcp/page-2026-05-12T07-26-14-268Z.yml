@@ -1,0 +1,26 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - generic [ref=e217]:
+    - generic [ref=e218]:
+      - generic [ref=e219]:
+        - img
+        - text: Demo Mode
+      - generic [ref=e220]:
+        - img [ref=e222]
+        - generic [ref=e225]: Zava Mining
+      - button "About demo mode" [ref=e226]:
+        - img [ref=e227]
+    - button "Exit Demo" [ref=e229]:
+      - img
+      - text: Exit Demo
+  - generic [ref=e401]:
+    - img [ref=e403]
+    - generic [ref=e405]:
+      - heading "Generating Use Cases" [level=3] [ref=e406]
+      - paragraph [ref=e407]: Creating AI-powered recommendations...
+  - contentinfo [ref=e202]:
+    - generic [ref=e203]:
+      - generic [ref=e204]: Developed by
+      - generic [ref=e205]: Tsholo K. Setati
+      - generic [ref=e206]: —
+      - generic [ref=e207]: Innovation Hub

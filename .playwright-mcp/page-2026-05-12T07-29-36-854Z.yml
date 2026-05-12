@@ -1,0 +1,12 @@
+- generic [ref=e2]:
+  - region "Notifications alt+T"
+  - alert [ref=e208]:
+    - generic [ref=e209]: Application failed to render
+    - generic [ref=e210]: Cannot destructure property 'reach' of 'useCase.rice' as it is undefined.
+    - button "Retry" [ref=e211]
+  - contentinfo [ref=e202]:
+    - generic [ref=e203]:
+      - generic [ref=e204]: Developed by
+      - generic [ref=e205]: Tsholo K. Setati
+      - generic [ref=e206]: —
+      - generic [ref=e207]: Innovation Hub

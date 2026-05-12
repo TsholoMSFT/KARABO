@@ -282,6 +282,7 @@ export function UseCaseCard({
                         : 'text-rose-600 hover:text-rose-700'
                   }`}
                   onClick={cycleDisposition}
+                  aria-label={`Disposition: ${disposition === 'no-go' ? 'No-Go' : disposition[0].toUpperCase() + disposition.slice(1)}. Click to change.`}
                 >
                   {disposition === 'pursue' && <CheckCircle size={14} weight="fill" />}
                   {disposition === 'defer' && <Pause size={14} weight="fill" />}
@@ -307,6 +308,13 @@ export function UseCaseCard({
                       }}
                       disabled={disposition === 'no-go'}
                       className={!problemConfirmed ? 'text-amber-600' : ''}
+                      aria-label={
+                        disposition === 'no-go'
+                          ? 'Draft solution (disabled — disposition is No-Go)'
+                          : problemConfirmed
+                            ? 'Draft solution blueprint'
+                            : 'Confirm problem statement before drafting solution'
+                      }
                     >
                       {problemConfirmed ? <TreeStructure size={18} /> : <Question size={18} />}
                     </Button>
@@ -321,10 +329,10 @@ export function UseCaseCard({
                 </TooltipContent>
               </Tooltip>
             )}
-            <Button variant="ghost" size="icon" onClick={() => onEdit(useCase)}>
+            <Button variant="ghost" size="icon" onClick={() => onEdit(useCase)} aria-label={`Edit use case: ${useCase.title}`}>
               <PencilSimple size={18} />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => onDelete(useCase.id)}>
+            <Button variant="ghost" size="icon" onClick={() => onDelete(useCase.id)} aria-label={`Delete use case: ${useCase.title}`}>
               <Trash size={18} />
             </Button>
           </div>

@@ -1,0 +1,626 @@
+- generic:
+  - generic:
+    - region "Notifications alt+T"
+    - generic:
+      - generic:
+        - banner:
+          - generic:
+            - generic:
+              - generic:
+                - button:
+                  - img
+                  - generic: Home
+              - generic:
+                - generic:
+                  - img
+                - generic:
+                  - heading [level=1]: Microsoft Innovation Hub
+                  - paragraph: Use Case Assessment Platform
+        - generic:
+          - banner:
+            - heading [level=1]: Microsoft Innovation Hub Use Case Assessment
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Customer & Sessions
+                  - generic: Viewing 1 session for Acme Corp
+            - generic:
+              - generic:
+                - text: Filter by Customer
+                - combobox:
+                  - generic:
+                    - generic:
+                      - generic: Acme Corp
+                      - generic: 1 session
+                  - img
+              - generic:
+                - generic:
+                  - img
+                  - generic:
+                    - paragraph: Innovation Hub SPOC
+                    - paragraph: Not specified
+                - generic:
+                  - img
+                  - generic:
+                    - paragraph: Customer Since
+                    - paragraph: 2026/05/12
+          - generic:
+            - generic:
+              - img
+              - heading [level=2]: Customer Information
+            - generic:
+              - generic:
+                - generic:
+                  - img
+                  - text: Customer Name
+                - textbox:
+                  - /placeholder: Enter customer name
+                  - text: Acme Corp
+              - generic:
+                - generic:
+                  - img
+                  - text: Innovation Hub SPOC
+                - textbox:
+                  - /placeholder: Enter Hub SPOC name
+              - generic:
+                - generic:
+                  - img
+                  - text: Primary Stakeholder
+                - textbox:
+                  - /placeholder: Enter primary stakeholder name
+              - generic:
+                - generic:
+                  - img
+                  - text: Account Team Representative
+                - textbox:
+                  - /placeholder: Enter account team rep name
+              - generic:
+                - generic:
+                  - img
+                  - text: Innovation Hub Location
+                - combobox:
+                  - generic: Select hub location
+                  - img
+              - generic:
+                - generic:
+                  - img
+                  - text: Innovation Hub Solution Engineer
+                - textbox:
+                  - /placeholder: Enter solution engineer name
+          - generic:
+            - button:
+              - generic:
+                - img
+                - generic: Important Disclaimers & Legal Notices
+              - img
+          - generic:
+            - generic:
+              - generic:
+                - tablist:
+                  - tab [selected]:
+                    - img
+                    - text: Discovery
+                  - tab:
+                    - img
+                    - text: Sovereign Cloud
+                  - tab:
+                    - img
+                    - text: Strategic Assessment
+                  - tab:
+                    - img
+                    - text: Tools
+              - button:
+                - img
+                - text: AI Settings
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - img
+                      - text: Use Case Discovery
+                    - generic: AI-powered discovery with guided questions. Identify, validate, and prioritize use cases across the full Innovation Hub methodology.
+                    - generic:
+                      - generic:
+                        - img
+                        - text: Industry-Specific Templates
+                      - generic:
+                        - img
+                        - text: AI-Powered Suggestions
+                  - generic:
+                    - button:
+                      - img
+                      - text: Start Discovery
+                    - button:
+                      - img
+                      - text: Live Discovery
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - img
+                    - generic:
+                      - heading [level=4]: Select Industry & Answer Questions
+                      - paragraph: Choose your industry for tailored questions about your business, challenges, and goals
+                  - generic:
+                    - generic:
+                      - img
+                    - generic:
+                      - heading [level=4]: Get Suggestions
+                      - paragraph: AI analyzes your responses to identify relevant use cases for innovation
+                  - generic:
+                    - generic:
+                      - img
+                    - generic:
+                      - heading [level=4]: Prioritize & Assess
+                      - paragraph: Add selected use cases to your dashboard for detailed scoring and comparison
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - text: Discovery Sessions
+                  - generic: View and compare your saved discovery sessions
+                - button:
+                  - img
+                  - text: Manage Sessions
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - tablist:
+                    - tab [selected]:
+                      - img
+                      - generic: Impact/Feasibility
+                    - tab:
+                      - img
+                      - text: RICE
+                    - tab:
+                      - img
+                      - generic: Financial Impact
+              - generic:
+                - button:
+                  - img
+                  - text: Export
+                - button:
+                  - img
+                  - text: Import
+                - button:
+                  - img
+                  - text: Re-assess
+                - button:
+                  - img
+                  - text: Add Use Case
+                - button [expanded]:
+                  - img
+                  - text: Mutual Success Plan
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                    - heading [level=2]: Highest mutual-fit use cases
+                    - button:
+                      - img
+                      - text: Show 1 No-Go
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: "1"
+                      - generic:
+                        - generic:
+                          - heading [level=3]: AI-Powered Quality Inspection
+                          - img
+                        - paragraph: AI-Powered Quality Inspection description.
+                        - generic:
+                          - generic:
+                            - img
+                            - generic: "Score:"
+                            - generic: "72.0"
+                          - generic:
+                            - generic: Quick Wins
+                      - button:
+                        - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: "2"
+                      - generic:
+                        - generic:
+                          - heading [level=3]: Predictive Maintenance for Production Lines
+                          - img
+                        - paragraph: Predictive Maintenance for Production Lines description.
+                        - generic:
+                          - generic:
+                            - img
+                            - generic: "Score:"
+                            - generic: "56.0"
+                          - generic:
+                            - generic: Quick Wins
+                      - button:
+                        - img
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic: "3"
+                      - generic:
+                        - generic:
+                          - heading [level=3]: Demand Forecasting
+                          - img
+                        - paragraph: Demand Forecasting description.
+                        - generic:
+                          - generic:
+                            - img
+                            - generic: "Score:"
+                            - generic: "42.0"
+                          - generic:
+                            - generic: Quick Wins
+                      - button:
+                        - img
+            - generic:
+              - generic:
+                - generic:
+                  - img:
+                    - generic: Strategic Bets
+                    - generic: Quick Wins
+                    - generic: Time Sinks
+                    - generic: Fill-ins
+                    - generic: Feasibility
+                    - generic: Impact
+                - generic:
+                  - generic: "Dot color (Impact × Feasibility):"
+                  - generic: ≥ 70 (Strong)
+                  - generic: 40–69 (Moderate)
+                  - generic: 20–39 (Low)
+                  - generic: < 20 (Minimal)
+                - generic:
+                  - button:
+                    - generic:
+                      - heading [level=3]: Understanding the Quadrants
+                      - paragraph: Click to learn about each quadrant
+                    - img
+            - generic:
+              - generic:
+                - generic: "Portfolio/Matrix: Next step"
+                - generic: When you’re ready, proceed to Enterprise Discovery or conclude this assessment.
+              - generic:
+                - button: Proceed to Strategic Assessment
+                - button: Conclude
+            - generic:
+              - generic:
+                - heading [level=2]: All Use Cases (4)
+                - generic:
+                  - img
+                  - combobox:
+                    - generic: All Sources
+                    - img
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img
+                                  - text: "#1"
+                              - heading [level=3]: AI-Powered Quality Inspection
+                            - paragraph: AI-Powered Quality Inspection description.
+                            - generic:
+                              - generic:
+                                - generic: …
+                                - text: "ATM: Incomplete"
+                          - generic:
+                            - button:
+                              - img
+                              - generic: pursue
+                            - generic:
+                              - button:
+                                - img
+                            - button:
+                              - img
+                            - button:
+                              - img
+                        - generic:
+                          - button:
+                            - img
+                            - generic: Open questions
+                            - generic: 1 open
+                            - img
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: Impact
+                                - generic: "9"
+                              - generic:
+                                - generic:
+                                  - slider
+                            - generic:
+                              - generic:
+                                - generic: Feasibility
+                                - generic: "8"
+                              - generic:
+                                - generic:
+                                  - slider
+                            - generic:
+                              - generic: Quadrant
+                              - generic: Quick Wins
+                            - generic:
+                              - generic: Score
+                              - generic: "72.0"
+                        - generic:
+                          - button:
+                            - img
+                            - img
+                            - generic: Financial Impact (Not calculated)
+                            - img
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img
+                                  - text: "#2"
+                              - heading [level=3]: Predictive Maintenance for Production Lines
+                            - paragraph: Predictive Maintenance for Production Lines description.
+                            - generic:
+                              - generic:
+                                - generic: …
+                                - text: "ATM: Incomplete"
+                          - generic:
+                            - button:
+                              - img
+                              - generic: pursue
+                            - generic:
+                              - button:
+                                - img
+                            - button:
+                              - img
+                            - button:
+                              - img
+                        - generic:
+                          - button:
+                            - img
+                            - generic: Open questions
+                            - img
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: Impact
+                                - generic: "8"
+                              - generic:
+                                - generic:
+                                  - slider
+                            - generic:
+                              - generic:
+                                - generic: Feasibility
+                                - generic: "7"
+                              - generic:
+                                - generic:
+                                  - slider
+                            - generic:
+                              - generic: Quadrant
+                              - generic: Quick Wins
+                            - generic:
+                              - generic: Score
+                              - generic: "56.0"
+                        - generic:
+                          - button:
+                            - img
+                            - img
+                            - generic: Financial Impact (Not calculated)
+                            - img
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img
+                                  - text: "#3"
+                              - heading [level=3]: Demand Forecasting
+                            - paragraph: Demand Forecasting description.
+                            - generic:
+                              - generic:
+                                - generic: …
+                                - text: "ATM: Incomplete"
+                          - generic:
+                            - button:
+                              - img
+                              - generic: defer
+                            - generic:
+                              - button:
+                                - img
+                            - button:
+                              - img
+                            - button:
+                              - img
+                        - generic:
+                          - button:
+                            - img
+                            - generic: Open questions
+                            - img
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: Impact
+                                - generic: "7"
+                              - generic:
+                                - generic:
+                                  - slider
+                            - generic:
+                              - generic:
+                                - generic: Feasibility
+                                - generic: "6"
+                              - generic:
+                                - generic:
+                                  - slider
+                            - generic:
+                              - generic: Quadrant
+                              - generic: Quick Wins
+                            - generic:
+                              - generic: Score
+                              - generic: "42.0"
+                        - generic:
+                          - button:
+                            - img
+                            - img
+                            - generic: Financial Impact (Not calculated)
+                            - img
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic:
+                                  - img
+                                  - text: "#4"
+                              - heading [level=3]: Supply Chain Optimization
+                            - paragraph: Supply Chain Optimization description.
+                            - generic:
+                              - generic:
+                                - generic: …
+                                - text: "ATM: Incomplete"
+                          - generic:
+                            - button:
+                              - img
+                              - generic: No-Go
+                            - generic:
+                              - button [disabled]:
+                                - img
+                            - button:
+                              - img
+                            - button:
+                              - img
+                        - generic:
+                          - button:
+                            - img
+                            - generic: Open questions
+                            - img
+                        - generic:
+                          - generic:
+                            - generic:
+                              - generic:
+                                - generic: Impact
+                                - generic: "6"
+                              - generic:
+                                - generic:
+                                  - slider
+                            - generic:
+                              - generic:
+                                - generic: Feasibility
+                                - generic: "5"
+                              - generic:
+                                - generic:
+                                  - slider
+                            - generic:
+                              - generic: Quadrant
+                              - generic: Strategic Bets
+                            - generic:
+                              - generic: Score
+                              - generic: "30.0"
+                        - generic:
+                          - button:
+                            - img
+                            - img
+                            - generic: Financial Impact (Not calculated)
+                            - img
+    - contentinfo:
+      - generic:
+        - generic: Developed by
+        - generic: Tsholo K. Setati
+        - generic: —
+        - generic: Innovation Hub
+  - dialog "Mutual Success Plan — Acme Corp" [ref=e741]:
+    - generic [ref=e742]:
+      - heading "Mutual Success Plan — Acme Corp" [level=2] [ref=e743]:
+        - img [ref=e744]
+        - text: Mutual Success Plan
+        - generic [ref=e747]: — Acme Corp
+      - paragraph [ref=e748]:
+        - text: Khalsa's mutual contract. Fill this in
+        - emphasis [ref=e749]: before
+        - text: committing to a solution. Every blank is a question that, left unasked, becomes a surprise during procurement.
+    - generic [ref=e750]:
+      - generic [ref=e751]:
+        - generic [ref=e753]:
+          - img [ref=e754]
+          - text: Success criteria (customer's words)
+        - textbox "e.g. \"Cut average claims-cycle time from 18 days to under 8 by Q3, with no drop in CSAT.\"" [active] [ref=e758]
+      - generic [ref=e759]:
+        - generic [ref=e760]:
+          - generic [ref=e761]:
+            - img [ref=e762]
+            - text: Evidence required
+          - paragraph [ref=e765]: What artefact / measurement proves success? Reports, dashboards, audit results.
+        - button "Add" [ref=e767]:
+          - img
+          - text: Add
+      - generic [ref=e768]:
+        - generic [ref=e770]:
+          - img [ref=e771]
+          - text: Decision makers
+        - generic [ref=e774]:
+          - generic [ref=e775]:
+            - generic [ref=e776]: Target decision date
+            - textbox [ref=e777]
+          - button "Add decision maker" [ref=e779]:
+            - img
+            - text: Add decision maker
+      - generic [ref=e780]:
+        - generic [ref=e781]:
+          - generic [ref=e782]:
+            - img [ref=e783]
+            - text: What would have to be true?
+          - paragraph [ref=e786]: Testable assumptions. If any are false, the plan doesn't work — surface them now.
+        - button "Add" [ref=e788]:
+          - img
+          - text: Add
+      - generic [ref=e789]:
+        - generic [ref=e790]:
+          - generic [ref=e791]:
+            - generic [ref=e792]:
+              - img [ref=e793]
+              - text: Customer commitments
+            - paragraph [ref=e796]: What the customer puts in.
+          - button "Add" [ref=e798]:
+            - img
+            - text: Add
+        - generic [ref=e799]:
+          - generic [ref=e800]:
+            - generic [ref=e801]:
+              - img [ref=e802]
+              - text: Microsoft commitments
+            - paragraph [ref=e805]: What we put in.
+          - button "Add" [ref=e807]:
+            - img
+            - text: Add
+    - generic [ref=e808]:
+      - generic [ref=e809]: 0% complete
+      - button "Export PDF" [ref=e810]:
+        - img
+        - text: Export PDF
+      - button "Close" [ref=e811]
+    - button "Close" [ref=e812]:
+      - img
+      - generic [ref=e813]: Close

@@ -1251,9 +1251,9 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               className="mb-8 text-center"
             >
-              <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
                 Microsoft Innovation Hub Use Case Assessment
-              </h1>
+              </h2>
             </motion.header>
 
             {!selectedSession && (discoverySessions?.length === 0 || !discoverySessions) ? (
