@@ -1,11 +1,11 @@
 # AI Integration Documentation
 
 **Author:** Tsholo K. Setati  
-**Project:** Microsoft Innovation Hub Enterprise Discovery
+**Project:** ID-8 (Microsoft Innovation Hub Enterprise Discovery)
 
 ## Overview
 
-I integrated comprehensive AI capabilities into the Microsoft Innovation Hub Use Case Assessment application using OpenAI's GPT-4o and GPT-4o-mini models. These AI features enhance the discovery process, use case generation, and executive summary creation to provide intelligent, context-aware assistance throughout the assessment workflow.
+I integrated comprehensive AI capabilities into the ID-8 (Microsoft Innovation Hub Use Case Assessment) application using OpenAI's GPT-4o and GPT-4o-mini models. These AI features enhance the discovery process, use case generation, and executive summary creation to provide intelligent, context-aware assistance throughout the assessment workflow.
 
 ## AI Features
 

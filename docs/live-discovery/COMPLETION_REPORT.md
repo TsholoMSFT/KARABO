@@ -1,7 +1,7 @@
 # ✅ Live Discovery Browser API Research - COMPLETE
 
 **Author:** Tsholo K. Setati  
-**Project:** Microsoft Innovation Hub Enterprise Discovery
+**Project:** ID-8 (Microsoft Innovation Hub Enterprise Discovery)
 
 ## Research Project Status: **SUCCESSFULLY COMPLETED**
 

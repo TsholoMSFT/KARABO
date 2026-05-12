@@ -1242,7 +1242,7 @@ function App() {
         >
           <NavigationHeader 
             onBackToLanding={handleBackToLanding}
-            title="Microsoft Innovation Hub"
+            title="Microsoft Innovation Hub: ID-8"
             subtitle="Use Case Assessment Platform"
           />
           <div className="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
@@ -1252,7 +1252,7 @@ function App() {
               className="mb-8 text-center"
             >
               <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                Microsoft Innovation Hub Use Case Assessment
+                ID-8 - Use Case Assessment
               </h2>
             </motion.header>
 

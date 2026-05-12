@@ -1,7 +1,7 @@
 # Live Discovery Browser Capability Improvements
 
 **Author:** Tsholo K. Setati  
-**Project:** Microsoft Innovation Hub Enterprise Discovery
+**Project:** ID-8 (Microsoft Innovation Hub Enterprise Discovery)
 
 ## Overview
 

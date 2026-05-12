@@ -1,7 +1,7 @@
-# KARABO - Microsoft Innovation Hub Use Case Assessment Tool
+# KARABO - ID-8 (Microsoft Innovation Hub Use Case Assessment Tool)
 
 **Author:** Tsholo K. Setati  
-**Project:** Microsoft Innovation Hub Enterprise Discovery
+**Project:** ID-8 (Microsoft Innovation Hub Enterprise Discovery)
 
 I built this comprehensive web application to help evaluate and prioritize use cases using Impact vs. Feasibility analysis and RICE scoring methodology. The tool is powered by AI to streamline the discovery process and make customer engagements more efficient.
 

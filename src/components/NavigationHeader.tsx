@@ -112,7 +112,7 @@ export function NavigationHeader({
               </div>
               <div className="hidden md:block">
                 <h1 className="text-sm font-semibold text-foreground">
-                  {title || 'Microsoft Innovation Hub'}
+                  {title || 'Microsoft Innovation Hub: ID-8'}
                 </h1>
                 {subtitle && (
                   <p className="text-xs text-muted-foreground">{subtitle}</p>

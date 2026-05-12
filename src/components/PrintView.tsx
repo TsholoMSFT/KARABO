@@ -80,7 +80,7 @@ export function PrintView({
         <div className="print-content space-y-6 print:space-y-8">
           <header className="text-center border-b border-border pb-6 print:page-break-after-avoid">
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              Microsoft Innovation Hub Use Case Assessment
+              ID-8 - Use Case Assessment
             </h1>
             <p className="text-muted-foreground">
               Generated on {new Date().toLocaleDateString()} using{' '}

@@ -1,11 +1,11 @@
 # AI Integration Summary
 
 **Author:** Tsholo K. Setati  
-**Project:** Microsoft Innovation Hub Enterprise Discovery
+**Project:** ID-8 (Microsoft Innovation Hub Enterprise Discovery)
 
 ## What's New? 🤖✨
 
-I've added powerful AI capabilities to the Microsoft Innovation Hub Use Case Assessment tool to make the discovery process smarter, faster, and more insightful.
+I've added powerful AI capabilities to the ID-8 (Microsoft Innovation Hub Use Case Assessment) tool to make the discovery process smarter, faster, and more insightful.
 
 ## Key AI Features
 

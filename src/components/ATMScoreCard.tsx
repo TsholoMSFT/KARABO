@@ -538,7 +538,7 @@ function MethodologyExplainer() {
       <h5 className="font-semibold text-foreground text-xs">How ATM Scoring Works</h5>
       <p>
         Microsoft's <strong>Apps That Matter</strong> framework defines five qualitative criteria
-        for high-impact opportunities. The platform quantifies these into a 0–100 composite score
+        for high-impact opportunities. ID-8 quantifies these into a 0–100 composite score
         using data already captured during discovery sessions.
       </p>
       <div className="space-y-1">
@@ -549,7 +549,7 @@ function MethodologyExplainer() {
         <div><strong>Repeatability</strong> (15%) — Reference architectures, industry plays</div>
       </div>
       <p className="italic text-[10px]">
-        This is the platform's interpretation — the official ATM criteria are qualitative (pass/fail).
+        This is ID-8's interpretation — the official ATM criteria are qualitative (pass/fail).
         The numerical model helps identify gaps and strengthen opportunities before pipeline tagging.
       </p>
     </div>

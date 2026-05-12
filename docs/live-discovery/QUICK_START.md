@@ -1,7 +1,7 @@
 # Live Discovery Browser Capabilities - Quick Start Guide
 
 **Author:** Tsholo K. Setati  
-**Project:** Microsoft Innovation Hub Enterprise Discovery
+**Project:** ID-8 (Microsoft Innovation Hub Enterprise Discovery)
 
 ## What I Added
 

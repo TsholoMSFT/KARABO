@@ -3,7 +3,7 @@
     "private": true,
     "version": "1.0.0",
     "type": "module",
-    "description": "Microsoft Innovation Hub Enterprise Discovery & Use Case Assessment Platform",
+    "description": "ID-8 - Microsoft Innovation Hub Enterprise Discovery & Use Case Assessment Platform",
     "scripts": {
         "dev": "vite",
         "build": "tsc -b --noCheck && vite build",

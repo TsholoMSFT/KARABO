@@ -101,7 +101,7 @@ export function LandingPage({
             transition={{ delay: 0.3 }}
             className="text-5xl font-bold tracking-tight"
           >
-            Microsoft Innovation Hub
+            Microsoft Innovation Hub: ID-8
           </motion.h1>
           
           <motion.p
@@ -193,7 +193,7 @@ export function LandingPage({
                     <Separator />
 
                     <p className="text-xs text-muted-foreground">
-                      The Microsoft Innovation Hub follows the <strong>Microsoft Responsible AI Principles</strong>. 
+                      ID-8 follows the <strong>Microsoft Responsible AI Principles</strong>. 
                       All regulatory assessments are deterministic (no AI hallucination). 
                       Data remains in your Azure tenant; no third-party analytics or tracking is used.
                     </p>
