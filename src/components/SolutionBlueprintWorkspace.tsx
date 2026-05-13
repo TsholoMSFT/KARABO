@@ -70,6 +70,7 @@ import { toast } from 'sonner'
 import { EstateBanner } from './solution-blueprint/EstateBanner'
 import { LearnMorePopover } from './solution-blueprint/LearnMorePopover'
 import { IQConnectionsPanel, type IQInsightHint } from './solution-blueprint/IQConnectionsPanel'
+import { InternalSalesUpload } from './InternalSalesUpload'
 import { BlueprintCopilotRail } from './solution-blueprint/BlueprintCopilotRail'
 import { BlueprintAgentRunner } from './solution-blueprint/BlueprintAgentRunner'
 import {
@@ -501,19 +502,25 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
           </TabsContent>
 
           <TabsContent value="connect-data">
-            <IQConnectionsPanel
-              customerName={selectedCustomer.name}
-              onApplyHints={(hints: IQInsightHint[]) => {
-                if (!hints.length) return
-                const stamp = new Date().toISOString().slice(0, 10)
-                const lines = hints.map(
-                  (h) => `- [${h.source.toUpperCase()}] ${h.label}${h.detail ? ` — ${h.detail}` : ''}`,
-                )
-                const block = `\n\n## IQ insights (${stamp})\n${lines.join('\n')}`
-                updateEstate({ notes: `${estate.notes || ''}${block}`.trim() })
-                toast.success('Insights appended to estate notes — they will ground the blueprint generator.')
-              }}
-            />
+            <div className="space-y-4">
+              <IQConnectionsPanel
+                customerName={selectedCustomer.name}
+                onApplyHints={(hints: IQInsightHint[]) => {
+                  if (!hints.length) return
+                  const stamp = new Date().toISOString().slice(0, 10)
+                  const lines = hints.map(
+                    (h) => `- [${h.source.toUpperCase()}] ${h.label}${h.detail ? ` — ${h.detail}` : ''}`,
+                  )
+                  const block = `\n\n## IQ insights (${stamp})\n${lines.join('\n')}`
+                  updateEstate({ notes: `${estate.notes || ''}${block}`.trim() })
+                  toast.success('Insights appended to estate notes — they will ground the blueprint generator.')
+                }}
+              />
+              <InternalSalesUpload
+                customerId={selectedCustomer.id}
+                customerName={selectedCustomer.name}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="use-cases">

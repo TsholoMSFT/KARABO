@@ -348,6 +348,28 @@ export interface ManualFinancialContext {
   financialSource?: 'manual' | 'document-extraction' | 'industry-benchmark'
 }
 
+/**
+ * Internal sales / account data ingested from a CSV export of CRM
+ * (Dynamics 365, Salesforce, MSX, etc.). Stored per customer in localStorage
+ * via src/lib/sales-data-service.ts.
+ */
+export interface InternalSalesRecord {
+  customerId: string
+  customerName?: string
+  accountId?: string                 // CRM account id
+  arrUSD?: number                    // current annual recurring revenue
+  expansionPipelineUSD?: number      // open opps
+  productsOwned?: string[]           // e.g. "M365 E5", "Dynamics 365 Sales", "Azure"
+  renewalDate?: string               // ISO
+  segment?: string                   // SMB | Enterprise | Strategic
+  accountTier?: string               // SMC | Major | Strategic
+  primaryContact?: string
+  notes?: string
+  source: 'csv-upload' | 'graph' | 'dynamics' | 'msx'
+  importedAt: number
+  rawRow?: Record<string, string | number | null>
+}
+
 /** Industry benchmark data (used as fallback when no financials available) */
 export interface IndustryBenchmark {
   industry: Industry
