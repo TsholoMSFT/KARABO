@@ -20,34 +20,53 @@ const CONTAINER_NAME = "rss-feeds";
 const corsHeaders = makeCorsHeaders("GET, OPTIONS");
 
 /**
- * Fetch live RSS from Google News when no cached data exists
+ * Fetch live RSS from Google News when no cached data exists.
+ * 8 s abort timeout protects callers from a slow upstream stalling the function.
  */
 async function fetchLiveRSS(companyName: string, context: InvocationContext): Promise<RSSItem[]> {
   const query = encodeURIComponent(companyName);
   const url = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
-  
+
   context.log(`Fetching live RSS for "${companyName}" from: ${url}`);
-  
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
   try {
     const response = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; KARABO/1.0; +https://karabo.app)",
         "Accept": "application/rss+xml, application/xml, text/xml, */*",
       },
+      signal: controller.signal,
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    
+
     const xmlContent = await response.text();
     const items = parseRSSItems(xmlContent);
-    
+
     context.log(`Fetched ${items.length} live RSS items for "${companyName}"`);
     return items;
   } catch (error: any) {
-    context.error(`Failed to fetch live RSS for "${companyName}":`, error);
-    throw error;
+    const reason = error?.name === "AbortError" ? "timeout (8s)" : safeErrorMessage(error, "unknown");
+    context.error(`Failed to fetch live RSS for "${companyName}": ${reason}`);
+    throw new Error(reason);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// Always-resolving wrapper around fetchLiveRSS, used by the outer handler
+// as a last-resort fallback so the UI never sees a 5xx for transient infra.
+async function safeLiveRSS(companyName: string, context: InvocationContext) {
+  if (!companyName) return { items: [] as RSSItem[], message: undefined as string | undefined };
+  try {
+    const items = await fetchLiveRSS(companyName, context);
+    return { items, message: undefined };
+  } catch (err: any) {
+    return { items: [] as RSSItem[], message: `Live RSS fetch failed: ${safeErrorMessage(err, "unknown")}` };
   }
 }
 
@@ -251,14 +270,23 @@ async function rssFeedsHandler(
       },
     };
   } catch (error: any) {
-    context.error("RSS feeds error:", error);
-
+    // Last-resort: never let an uncaught error 500 the UI. Try live RSS;
+    // if that also fails, return 200 with an empty list and a diagnostic
+    // message so the frontend renders the empty state instead of a toast.
+    context.error("RSS feeds error (falling back to live):", error);
+    const fallback = await safeLiveRSS(companyParam, context);
     return {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: { 
-        error: "Failed to fetch RSS feeds", 
-        details: safeErrorMessage(error, "Failed to fetch RSS feeds"),
+      jsonBody: {
+        items: fallback.items,
+        message:
+          fallback.message ||
+          (fallback.items.length
+            ? `Cache read failed (${safeErrorMessage(error, "unknown")}); returned live RSS for "${companyParam}".`
+            : `RSS unavailable: ${safeErrorMessage(error, "unknown")}`),
+        company: companyParam || null,
+        source: fallback.items.length ? "live" : "none",
       },
     };
   }
