@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
-import { FilePdf, Envelope, Printer, CheckCircle } from '@phosphor-icons/react'
+import { FilePdf, Envelope, Printer, CheckCircle, MicrosoftPowerpointLogo, MicrosoftTeamsLogo, MicrosoftOutlookLogo } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import { exportSessionToPptx } from '@/lib/pptx-export'
+import { openTeamsShare, openOutlookCompose, buildTeamsSummary } from '@/lib/share-helpers'
 
 export interface ExportDialogProps {
   open: boolean
@@ -14,6 +16,7 @@ export interface ExportDialogProps {
   // Optional session data for email export
   sessionData?: {
     customerName: string
+    industry?: string
     summary?: string
     useCases?: Array<{
       title: string
@@ -21,8 +24,16 @@ export interface ExportDialogProps {
       priority?: number
       rice?: { score?: number }
       coiEstimate?: { totalAnnualCOI?: number }
+      effortPersonWeeks?: number
     }>
     nextSteps?: string[]
+    microsoftSolutions?: string[]
+    businessCase?: {
+      investmentUSD?: number
+      threeYearBenefitUSD?: number
+      paybackMonths?: number
+      npvUSD?: number
+    }
   }
 }
 
@@ -118,6 +129,61 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
     toast.info('Print dialog opened - select "Save as PDF" to save')
   }
 
+  const handleExportPPTX = async () => {
+    if (!sessionData) { toast.error('No session data available'); return }
+    try {
+      await exportSessionToPptx({
+        customerName: sessionData.customerName,
+        industry: sessionData.industry,
+        executiveSummary: sessionData.summary,
+        useCases: (sessionData.useCases || []).map((u) => ({
+          title: u.title,
+          description: u.description,
+          riceScore: u.rice?.score,
+          annualCoiUSD: u.coiEstimate?.totalAnnualCOI,
+          effortPersonWeeks: u.effortPersonWeeks,
+        })),
+        businessCase: sessionData.businessCase,
+        nextSteps: sessionData.nextSteps,
+        microsoftSolutions: sessionData.microsoftSolutions,
+      })
+      toast.success('PowerPoint deck downloaded')
+    } catch (err: any) {
+      toast.error(`PPTX export failed: ${err?.message || String(err)}`)
+    }
+  }
+
+  const handleShareTeams = () => {
+    if (!sessionData) { toast.error('No session data available'); return }
+    openTeamsShare({
+      message: buildTeamsSummary({
+        customerName: sessionData.customerName,
+        topUseCases: (sessionData.useCases || []).slice(0, 5).map((u) => ({
+          title: u.title, annualCoiUSD: u.coiEstimate?.totalAnnualCOI,
+        })),
+        threeYearBenefitUSD: sessionData.businessCase?.threeYearBenefitUSD,
+        paybackMonths: sessionData.businessCase?.paybackMonths,
+      }),
+      topic: `Karabo Discovery — ${sessionData.customerName}`,
+    })
+    toast.success('Opening Teams…')
+  }
+
+  const handleShareOutlook = () => {
+    if (!sessionData) { toast.error('No session data available'); return }
+    const subject = `Karabo Discovery Readout — ${sessionData.customerName}`
+    const body = buildTeamsSummary({
+      customerName: sessionData.customerName,
+      topUseCases: (sessionData.useCases || []).slice(0, 5).map((u) => ({
+        title: u.title, annualCoiUSD: u.coiEstimate?.totalAnnualCOI,
+      })),
+      threeYearBenefitUSD: sessionData.businessCase?.threeYearBenefitUSD,
+      paybackMonths: sessionData.businessCase?.paybackMonths,
+    })
+    openOutlookCompose({ subject, body })
+    toast.success('Opening Outlook…')
+  }
+
   const handleExportPDF = () => {
     onExportPDF(effortUnit)
     onOpenChange(false)
@@ -194,32 +260,59 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
 
           <div className="space-y-3">
             <Label className="text-sm font-semibold">Quick Export Options</Label>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
                 onClick={handleCopyEmailHTML}
                 disabled={!sessionData}
-                className="flex-1 gap-2"
+                className="gap-2"
               >
                 {emailCopied ? (
                   <CheckCircle size={16} className="text-green-600" />
                 ) : (
                   <Envelope size={16} />
                 )}
-                {emailCopied ? 'Copied!' : 'Copy as Email HTML'}
+                {emailCopied ? 'Copied!' : 'Email HTML'}
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handlePrintPDF}
-                className="flex-1 gap-2"
+                className="gap-2"
               >
                 <Printer size={16} />
                 Print to PDF
               </Button>
+              <Button
+                variant="outline"
+                onClick={handleExportPPTX}
+                disabled={!sessionData}
+                className="gap-2"
+              >
+                <MicrosoftPowerpointLogo size={16} className="text-orange-600" />
+                PowerPoint
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleShareTeams}
+                disabled={!sessionData}
+                className="gap-2"
+              >
+                <MicrosoftTeamsLogo size={16} className="text-purple-600" />
+                Share in Teams
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleShareOutlook}
+                disabled={!sessionData}
+                className="col-span-2 gap-2"
+              >
+                <MicrosoftOutlookLogo size={16} className="text-blue-600" />
+                Send via Outlook
+              </Button>
             </div>
             {!sessionData && (
               <p className="text-xs text-muted-foreground">
-                Email export requires an active session with use cases
+                Quick exports require an active session with use cases
               </p>
             )}
           </div>
