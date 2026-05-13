@@ -43,13 +43,20 @@ const AI_HUB_API_KEY = process.env.AI_HUB_API_KEY;
 const AUTH_TYPE = process.env.AZURE_OPENAI_AUTH_TYPE || "key";
 
 // ── API versions per cloud ───────────────────────────────────────────
+// 2025-04-01-preview supports both GPT-5/o-series (max_completion_tokens) and
+// legacy 4o models. Sovereign clouds lag — keep them on the highest GA version
+// they accept.
 const API_VERSIONS: Record<CloudEnvironment, string> = {
-  public: "2024-08-01-preview",
-  government: "2024-06-01",
-  "government-dod": "2024-06-01",
-  china: "2024-06-01",
-  "eu-boundary": "2024-08-01-preview",
+  public: "2025-04-01-preview",
+  government: "2024-10-21",
+  "government-dod": "2024-10-21",
+  china: "2024-10-21",
+  "eu-boundary": "2025-04-01-preview",
 };
+
+// Deployments whose names indicate GPT-5 or o-series — those models reject
+// `temperature` and require `max_completion_tokens` instead of `max_tokens`.
+const GPT5_OR_O_SERIES_RE = /(^|[^a-z])(gpt-?5|o[134])([^a-z]|$)/i;
 
 // Model type definition
 type ModelType = "gpt-4o" | "gpt-4o-mini" | "gpt-5-nano" | "phi-4-mini-instruct";
@@ -214,11 +221,14 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
     }
     messages.push({ role: "user", content: prompt });
 
-    const requestBody: Record<string, unknown> = {
-      messages,
-      temperature: 0.7,
-      max_tokens: 8000,
-    };
+    const isGpt5OrO = GPT5_OR_O_SERIES_RE.test(config.deployment || "");
+    const requestBody: Record<string, unknown> = { messages };
+    if (isGpt5OrO) {
+      requestBody.max_completion_tokens = 8000;
+    } else {
+      requestBody.max_tokens = 8000;
+      requestBody.temperature = 0.7;
+    }
 
     if (expectJson) {
       requestBody.response_format = { type: "json_object" };
@@ -251,12 +261,16 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({})) as any;
+      const aoaiMsg = errorData?.error?.message || response.statusText || "";
+      context.error(
+        `Azure OpenAI ${response.status} on ${config.cloud}/${config.deployment}: ${aoaiMsg}`,
+      );
       return {
         status: response.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         jsonBody: {
-          error: `Azure OpenAI error: ${response.status} (${config.cloud})`,
-          details: errorData.error?.message || response.statusText,
+          error: `Azure OpenAI ${response.status}: ${aoaiMsg}`,
+          details: `deployment=${config.deployment} cloud=${config.cloud}`,
         },
       };
     }
