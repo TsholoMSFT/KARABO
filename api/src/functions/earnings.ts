@@ -847,7 +847,41 @@ async function lookupTickerStooq(name: string): Promise<TickerLookupResult[]> {
   }];
 }
 
-// ── Run all sources for a single name ─────────────────────────────────────
+// ── Source: AI guess (Layer 8 — only when all others returned empty) ─────
+function aiBaseUrl(): string {
+  const host = process.env.WEBSITE_HOSTNAME;
+  if (host) return `https://${host}/api/chat`;
+  const port = process.env.FUNCTIONS_CUSTOMHANDLER_PORT || process.env.PORT || "7071";
+  return `http://localhost:${port}/api/chat`;
+}
+
+async function aiTickerGuess(name: string): Promise<TickerLookupResult[]> {
+  const prompt = `Return STRICT JSON only (no prose, no markdown) for the most likely PRIMARY publicly traded stock ticker for the company named "${name}".\nSchema: { "ticker": string, "exchange": string, "region": "US"|"ZA"|"EU"|"GLOBAL", "confidence": "high"|"medium"|"low", "reason": string }.\nIf you are not confident the company is publicly listed, return { "ticker": "", "exchange": "", "region": "GLOBAL", "confidence": "low", "reason": "unknown" }.`;
+  const resp = await fetch(aiBaseUrl(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ task: "extraction", prompt, expectJson: true }),
+  });
+  if (!resp.ok) throw new Error(`AI guess ${resp.status}`);
+  const data = (await resp.json()) as any;
+  const raw = data?.content || data?.message || data?.choices?.[0]?.message?.content;
+  if (!raw) return [];
+  let parsed: any;
+  try { parsed = typeof raw === "string" ? JSON.parse(raw) : raw; } catch { return []; }
+  const ticker = String(parsed?.ticker || "").trim().toUpperCase();
+  if (!ticker) return [];
+  return [{
+    ticker,
+    name,
+    exchange: parsed?.exchange || undefined,
+    region: parsed?.region || "GLOBAL",
+    source: "ai-guess",
+    confidence: "low",
+    score: 0.5,
+  }];
+}
+
+
 async function runFanOut(name: string): Promise<{
   results: TickerLookupResult[];
   diagnostics: TickerDiagnostics;
@@ -983,7 +1017,19 @@ async function tickerLookupHandler(req: HttpRequest, context: InvocationContext)
     }
 
     diagnostics.ai = "skipped";
-    const ranked = dedupeAndRank(companyName, results).slice(0, 10);
+    let ranked = dedupeAndRank(companyName, results).slice(0, 10);
+
+    // Layer 8: AI guess only when no real source produced a hit.
+    if (ranked.length === 0) {
+      try {
+        const ai = await withTimeout(aiTickerGuess(companyName), 6000, [] as TickerLookupResult[]);
+        diagnostics.ai = ai.length ? "ok" : "empty";
+        ranked = dedupeAndRank(companyName, ai).slice(0, 5);
+      } catch (err: any) {
+        diagnostics.ai = "error";
+      }
+    }
+
     const payload = { tickers: ranked, diagnostics };
     cacheSet(cacheKey, payload);
 

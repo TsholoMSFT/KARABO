@@ -553,6 +553,11 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                                 >
                                   {suggestion.confidence}
                                 </Badge>
+                                {suggestion.source === 'ai-guess' && (
+                                  <Badge variant="outline" className="text-xs border-amber-500 text-amber-700 dark:text-amber-400">
+                                    AI guess — verify
+                                  </Badge>
+                                )}
                                 {suggestion.region && (
                                   <Badge variant="outline" className="text-xs">
                                     {suggestion.region}
