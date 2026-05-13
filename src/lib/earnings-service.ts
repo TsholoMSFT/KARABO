@@ -204,27 +204,46 @@ export async function lookupTickerSymbol(companyName: string): Promise<TickerLoo
     return { tickers: [], diagnostics: {} }
   }
 
-  try {
+  // Cold-start tolerance: SWA can drop the first call to a freshly-deployed
+  // function with a 502/503 or socket reset. Retry once with a short backoff
+  // so the user never sees a transient cold-start error.
+  const attempt = async (): Promise<TickerLookupResponse> => {
     const response = await fetch(`${API_ENDPOINT}/earnings/ticker-lookup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ companyName }),
     })
-
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
-      throw new Error(error.error || `Ticker lookup failed: ${response.status}`)
+      const err: any = new Error(error.error || `Ticker lookup failed: ${response.status}`)
+      err.status = response.status
+      throw err
     }
-
     const result = await response.json()
     return {
       tickers: result.tickers || [],
       diagnostics: result.diagnostics || {},
       cached: !!result.cached,
     }
-  } catch (error) {
-    console.error('Ticker lookup error:', error)
-    return { tickers: [], diagnostics: {} }
+  }
+
+  const isRetryable = (e: any) =>
+    !e?.status || e.status === 0 || e.status === 408 || e.status === 502 || e.status === 503 || e.status === 504
+
+  try {
+    return await attempt()
+  } catch (firstErr: any) {
+    if (!isRetryable(firstErr)) {
+      console.error('Ticker lookup error:', firstErr)
+      return { tickers: [], diagnostics: {} }
+    }
+    await new Promise((r) => setTimeout(r, 1500))
+    try {
+      return await attempt()
+    } catch (secondErr) {
+      console.error('Ticker lookup error (after retry):', secondErr)
+      return { tickers: [], diagnostics: {} }
+    }
   }
 }
 
