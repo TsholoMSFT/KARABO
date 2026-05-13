@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { makeCorsHeaders, safeErrorMessage } from "../lib/xml-utils";
+import { findCuratedTickers } from "../lib/known-tickers";
 
 /**
  * Azure Function for Earnings Transcript Search
@@ -461,10 +462,32 @@ interface TickerLookupResult {
   name: string;
   exchange?: string;
   region?: string;
-  source: "yahoo" | "alpha-vantage";
+  source:
+    | "yahoo"
+    | "alpha-vantage"
+    | "openfigi"
+    | "wikidata"
+    | "tradingview"
+    | "sec-edgar"
+    | "stooq"
+    | "curated"
+    | "ai-guess";
   confidence: "high" | "medium" | "low";
   score?: number;
 }
+
+type TickerSourceStatus = "ok" | "empty" | "error" | "rate-limited" | "skipped";
+type TickerSourceKey =
+  | "curated"
+  | "openfigi"
+  | "wikidata"
+  | "tradingview"
+  | "yahoo"
+  | "sec-edgar"
+  | "stooq"
+  | "alpha-vantage"
+  | "ai";
+type TickerDiagnostics = Partial<Record<TickerSourceKey, TickerSourceStatus>>;
 
 function normalizeCompanyName(name: string): string {
   return name
@@ -612,13 +635,317 @@ async function lookupTickerAlphaVantage(companyName: string): Promise<TickerLook
   }
 }
 
+// ── Per-source timeout wrapper ───────────────────────────────────────────
+async function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise<T>((resolve) => {
+    const t = setTimeout(() => resolve(fallback), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }).catch(() => { clearTimeout(t); resolve(fallback); });
+  });
+}
+
+// ── In-memory LRU cache (no TTL; cold-start refresh) ─────────────────────
+const TICKER_CACHE_MAX = 200;
+const tickerCache = new Map<string, { tickers: TickerLookupResult[]; diagnostics: TickerDiagnostics }>();
+function cacheGet(key: string) {
+  const v = tickerCache.get(key);
+  if (!v) return null;
+  // touch — re-insert to end for LRU
+  tickerCache.delete(key);
+  tickerCache.set(key, v);
+  return v;
+}
+function cacheSet(key: string, value: { tickers: TickerLookupResult[]; diagnostics: TickerDiagnostics }) {
+  if (tickerCache.has(key)) tickerCache.delete(key);
+  tickerCache.set(key, value);
+  while (tickerCache.size > TICKER_CACHE_MAX) {
+    const oldest = tickerCache.keys().next().value;
+    if (oldest === undefined) break;
+    tickerCache.delete(oldest);
+  }
+}
+
+// ── Source: Curated (Layer 0, instant) ───────────────────────────────────
+function lookupTickerCurated(name: string): TickerLookupResult[] {
+  const matches = findCuratedTickers(normalizeCompanyName(name));
+  return matches.map((m) => ({
+    ticker: m.ticker,
+    name: m.name,
+    exchange: m.exchange,
+    region: m.region,
+    source: "curated" as const,
+    confidence: "high" as const,
+    score: 1,
+  }));
+}
+
+// ── Source: OpenFIGI (anonymous; Bloomberg-backed; global) ───────────────
+async function lookupTickerOpenFIGI(name: string): Promise<TickerLookupResult[]> {
+  const url = "https://api.openfigi.com/v3/search";
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (process.env.OPENFIGI_API_KEY) headers["X-OPENFIGI-APIKEY"] = process.env.OPENFIGI_API_KEY;
+  const resp = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ query: name }),
+  });
+  if (!resp.ok) throw new Error(`OpenFIGI ${resp.status}`);
+  const data = (await resp.json()) as any;
+  const items = Array.isArray(data?.data) ? data.data : [];
+  const out: TickerLookupResult[] = [];
+  const seen = new Set<string>();
+  for (const it of items.slice(0, 12)) {
+    const ticker = String(it.ticker || it.figi || "").trim();
+    if (!ticker || seen.has(ticker)) continue;
+    seen.add(ticker);
+    const exch = String(it.exchCode || it.compositeExchCode || "");
+    let region = "GLOBAL";
+    if (["US", "UN", "UQ", "UA", "UR", "UN"].includes(exch)) region = "US";
+    else if (["SJ", "JNB"].includes(exch)) region = "ZA";
+    else if (["LN", "LSE", "GR", "FR", "FP"].includes(exch)) region = "EU";
+    out.push({
+      ticker,
+      name: String(it.name || ticker),
+      exchange: exch || it.securityType || undefined,
+      region,
+      source: "openfigi",
+      confidence: "medium",
+    });
+  }
+  return out;
+}
+
+// ── Source: Wikidata (no key; multilingual; global) ──────────────────────
+async function lookupTickerWikidata(name: string): Promise<TickerLookupResult[]> {
+  const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(name)}&language=en&format=json&limit=5&origin=*`;
+  const sResp = await fetch(searchUrl, { headers: { "User-Agent": "KARABO/1.0" } });
+  if (!sResp.ok) throw new Error(`Wikidata search ${sResp.status}`);
+  const sData = (await sResp.json()) as any;
+  const candidates: { qid: string; label: string }[] = (sData?.search || []).slice(0, 3).map((s: any) => ({
+    qid: s.id,
+    label: s.label || name,
+  }));
+  if (!candidates.length) return [];
+  const out: TickerLookupResult[] = [];
+  // Resolve P249 (ticker symbol) on each candidate entity
+  for (const c of candidates) {
+    try {
+      const eResp = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${c.qid}.json`, {
+        headers: { "User-Agent": "KARABO/1.0" },
+      });
+      if (!eResp.ok) continue;
+      const eData = (await eResp.json()) as any;
+      const entity = eData?.entities?.[c.qid];
+      const claims = entity?.claims?.P249;
+      if (!Array.isArray(claims)) continue;
+      for (const claim of claims.slice(0, 4)) {
+        const ticker = claim?.mainsnak?.datavalue?.value;
+        if (typeof ticker !== "string" || !ticker.trim()) continue;
+        // P414 qualifier = stock exchange
+        const exchClaim = claim?.qualifiers?.P414?.[0]?.datavalue?.value?.id;
+        out.push({
+          ticker: ticker.trim(),
+          name: c.label,
+          exchange: exchClaim ? `wikidata:${exchClaim}` : undefined,
+          region: "GLOBAL",
+          source: "wikidata",
+          confidence: "medium",
+        });
+      }
+    } catch {
+      // Per-entity errors are non-fatal
+    }
+  }
+  return out;
+}
+
+// ── Source: TradingView symbol search (no key; global; very accurate) ────
+async function lookupTickerTradingView(name: string): Promise<TickerLookupResult[]> {
+  const url = `https://symbol-search.tradingview.com/symbol_search/?text=${encodeURIComponent(name)}&hl=1&lang=en&search_type=undefined`;
+  const resp = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; KARABO/1.0)",
+      "Origin": "https://www.tradingview.com",
+      "Referer": "https://www.tradingview.com/",
+    },
+  });
+  if (!resp.ok) throw new Error(`TradingView ${resp.status}`);
+  const data = (await resp.json()) as any;
+  const items = Array.isArray(data) ? data : data?.symbols || [];
+  const out: TickerLookupResult[] = [];
+  for (const it of items.slice(0, 8)) {
+    const symbol = String(it.symbol || "").replace(/<[^>]+>/g, "").trim();
+    const exch = String(it.exchange || "").trim();
+    const desc = String(it.description || "").replace(/<[^>]+>/g, "").trim() || symbol;
+    if (!symbol) continue;
+    let region = "GLOBAL";
+    if (["NASDAQ", "NYSE", "AMEX"].includes(exch)) region = "US";
+    else if (["JSE"].includes(exch)) region = "ZA";
+    else if (["LSE", "XETR", "EURONEXT"].includes(exch)) region = "EU";
+    out.push({
+      ticker: exch === "JSE" ? `${symbol}.JO` : symbol,
+      name: desc,
+      exchange: exch || undefined,
+      region,
+      source: "tradingview",
+      confidence: "medium",
+    });
+  }
+  return out;
+}
+
+// ── Source: SEC EDGAR (US filings; no key) ───────────────────────────────
+async function lookupTickerSecEdgar(name: string): Promise<TickerLookupResult[]> {
+  const url = `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(`"${name}"`)}&forms=10-K`;
+  const resp = await fetch(url, { headers: { "User-Agent": "KARABO/1.0 contact@example.com" } });
+  if (!resp.ok) throw new Error(`SEC EDGAR ${resp.status}`);
+  const data = (await resp.json()) as any;
+  const hits = data?.hits?.hits || [];
+  const out: TickerLookupResult[] = [];
+  const seen = new Set<string>();
+  for (const h of hits.slice(0, 5)) {
+    const tickers: string[] = h?._source?.tickers || [];
+    const displayName: string = h?._source?.display_names?.[0] || name;
+    for (const t of tickers) {
+      const ticker = String(t || "").trim().toUpperCase();
+      if (!ticker || seen.has(ticker)) continue;
+      seen.add(ticker);
+      out.push({
+        ticker,
+        name: displayName.replace(/\s*\(CIK.*\)$/, "").trim(),
+        exchange: "SEC",
+        region: "US",
+        source: "sec-edgar",
+        confidence: "medium",
+      });
+    }
+  }
+  return out;
+}
+
+// ── Source: Stooq (no key; HTML parse last-resort) ───────────────────────
+async function lookupTickerStooq(name: string): Promise<TickerLookupResult[]> {
+  const slug = encodeURIComponent(name.toLowerCase().trim().replace(/\s+/g, "+"));
+  const url = `https://stooq.com/q/?s=${slug}`;
+  const resp = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (compatible; KARABO/1.0)" } });
+  if (!resp.ok) throw new Error(`Stooq ${resp.status}`);
+  const html = await resp.text();
+  // Stooq page title pattern: "Anglo American (AAL.UK) - Stooq" or "MSFT.US - Microsoft Corp - Stooq"
+  const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+  if (!titleMatch) return [];
+  const title = titleMatch[1];
+  const tickerMatch = title.match(/\(?([A-Z0-9.\-]{2,12})\.([A-Z]{2,3})\)?/);
+  if (!tickerMatch) return [];
+  const symbol = `${tickerMatch[1]}.${tickerMatch[2]}`;
+  const region = tickerMatch[2] === "US" ? "US" : tickerMatch[2] === "UK" ? "EU" : tickerMatch[2] === "JO" ? "ZA" : "GLOBAL";
+  return [{
+    ticker: symbol,
+    name: title.split(" - ")[1] || name,
+    exchange: tickerMatch[2],
+    region,
+    source: "stooq",
+    confidence: "low",
+  }];
+}
+
+// ── Run all sources for a single name ─────────────────────────────────────
+async function runFanOut(name: string): Promise<{
+  results: TickerLookupResult[];
+  diagnostics: TickerDiagnostics;
+}> {
+  const diagnostics: TickerDiagnostics = {};
+
+  const curated = lookupTickerCurated(name);
+  diagnostics.curated = curated.length ? "ok" : "empty";
+
+  const TIMEOUT_MS = 4000;
+  const tracked = async <T>(key: TickerSourceKey, p: Promise<T[]>): Promise<T[]> => {
+    try {
+      const v = await withTimeout(p, TIMEOUT_MS, [] as T[]);
+      diagnostics[key] = (v as unknown[]).length ? "ok" : "empty";
+      return v;
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      diagnostics[key] = /429|rate/i.test(msg) ? "rate-limited" : "error";
+      return [];
+    }
+  };
+
+  const [openfigi, wikidata, tradingview, yahoo, edgar, stooq, alphav] = await Promise.all([
+    tracked("openfigi", lookupTickerOpenFIGI(name)),
+    tracked("wikidata", lookupTickerWikidata(name)),
+    tracked("tradingview", lookupTickerTradingView(name)),
+    tracked("yahoo", lookupTickerYahoo(name)),
+    tracked("sec-edgar", lookupTickerSecEdgar(name)),
+    tracked("stooq", lookupTickerStooq(name)),
+    tracked("alpha-vantage", lookupTickerAlphaVantage(name)),
+  ]);
+
+  const results: TickerLookupResult[] = [
+    ...curated,
+    ...openfigi,
+    ...wikidata,
+    ...tradingview,
+    ...yahoo,
+    ...edgar,
+    ...stooq,
+    ...alphav,
+  ];
+  return { results, diagnostics };
+}
+
+const SOURCE_PRIORITY: Record<TickerLookupResult["source"], number> = {
+  curated: 9,
+  openfigi: 8,
+  wikidata: 7,
+  tradingview: 7,
+  yahoo: 6,
+  "sec-edgar": 6,
+  stooq: 4,
+  "alpha-vantage": 5,
+  "ai-guess": 2,
+};
+
+function dedupeAndRank(query: string, results: TickerLookupResult[]): TickerLookupResult[] {
+  const map = new Map<string, TickerLookupResult>();
+  for (const r of results) {
+    const key = r.ticker.toUpperCase();
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, r);
+      continue;
+    }
+    // Prefer higher source priority OR higher confidence
+    const newPrio = SOURCE_PRIORITY[r.source] ?? 0;
+    const oldPrio = SOURCE_PRIORITY[existing.source] ?? 0;
+    if (newPrio > oldPrio) map.set(key, r);
+  }
+  const unique = Array.from(map.values());
+  for (const r of unique) {
+    if (typeof r.score !== "number") r.score = computeFuzzyScore(query, r.name, r.ticker);
+    if (r.confidence === "low") {
+      if ((r.score ?? 0) >= 0.85) r.confidence = "high";
+      else if ((r.score ?? 0) >= 0.65) r.confidence = "medium";
+    }
+  }
+  unique.sort((a, b) => {
+    const sa = a.score ?? 0;
+    const sb = b.score ?? 0;
+    if (sb !== sa) return sb - sa;
+    const co = { high: 3, medium: 2, low: 1 } as const;
+    const cd = co[b.confidence] - co[a.confidence];
+    if (cd !== 0) return cd;
+    return (SOURCE_PRIORITY[b.source] ?? 0) - (SOURCE_PRIORITY[a.source] ?? 0);
+  });
+  return unique;
+}
+
 async function tickerLookupHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
   if (req.method === "OPTIONS") {
     return { status: 204, headers: corsHeaders };
   }
 
   try {
-    const body = await req.json().catch(() => ({})) as Partial<TickerLookupRequest>;
+    const body = (await req.json().catch(() => ({}))) as Partial<TickerLookupRequest>;
     const { companyName } = body;
 
     if (!companyName || companyName.trim().length < 2) {
@@ -629,64 +956,41 @@ async function tickerLookupHandler(req: HttpRequest, context: InvocationContext)
       };
     }
 
-    // Query both sources in parallel
-    const [yahooResults, alphaResults] = await Promise.allSettled([
-      lookupTickerYahoo(companyName),
-      lookupTickerAlphaVantage(companyName),
-    ]);
-
-    const allResults: TickerLookupResult[] = [];
-
-    if (yahooResults.status === "fulfilled") {
-      allResults.push(...yahooResults.value);
-    }
-    if (alphaResults.status === "fulfilled") {
-      allResults.push(...alphaResults.value);
+    const cacheKey = normalizeCompanyName(companyName) || companyName.trim().toLowerCase();
+    const cached = cacheGet(cacheKey);
+    if (cached) {
+      return {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: { tickers: cached.tickers, diagnostics: cached.diagnostics, cached: true },
+      };
     }
 
-    // Deduplicate by ticker symbol, prefer higher confidence
-    const uniqueMap = new Map<string, TickerLookupResult>();
-    for (const result of allResults) {
-      const existing = uniqueMap.get(result.ticker);
-      if (!existing || result.confidence === "high") {
-        uniqueMap.set(result.ticker, result);
+    // Round 1: raw name
+    let { results, diagnostics } = await runFanOut(companyName);
+
+    // Round 2: normalised name (only if first round was thin)
+    const norm = normalizeCompanyName(companyName);
+    if (results.length < 2 && norm && norm !== companyName.toLowerCase().trim()) {
+      const second = await runFanOut(norm);
+      results = results.concat(second.results);
+      // Merge diagnostics: keep best status per source
+      for (const k of Object.keys(second.diagnostics) as TickerSourceKey[]) {
+        const a = diagnostics[k];
+        const b = second.diagnostics[k];
+        if (!a || (a !== "ok" && b === "ok")) diagnostics[k] = b;
       }
     }
 
-    const unique = Array.from(uniqueMap.values());
-
-    // Compute fuzzy score for ranking (prefer Alpha matchScore where available)
-    for (const r of unique) {
-      if (typeof r.score !== "number") {
-        r.score = computeFuzzyScore(companyName, r.name, r.ticker);
-      }
-      // Derive confidence from score if not already strong
-      if (r.confidence === "low") {
-        if ((r.score ?? 0) >= 0.85) r.confidence = "high";
-        else if ((r.score ?? 0) >= 0.65) r.confidence = "medium";
-      }
-    }
-
-    // Sort by score, then confidence, then source (Yahoo first, then Alpha Vantage)
-    unique.sort((a, b) => {
-      const aScore = typeof a.score === "number" ? a.score : 0;
-      const bScore = typeof b.score === "number" ? b.score : 0;
-      if (bScore !== aScore) return bScore - aScore;
-
-      const confidenceOrder = { high: 3, medium: 2, low: 1 } as const;
-      const confDiff = confidenceOrder[b.confidence] - confidenceOrder[a.confidence];
-      if (confDiff !== 0) return confDiff;
-
-      if (a.source === b.source) return 0;
-      return a.source === "yahoo" ? -1 : 1;
-    });
+    diagnostics.ai = "skipped";
+    const ranked = dedupeAndRank(companyName, results).slice(0, 10);
+    const payload = { tickers: ranked, diagnostics };
+    cacheSet(cacheKey, payload);
 
     return {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: {
-        tickers: unique.slice(0, 10),
-      },
+      jsonBody: { ...payload, cached: false },
     };
   } catch (error: any) {
     context.error("Ticker lookup error:", error);

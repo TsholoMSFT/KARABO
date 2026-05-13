@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { useCustomers } from '@/hooks/use-customers'
-import { lookupTickerSymbol, TickerLookupResult } from '@/lib/earnings-service'
+import { lookupTickerSymbol, TickerLookupResult, TickerDiagnostics } from '@/lib/earnings-service'
 import { fetchCompanyFinancials } from '@/lib/economic-context-service'
 import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext, AccountSegment, ACCOUNT_SEGMENT_LABELS, ACCOUNT_SEGMENT_DESCRIPTIONS, ACCOUNT_SEGMENT_META, UserRole, USER_ROLE_LABELS, USER_ROLE_DESCRIPTIONS, USER_ROLE_ICONS } from '@/lib/types'
 import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info, ShieldCheck, CurrencyDollar, Buildings, UsersThree } from '@phosphor-icons/react'
@@ -100,6 +100,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [tickerSuggestions, setTickerSuggestions] = useState<TickerLookupResult[]>([])
+  const [tickerDiagnostics, setTickerDiagnostics] = useState<TickerDiagnostics>({})
   const [isSearchingTicker, setIsSearchingTicker] = useState(false)
   const [showTickerSuggestions, setShowTickerSuggestions] = useState(false)
   const [tickerAutoPopulated, setTickerAutoPopulated] = useState(false)
@@ -127,15 +128,17 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
     setIsSearchingTicker(true)
     setShowTickerSuggestions(true)
     setTickerSuggestions([])
+    setTickerDiagnostics({})
 
     try {
-      const results = await lookupTickerSymbol(metadata.customerName)
-      setTickerSuggestions(results)
-      
-      if (results.length === 0) {
+      const { tickers, diagnostics } = await lookupTickerSymbol(metadata.customerName)
+      setTickerSuggestions(tickers)
+      setTickerDiagnostics(diagnostics)
+
+      if (tickers.length === 0) {
         toast.info('No ticker symbols found. You can enter one manually.')
       } else {
-        toast.success(`Found ${results.length} ticker suggestion${results.length !== 1 ? 's' : ''}`)
+        toast.success(`Found ${tickers.length} ticker suggestion${tickers.length !== 1 ? 's' : ''}`)
       }
     } catch (error) {
       console.error('Ticker lookup error:', error)
@@ -566,8 +569,15 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground italic">
-                        Sources: Yahoo Finance & Alpha Vantage
+                        Sources: curated &middot; OpenFIGI &middot; Wikidata &middot; TradingView &middot; Yahoo &middot; SEC EDGAR &middot; Stooq &middot; Alpha Vantage
                       </p>
+                      {Object.keys(tickerDiagnostics).length > 0 && (
+                        <p className="text-[10px] text-muted-foreground/80 font-mono break-all">
+                          {Object.entries(tickerDiagnostics)
+                            .map(([k, v]) => `${k}:${v}`)
+                            .join(' · ')}
+                        </p>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

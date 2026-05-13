@@ -167,17 +167,41 @@ export interface TickerLookupResult {
   name: string
   exchange?: string
   region?: string
-  source: 'yahoo' | 'alpha-vantage'
+  source:
+    | 'yahoo'
+    | 'alpha-vantage'
+    | 'openfigi'
+    | 'wikidata'
+    | 'tradingview'
+    | 'sec-edgar'
+    | 'stooq'
+    | 'curated'
+    | 'ai-guess'
   confidence: 'high' | 'medium' | 'low'
   score?: number
 }
 
+export type TickerSourceStatus = 'ok' | 'empty' | 'error' | 'rate-limited' | 'skipped'
+export type TickerDiagnostics = Partial<Record<
+  'curated' | 'openfigi' | 'wikidata' | 'tradingview' | 'yahoo' | 'sec-edgar' | 'stooq' | 'alpha-vantage' | 'ai',
+  TickerSourceStatus
+>>
+
+export interface TickerLookupResponse {
+  tickers: TickerLookupResult[]
+  diagnostics: TickerDiagnostics
+  cached?: boolean
+}
+
 /**
- * Lookup ticker symbol from company name using Yahoo Finance and Alpha Vantage
+ * Lookup ticker symbol from company name using a fan-out across multiple
+ * free sources (curated overrides, OpenFIGI, Wikidata, TradingView, Yahoo,
+ * SEC EDGAR, Stooq, Alpha Vantage). Returns both the ranked tickers and a
+ * per-source diagnostics map for the UI to surface.
  */
-export async function lookupTickerSymbol(companyName: string): Promise<TickerLookupResult[]> {
+export async function lookupTickerSymbol(companyName: string): Promise<TickerLookupResponse> {
   if (!companyName || companyName.trim().length < 2) {
-    return []
+    return { tickers: [], diagnostics: {} }
   }
 
   try {
@@ -193,10 +217,14 @@ export async function lookupTickerSymbol(companyName: string): Promise<TickerLoo
     }
 
     const result = await response.json()
-    return result.tickers || []
+    return {
+      tickers: result.tickers || [],
+      diagnostics: result.diagnostics || {},
+      cached: !!result.cached,
+    }
   } catch (error) {
     console.error('Ticker lookup error:', error)
-    return []
+    return { tickers: [], diagnostics: {} }
   }
 }
 
