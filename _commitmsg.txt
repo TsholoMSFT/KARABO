@@ -1,42 +1,32 @@
-feat(export): Phase 7 — PPTX export + Teams/Outlook share
+feat(finops): Phase 8 — Cost-optimisation AI panel
 
-Adds three new high-value export options to ExportDialog so account
-teams can ship a discovery readout in 1 click instead of rebuilding
-slides by hand.
+Adds an on-demand FinOps analyser that reviews the portfolio's run-cost
+estimates and surfaces ranked savings opportunities.
 
-src/lib/pptx-export.ts (new — uses pptxgenjs)
-  • exportSessionToPptx(input) generates a 6–7 slide deck:
-      1. Title (customer, industry, prepared-for/by, date)
-      2. Executive summary (truncated to fit one slide)
-      3. Prioritised use cases table (top 8: # / title / RICE / COI /
-         effort) with banded rows
-      4. Business case stat cards (investment, 3-yr benefit, payback,
-         NPV) + bar chart "Investment vs. 3-Yr Benefit"
-      5. Recommended Microsoft stack as a card grid (4 cols)
-      6. Recommended next steps (numbered)
-      7. Closing
-  • Microsoft-blue branded; widescreen layout; downloads as
-    karabo-<customer>-YYYY-MM-DD.pptx
+src/lib/cost-optimization-service.ts
+  • analyzeCostOptimizations(useCases) — sends a compact JSON snapshot
+    (per-use-case monthly/annual USD, assumptions, region, stack) to
+    callAIForTask('cost-optimization', …) which routes to GPT-4o-mini
+  • Strict JSON schema parsed back into CostOptimization[]: category
+    (sku-swap | rightsize | reservation | serverless-shift | caching |
+    storage-tier | consolidation | other), title, rationale, affected
+    use cases, monthly/annual USD saving, effort, confidence, risk notes
+  • System prompt anchors the model to realistic ratios (reservations
+    30–55%, rightsize 20–40%, serverless 30–60% for spiky workloads)
+    and forbids hallucinating workloads
+  • Tolerates accidental ```json fences in the model output
 
-src/lib/share-helpers.ts (new)
-  • openTeamsShare({ message, recipients?, topic? }) — uses Teams
-    deep-link (chat or share-to-Teams composer)
-  • openOutlookCompose({ to, cc, subject, body }) — OWA deep-link with
-    mailto: fallback when popup blocked
-  • copyRichHtmlToClipboard(html) — uses ClipboardItem when available
-    so paste into Word/Outlook keeps formatting; plain-text fallback
-  • buildTeamsSummary({ customerName, topUseCases, threeYearBenefitUSD,
-    paybackMonths }) — short markdown summary used by both Teams and
-    Outlook flows
+src/components/CostOptimizationPanel.tsx
+  • One-click "Analyse" button with spinner; "Re-analyse" once a report
+    exists
+  • Hero strip showing total $/yr saving in green
+  • Ranked list of recommendations: title + category badge + effort +
+    confidence chips, rationale, $/yr (right-aligned, bold green),
+    optional $/mo subscript, applies-to use case names, optional risk
+    notes (amber warning row)
+  • Disabled state explains "estimate run cost on at least one use
+    case" when nothing eligible
 
-src/components/ExportDialog.tsx
-  • Quick Export grid expanded from 2 to 5 buttons:
-    Email HTML · Print to PDF · PowerPoint · Share in Teams · Outlook
-  • sessionData prop extended with industry, businessCase, microsoftSolutions,
-    effortPersonWeeks (all optional, backwards compatible)
-
-package.json
-  • Added pptxgenjs (6 transitive packages)
-
-Caller migration: existing call sites pass the same sessionData shape
-and just gain new buttons. No prop changes required to keep PDF working.
+src/components/FinancialImpactTab.tsx
+  • Mounted CostOptimizationPanel directly under the Financial Impact
+    Overview card, before the per-use-case grid

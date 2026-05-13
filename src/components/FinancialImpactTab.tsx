@@ -12,6 +12,7 @@ import { Calculator, TrendUp, WarningCircle, Target, CurrencyDollar } from '@pho
 import { InlineDisclaimer } from '@/components/Disclaimer'
 import { UseCaseCostBreakdown } from '@/components/UseCaseCostBreakdown'
 import { portfolioRunCost } from '@/lib/cost-engine'
+import { CostOptimizationPanel } from '@/components/CostOptimizationPanel'
 
 const DEFAULT_COST_PER_WEEK_USD = 8000
 
@@ -178,6 +179,8 @@ export function FinancialImpactTab({
           </div>
         </CardContent>
       </Card>
+
+      <CostOptimizationPanel useCases={useCases} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-2 bg-card">
