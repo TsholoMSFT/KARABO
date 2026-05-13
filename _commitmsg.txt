@@ -1,17 +1,22 @@
-feat(blueprint): add Graph/Foundry/Fabric/Work IQ connectors + intern-friendly Connect Data tab
+feat(blueprint): Blueprint Copilot rail (Option A+B) — AI suggestions + auto-IQ + cost meter
 
-Backend (Azure Functions):
-- api/src/lib/iq-credential.ts: shared SP/MI bearer-token helper with graceful "not configured" payloads
-- api/src/functions/graph-query.ts: Microsoft Graph universal search (search/people/files/messages/org)
-- api/src/functions/foundry-iq.ts: Foundry knowledge index search + agents/models listing
-- api/src/functions/fabric-iq.ts: Fabric workspaces/items/semantic-models + Power BI DAX execute
-- api/src/functions/work-iq.ts: Graph external connectors + Copilot retrieval over LOB content
-- api/src/index.ts: register the four new HTTP triggers
+What this adds:
+- src/lib/blueprint-copilot-service.ts
+  * nextSuggestions(state): deterministic next-best-action engine
+  * runIQDiscovery(customer): parallel pull from Graph/Foundry/Fabric/Work + grounding note
+  * generateStarterUseCases(): 3 candidate use cases grounded on estate + IQ (analysis → gpt-4o-mini)
+  * recommendArchetype(): LLM tiebreaker over recommender (analysis → gpt-4o-mini)
+  * generateExecBrief(): board-ready 1-pager (executive → gpt-4o)
+  * Per-customer USD spend ledger in localStorage with budget cap (default $0.50)
 
-Frontend:
-- src/lib/iq-service.ts: typed client (graphSearch, foundryKnowledge, fabricWorkspaces, workRetrieval, probe)
-- src/components/solution-blueprint/IQConnectionsPanel.tsx: guided wizard
-  * Per-connector card: explainer, status badge, one-click "Pull insights", results list, Apply-to-blueprint
-  * "Pull all" master action; safe fallback to demo when not configured
-- src/components/SolutionBlueprintWorkspace.tsx: new "Connect data" tab between estate and use-cases;
-  applied hints append into TechnologyEstate.notes so the existing recommender grounds on real customer signals
+- src/components/solution-blueprint/BlueprintCopilotRail.tsx
+  * Sticky right-rail card; mode select (Off | Suggest | Autopilot, default Suggest)
+  * Shows top 3 suggestions with 1-click run, est cost in cents per action
+  * Live $ spend bar + per-model breakdown
+  * Autopilot auto-fires safe-to-autorun actions (currently: pull-iq)
+
+- src/components/SolutionBlueprintWorkspace.tsx
+  * 2-col layout when AI mode is on (1fr | 340px rail)
+  * Controlled tabs so the rail can navigate
+  * Auto-runs IQ pull-all once per customer (B-slice) when mode != off; cached in localStorage
+  * Dispatcher applies generated use cases / archetype picks / exec briefs back into existing stores

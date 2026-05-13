@@ -70,6 +70,16 @@ import { toast } from 'sonner'
 import { EstateBanner } from './solution-blueprint/EstateBanner'
 import { LearnMorePopover } from './solution-blueprint/LearnMorePopover'
 import { IQConnectionsPanel, type IQInsightHint } from './solution-blueprint/IQConnectionsPanel'
+import { BlueprintCopilotRail } from './solution-blueprint/BlueprintCopilotRail'
+import {
+  runIQDiscovery,
+  generateStarterUseCases,
+  recommendArchetype,
+  generateExecBrief,
+  type BlueprintAIMode,
+  type CopilotState,
+  type CopilotSuggestion,
+} from '@/lib/blueprint-copilot-service'
 import { lazy, Suspense } from 'react'
 
 const BlueprintDiagram = lazy(() =>
@@ -170,6 +180,14 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
   const [activeUseCaseId, setActiveUseCaseId] = useState<string | null>(null)
   const activeUseCase = useCases.find((u) => u.id === activeUseCaseId) ?? null
 
+  // ── Blueprint Copilot (AI rail) ───────────────────────────
+  const [aiMode, setAiMode] = useLocalStorage<BlueprintAIMode>('karabo-blueprint-ai-mode', 'suggest')
+  const [activeTab, setActiveTab] = useState<string>('estate')
+  const [copilotRunning, setCopilotRunning] = useState(false)
+  const [copilotActivity, setCopilotActivity] = useState<string | null>(null)
+  const [iqAutoPulled, setIqAutoPulled] = useLocalStorage<Record<string, number>>('karabo-iq-autopulled', {})
+  const [iqGroundingByCustomer, setIqGroundingByCustomer] = useState<Record<string, string>>({})
+
   // ── Seed from incoming initialUseCase (e.g., from a discovered UseCase) ──
   const seededRef = useRef(false)
   useEffect(() => {
@@ -251,6 +269,150 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
     if (activeUseCaseId === id) setActiveUseCaseId(null)
   }
 
+  // ── Copilot dispatcher ──────────────────────────────────────
+  const copilotState: CopilotState = useMemo(
+    () => ({
+      customerId: selectedCustomer?.id ?? null,
+      customerName: selectedCustomer?.name ?? null,
+      hasEstate: !!estate,
+      iqPulledAt: selectedCustomer ? iqAutoPulled[selectedCustomer.id] ?? null : null,
+      useCaseCount: useCases.length,
+      hasActiveUseCase: !!activeUseCase,
+      activeUseCaseHasArchetype: !!activeUseCase?.archetypeId,
+      hasBlueprint: !!blueprintResult,
+    }),
+    [selectedCustomer, estate, iqAutoPulled, useCases.length, activeUseCase, blueprintResult],
+  )
+
+  const applyIQHits = (hits: IQInsightHint[]) => {
+    if (!estate || !hits.length) return
+    const stamp = new Date().toISOString().slice(0, 10)
+    const lines = hits.map((h) => `- [${h.source.toUpperCase()}] ${h.label}${h.detail ? ` — ${h.detail}` : ''}`)
+    const block = `\n\n## IQ insights (${stamp})\n${lines.join('\n')}`
+    updateEstate({ notes: `${estate.notes || ''}${block}`.trim() })
+  }
+
+  const runIQAndApply = async () => {
+    if (!selectedCustomer || !estate) return 0
+    const result = await runIQDiscovery(selectedCustomer.name)
+    setIqGroundingByCustomer((prev) => ({ ...prev, [selectedCustomer.id]: result.groundingNote }))
+    setIqAutoPulled({ ...iqAutoPulled, [selectedCustomer.id]: Date.now() })
+    const hits: IQInsightHint[] = result.hits.slice(0, 8).map((h, i) => ({
+      source: 'graph',
+      kind: 'context-note',
+      id: `iq:${h.id || i}`,
+      label: h.title || h.snippet || `Insight ${i + 1}`,
+      detail: h.snippet || h.url,
+    }))
+    applyIQHits(hits)
+    return result.hits.length
+  }
+
+  const handleCopilotAction = async (s: CopilotSuggestion) => {
+    if (!selectedCustomer || !estate) return
+    setCopilotRunning(true)
+    setCopilotActivity(null)
+    try {
+      const grounding = iqGroundingByCustomer[selectedCustomer.id] || ''
+      switch (s.action) {
+        case 'pull-iq': {
+          const n = await runIQAndApply()
+          setCopilotActivity(`Pulled ${n} insight${n === 1 ? '' : 's'} from IQ connectors.`)
+          setActiveTab('connect-data')
+          break
+        }
+        case 'generate-use-cases': {
+          const generated = await generateStarterUseCases({
+            customerId: selectedCustomer.id,
+            customerName: selectedCustomer.name,
+            estate,
+            groundingNote: grounding,
+          })
+          if (generated.length) {
+            const next: StoredUseCase[] = [
+              ...useCases,
+              ...generated.map((g) => ({
+                id: makeId(),
+                name: g.name,
+                description: g.description,
+                archetypeId: g.archetypeId,
+                extraCapabilities: [],
+              })),
+            ]
+            setUseCases(next)
+            setActiveUseCaseId(next[useCases.length]?.id ?? null)
+            setCopilotActivity(`Generated ${generated.length} starter use case${generated.length === 1 ? '' : 's'}.`)
+            setActiveTab('use-cases')
+          } else {
+            setCopilotActivity('No use cases generated — try refining the estate notes.')
+          }
+          break
+        }
+        case 'recommend-archetype': {
+          if (!activeUseCase) break
+          const rec = await recommendArchetype({
+            customerId: selectedCustomer.id,
+            useCase: activeUseCase,
+            estate,
+            groundingNote: grounding,
+          })
+          if (rec) {
+            updateUseCase(activeUseCase.id, { archetypeId: rec.archetypeId })
+            setCopilotActivity(`Recommended archetype: ${rec.archetype.name}. ${rec.rationale}`)
+            setActiveTab('use-cases')
+          } else {
+            setCopilotActivity('Could not pick an archetype confidently.')
+          }
+          break
+        }
+        case 'generate-business-case': {
+          if (!activeUseCase) break
+          setCopilotActivity('Open the active use case card and click "Business case" to generate the markdown.')
+          setActiveTab('use-cases')
+          break
+        }
+        case 'generate-exec-brief': {
+          const brief = await generateExecBrief({
+            customerId: selectedCustomer.id,
+            customerName: selectedCustomer.name,
+            estate,
+            useCases: useCases.map((u) => ({
+              name: u.name,
+              description: u.description,
+              archetypeName: u.archetypeId ? ARCHETYPE_BY_ID[u.archetypeId]?.name : undefined,
+            })),
+            groundingNote: grounding,
+          })
+          if (brief) {
+            const stamp = new Date().toISOString().slice(0, 10)
+            updateEstate({ notes: `${estate.notes || ''}\n\n## Executive brief (${stamp})\n${brief}`.trim() })
+            setCopilotActivity('Executive brief generated and appended to estate notes.')
+            setActiveTab('commitments')
+          }
+          break
+        }
+        case 'open-tab': {
+          setActiveTab(s.tab)
+          break
+        }
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Copilot action failed')
+      setCopilotActivity(`Failed: ${err?.message || 'unknown error'}`)
+    } finally {
+      setCopilotRunning(false)
+    }
+  }
+
+  // ── Auto-pull IQ when a new customer is selected (B-slice) ──
+  useEffect(() => {
+    if (!selectedCustomer || !estate) return
+    if (aiMode === 'off') return
+    if (iqAutoPulled[selectedCustomer.id]) return
+    void runIQAndApply().catch(() => {/* swallow — connectors may not be configured */})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCustomer?.id, aiMode])
+
   // ── Render ──────────────────────────────────────────────────
   if (customers.length === 0) {
     return (
@@ -310,7 +472,8 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
       </Card>
 
       {estate && selectedCustomer && (
-        <Tabs defaultValue="estate" className="space-y-4">
+        <div className={aiMode !== 'off' ? 'grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-4 items-start' : ''}>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="estate" className="gap-2">
               <Buildings size={16} weight="duotone" /> Technology estate
@@ -426,6 +589,19 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
             )}
           </TabsContent>
         </Tabs>
+        {aiMode !== 'off' && (
+          <div className="lg:sticky lg:top-4">
+            <BlueprintCopilotRail
+              state={copilotState}
+              mode={aiMode}
+              onModeChange={setAiMode}
+              isRunning={copilotRunning}
+              lastActivity={copilotActivity}
+              onAction={handleCopilotAction}
+            />
+          </div>
+        )}
+        </div>
       )}
     </div>
   )
