@@ -87,6 +87,7 @@ export function getDefaultArchitectureForIndustry(industry?: Industry): Referenc
     'government': 'knowledge-mining',
     'education': 'conversational-ai',
     'energy': 'digital-twin',
+    'mining-resources': 'iot-telemetry',
   }
   
   return industryDefaults[industry || 'general'] || 'process-automation'
@@ -112,6 +113,7 @@ export function getFallbackArchitecturesForIndustry(industry?: Industry): Refere
     'government': ['knowledge-mining', 'document-processing', 'process-automation'],
     'education': ['conversational-ai', 'knowledge-mining', 'content-generation'],
     'energy': ['digital-twin', 'iot-telemetry', 'predictive-analytics'],
+    'mining-resources': ['iot-telemetry', 'digital-twin', 'predictive-analytics'],
   }
   
   const specific = industrySpecific[industry || 'general'] || []
@@ -207,6 +209,7 @@ export function createFallbackCOIEstimate(params: {
     'healthcare': 1.2,
     'retail': 1.0,
     'manufacturing': 1.1,
+    'mining-resources': 1.3,
     'energy': 1.4,
   }
   

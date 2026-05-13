@@ -27,6 +27,7 @@ export const industryLabels: Record<Industry, string> = {
   government: 'Government & Public Sector',
   education: 'Education & Research',
   energy: 'Energy & Utilities',
+  'mining-resources': 'Mining, Metals & Resources',
   telecommunications: 'Telecommunications & Media',
   'technology-software': 'Technology & Software',
 }
@@ -226,6 +227,27 @@ export const discoveryQuestions: DiscoveryQuestion[] = [
     category: 'business',
     placeholder: 'E.g., Emissions reduction, renewable energy mix, energy efficiency, grid reliability...',
     industries: ['energy'],
+  },
+  {
+    id: 'mining-q1',
+    question: 'What ore commodities does the operation produce, and which pits/shafts have the highest unplanned downtime on heavy mobile equipment (haul trucks, shovels, drills, conveyors)?',
+    category: 'challenges',
+    placeholder: 'E.g., PGMs/iron ore/copper, dragline downtime, fleet availability, MTBF on Cat 793 trucks...',
+    industries: ['mining-resources'],
+  },
+  {
+    id: 'mining-q2',
+    question: 'Which OT/SCADA, fleet management (FMS), and geological/mine-planning systems are deployed today, and how is sensor and historian data integrated across pit-to-port?',
+    category: 'technical',
+    placeholder: 'E.g., Modular DISPATCH, Wenco, Hexagon, Maptek Vulcan, OSIsoft PI, ABB 800xA, Aveva...',
+    industries: ['mining-resources'],
+  },
+  {
+    id: 'mining-q3',
+    question: 'What ESG, tailings-storage-facility (TSF), safety, and decarbonisation commitments are you tracking, and to which regulators or standards do you report (e.g., GISTM, ICMM, MSHA, JSE/LSE)?',
+    category: 'business',
+    placeholder: 'E.g., Scope 1/2 baseline, TSF stability monitoring, TRIFR, GISTM disclosures, social licence to operate...',
+    industries: ['mining-resources'],
   },
   {
     id: 'telecom-q1',
@@ -458,6 +480,13 @@ export const aiAssessmentQuestions: DiscoveryQuestion[] = [
     category: 'challenges',
     placeholder: 'E.g., SCADA/ICS security, NERC-like controls, segmentation, incident response...',
     industries: ['energy'],
+  },
+  {
+    id: 'ai-mining-q1',
+    question: 'Will AI need to operate at remote pits/shafts with intermittent connectivity, integrate with OT/SCADA, or interact with safety-critical systems (autonomous haulage, proximity detection, TSF monitoring)? What latency, edge, and safety constraints apply?',
+    category: 'technical',
+    placeholder: 'E.g., edge inference at pit, satellite/private LTE, ISO 17757 autonomous fleet, MSHA/DMRE compliance, fail-safe behaviours...',
+    industries: ['mining-resources'],
   },
   {
     id: 'ai-telecom-q1',

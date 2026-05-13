@@ -73,6 +73,14 @@ export const INDUSTRY_BENCHMARKS: Record<Industry, IndustryBenchmark> = {
     source: 'EY / Deloitte Energy & Resources benchmarks 2025',
     year: 2025,
   },
+  'mining-resources': {
+    industry: 'mining-resources',
+    revenuePerEmployee: { min: 250_000, median: 550_000, max: 1_800_000 },
+    itSpendPercent: { min: 1.5, median: 2.5, max: 4 },
+    operationalCostPercent: 65,
+    source: 'Deloitte "Tracking the Trends" 2025 / PwC Mine 2024 / McKinsey MMET benchmarks',
+    year: 2025,
+  },
   telecommunications: {
     industry: 'telecommunications',
     revenuePerEmployee: { min: 200_000, median: 350_000, max: 700_000 },

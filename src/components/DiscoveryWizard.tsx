@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileMagnifyingGlass, SkipForward } from '@phosphor-icons/react'
+import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileMagnifyingGlass, SkipForward, Mountains } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
@@ -46,6 +46,7 @@ const industryIcons: Record<Industry, React.ReactNode> = {
   government: <GovIcon size={32} weight="duotone" />,
   education: <GraduationCap size={32} weight="duotone" />,
   energy: <Lightning size={32} weight="duotone" />,
+  'mining-resources': <Mountains size={32} weight="duotone" />,
   telecommunications: <Broadcast size={32} weight="duotone" />,
   'technology-software': <Lightbulb size={32} weight="duotone" />,
 }

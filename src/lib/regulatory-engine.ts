@@ -29,6 +29,7 @@ export const INDUSTRY_REGULATIONS: Record<Industry, AIRegulationFramework[]> = {
   government: ['nist-ai-rmf', 'white-house-eo', 'gdpr', 'popia'],
   education: ['ferpa', 'gdpr', 'popia', 'iso-42001'],
   energy: ['nerc-cip', 'epa', 'osha', 'iso-42001'],
+  'mining-resources': ['osha', 'epa', 'iso-42001', 'popia', 'gdpr', 'eu-ai-act'],
   telecommunications: ['gdpr', 'ccpa', 'popia', 'iso-42001'],
   'technology-software': ['gdpr', 'ccpa', 'iso-42001', 'ms-responsible-ai', 'ms-copilot-governance'],
 }

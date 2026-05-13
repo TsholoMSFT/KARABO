@@ -1281,6 +1281,16 @@ function getIndustryInsights(industry: string): any[] {
       { id: '3', category: 'trend', title: 'Renewable Energy Integration', description: 'AI optimization for renewable energy sources and storage', source: 'Clean Energy Report', relevanceScore: 8 },
       { id: '4', category: 'standard', title: 'ISO 50001 Energy Management', description: 'International standard for energy management systems', source: 'ISO.org', relevanceScore: 7 },
     ],
+    'mining-resources': [
+      { id: '1', category: 'regulation', title: 'GISTM (Tailings Standard)', description: 'Global Industry Standard on Tailings Management — board-level disclosure of TSF stability, monitoring, and emergency response (post-Brumadinho).', source: 'ICMM / UNEP / PRI', relevanceScore: 10 },
+      { id: '2', category: 'trend', title: 'Autonomous Haulage Systems (AHS)', description: 'AI-driven autonomous fleets at scale (Rio Tinto Pilbara, BHP, Fortescue) deliver 15-30% productivity gains and remove operators from hazardous zones.', source: 'McKinsey "Reimagining Mining" / Gartner Hype Cycle for Mining 2024', relevanceScore: 10 },
+      { id: '3', category: 'trend', title: 'Predictive Maintenance for Heavy Equipment', description: 'IoT + ML on haul trucks, draglines, conveyors; 30-50% reduction in unplanned downtime documented in Microsoft + Vale and AWS + BHP case studies.', source: 'Microsoft Industry Cloud / AWS for Industries', relevanceScore: 9 },
+      { id: '4', category: 'trend', title: 'AI for Mineral Exploration', description: 'ML on geophysical and satellite data to rank exploration targets — KoBold Metals + Google Cloud, Goldcorp + IBM Watson "Disrupt Mining" challenge.', source: 'Google Cloud / Bloomberg NEF', relevanceScore: 9 },
+      { id: '5', category: 'regulation', title: 'Mine Health & Safety (MHSA / MSHA)', description: 'South African Mine Health & Safety Act (DMRE) and US MSHA Part 50 mandate incident reporting and fatality reduction; vision-based safety systems are leading indicators.', source: 'DMRE / MSHA', relevanceScore: 9 },
+      { id: '6', category: 'trend', title: 'Mining Decarbonisation & Scope 1/2/3', description: 'Mining is 4-7% of global GHG; majors (Anglo American, BHP, Rio Tinto, Sibanye-Stillwater) have committed to net-zero pathways with electrification, hydrogen, and renewable PPAs.', source: 'Bloomberg NEF / ICMM / IEA', relevanceScore: 8 },
+      { id: '7', category: 'standard', title: 'ICMM Mining Principles', description: '10 Mining Principles covering safety, human rights, ESG, water, biodiversity, and tailings — adopted by all ICMM member companies.', source: 'ICMM.com', relevanceScore: 8 },
+      { id: '8', category: 'trend', title: 'Concentrator & Process Plant AI Optimisation', description: 'ML on historian data (PI, Aveva, ABB) for grinding/flotation/leaching: 1-3% recovery uplift, 3-7% throughput gain (FLSmidth, Stone Three case studies).', source: 'SME / OSIsoft', relevanceScore: 7 },
+    ],
   };
 
   return insights[industry] || [

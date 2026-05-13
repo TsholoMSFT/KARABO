@@ -2316,6 +2316,7 @@ export type Industry =
   | 'government'
   | 'education'
   | 'energy'
+  | 'mining-resources'
   | 'telecommunications'
   | 'technology-software'
 

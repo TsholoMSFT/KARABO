@@ -292,6 +292,7 @@ export const INDUSTRY_VALUE_MULTIPLIERS: Record<string, number> = {
   'telecommunications': 1.3,
   'healthcare': 1.2,
   'energy': 1.4,
+  'mining-resources': 1.3,
   'manufacturing': 1.1,
   'retail': 1.0,
   'government': 0.9,

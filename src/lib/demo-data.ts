@@ -44,6 +44,7 @@ export const INDUSTRY_SECURITY_REQUIREMENTS: Record<Industry, SecurityRequiremen
   government: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'mfa-required', 'zero-trust'],
   education: ['encryption-at-rest', 'access-control', 'audit-logging', 'data-masking'],
   energy: ['encryption-at-rest', 'access-control', 'audit-logging', 'scada-protection', 'air-gapped', 'iso27001'],
+  'mining-resources': ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'scada-protection', 'air-gapped', 'iso27001', 'mfa-required'],
   telecommunications: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'soc2-compliance'],
   'technology-software': ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'mfa-required', 'vulnerability-scanning', 'penetration-testing', 'soc2-compliance', 'zero-trust'],
 }
@@ -514,7 +515,7 @@ export const DEMO_DISCOVERY_SESSION: DiscoverySession = {
   customerName: 'Contoso Mining',
   innovationHubSPOC: 'Thabo Molefe',
   name: 'Contoso Mining Innovation Assessment',
-  industry: 'energy',  // Mining falls under energy sector
+  industry: 'mining-resources',
   innovationHubLocation: 'Johannesburg',
   solutionEngineer: 'James Ndlovu',
   accountTeamRep: 'Sarah van der Merwe',
@@ -1707,6 +1708,57 @@ export const INDUSTRY_FALLBACK_USE_CASES: Record<Industry, FallbackUseCase[]> = 
       rationale: 'Environmental compliance is critical and manual monitoring is insufficient.',
       aiRegulations: { applicableFrameworks: ['epa', 'iso-42001'], riskClassification: 'limited', jurisdictions: ['United States'] },
       cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'operational' }
+    },
+  ],
+  'mining-resources': [
+    {
+      title: 'Autonomous Haulage & Fleet Optimisation',
+      description: 'Deploy AI-driven dispatch and autonomous/semi-autonomous haulage on Cat/Komatsu trucks with Azure IoT, Stream Analytics, and edge inference at the pit. Targets 15-30% productivity gain, 10-15% fuel reduction, and removes operators from the most hazardous zones.',
+      rationale: 'Rio Tinto\'s "Mine of the Future" autonomous fleet at Pilbara reports ~15% productivity gain and 700+ trucks deployed; BHP and Fortescue have published similar outcomes. McKinsey ("Reimagining Mining", 2023) and Gartner Hype Cycle for Mining (2024) both flag AHS and integrated operations centres as high-impact patterns.',
+      aiRegulations: { applicableFrameworks: ['iso-42001', 'osha', 'eu-ai-act'], riskClassification: 'high', jurisdictions: ['United States', 'European Union', 'South Africa'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging', 'scada-protection', 'mfa-required'], dataClassification: 'operational' }
+    },
+    {
+      title: 'Predictive Maintenance for Heavy Mobile Equipment',
+      description: 'Stream sensor data from haul trucks, draglines, shovels, conveyors, and crushers into Azure IoT + ML to predict failures 7-30 days ahead. Typical results: 30-50% lower unplanned downtime and 10-40% lower maintenance spend.',
+      rationale: 'Microsoft + Vale partnership reports significant downtime reduction across iron-ore operations; McKinsey "The future of mining" estimates predictive maintenance unlocks ~USD $1B per major miner. Gartner ranks asset performance management as a Mining 4.0 priority.',
+      aiRegulations: { applicableFrameworks: ['iso-42001', 'osha'], riskClassification: 'limited', jurisdictions: ['South Africa', 'United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'scada-protection'], dataClassification: 'operational' }
+    },
+    {
+      title: 'Worker Safety & PPE Compliance with Computer Vision',
+      description: 'Use Azure AI Vision and edge cameras to detect PPE non-compliance, fatigue, proximity violations between people and heavy machinery, and unauthorised entry to exclusion zones. Targets a measurable reduction in TRIFR and lost-time injuries.',
+      rationale: 'ICMM and BHP\'s Operating System publish vision-based safety as a leading indicator. South Africa DMRE / Mine Health & Safety Act and US MSHA Part 50 reporting reward systemic reductions in fatalities and high-potential incidents.',
+      aiRegulations: { applicableFrameworks: ['eu-ai-act', 'osha', 'popia', 'iso-42001'], riskClassification: 'high', jurisdictions: ['South Africa', 'European Union', 'United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'encryption-in-transit', 'access-control', 'audit-logging'], dataClassification: 'pii' }
+    },
+    {
+      title: 'AI-Driven Mineral Exploration & Ore-Body Modelling',
+      description: 'Apply ML on geophysical, geochemical, drill-core, and satellite/InSAR data to rank exploration targets and refine block models. Improves discovery hit-rate, reduces drilling spend, and accelerates resource estimation.',
+      rationale: 'KoBold Metals + Google Cloud partnership (battery-metals exploration) and the Goldcorp/Newmont "Disrupt Mining" challenge with IBM Watson are widely cited. Bloomberg NEF and the IEA forecast critical-minerals demand growth that makes exploration ROI material; Anglo American\'s FutureSmart Mining program publishes ore-body knowledge as a strategic pillar.',
+      aiRegulations: { applicableFrameworks: ['iso-42001', 'gdpr'], riskClassification: 'minimal', jurisdictions: ['European Union'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'confidential' }
+    },
+    {
+      title: 'Tailings Storage Facility (TSF) & ESG Monitoring',
+      description: 'Combine InSAR satellite deformation, piezometer/IoT sensor telemetry, drone surveys, and ML anomaly detection to monitor TSF stability, seepage, and freeboard. Generates the evidence base required by GISTM, ICMM, and JSE/LSE disclosures.',
+      rationale: 'Post-Brumadinho (Vale, 2019), the Global Industry Standard on Tailings Management (GISTM) makes near-real-time monitoring a board-level obligation. Microsoft, AWS, and Google have all published reference architectures for TSF monitoring; Vale + Microsoft and BHP + AWS case studies document live deployments.',
+      aiRegulations: { applicableFrameworks: ['epa', 'iso-42001', 'eu-ai-act'], riskClassification: 'high', jurisdictions: ['European Union', 'United States', 'South Africa'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'scada-protection'], dataClassification: 'operational' }
+    },
+    {
+      title: 'Decarbonisation & Scope 1/2/3 Emissions Intelligence',
+      description: 'Build a Scope 1/2/3 emissions data fabric on Microsoft Sustainability Manager (or equivalent) that ingests fleet fuel burn, grid mix, processing energy, and supplier data; uses AI to model abatement scenarios (haul-truck electrification, renewable PPAs, hydrogen, regenerative braking).',
+      rationale: 'Bloomberg NEF estimates mining accounts for 4-7% of global GHG; ICMM members and JSE Top-40 miners (Anglo American, Sibanye-Stillwater, Gold Fields) have committed to net-zero pathways. McKinsey "Creating the zero-carbon mine" and Microsoft Cloud for Sustainability case studies cite 5-15% near-term reductions from data-driven optimisation.',
+      aiRegulations: { applicableFrameworks: ['iso-42001', 'eu-ai-act', 'epa'], riskClassification: 'limited', jurisdictions: ['European Union', 'South Africa', 'United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging'], dataClassification: 'internal' }
+    },
+    {
+      title: 'Concentrator & Processing-Plant AI Optimisation',
+      description: 'Apply ML on historian data (PI, Aveva, ABB) and soft-sensors to optimise grinding, flotation, leaching, and recovery in real time. Typical wins: 1-3% recovery uplift, 3-7% throughput gain, lower reagent consumption.',
+      rationale: 'FLSmidth, Stone Three, and OSIsoft have published peer-reviewed concentrator optimisation outcomes. SME (Society for Mining, Metallurgy & Exploration) and Microsoft Industry Cloud for Sustainability reference architectures both promote the pattern; Gartner ranks process optimisation as the #1 ROI lever in the 2024 Mining Hype Cycle.',
+      aiRegulations: { applicableFrameworks: ['iso-42001', 'osha'], riskClassification: 'limited', jurisdictions: ['South Africa', 'United States'] },
+      cybersecurity: { securityRequirements: ['encryption-at-rest', 'access-control', 'audit-logging', 'scada-protection'], dataClassification: 'operational' }
     },
   ],
   telecommunications: [

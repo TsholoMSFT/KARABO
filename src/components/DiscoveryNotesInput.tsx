@@ -56,6 +56,7 @@ const industryOptions: Array<{ value: Industry; label: string }> = [
   { value: 'healthcare', label: industryLabels['healthcare'] },
   { value: 'retail', label: industryLabels['retail'] },
   { value: 'manufacturing', label: industryLabels['manufacturing'] },
+  { value: 'mining-resources', label: industryLabels['mining-resources'] },
   { value: 'government', label: industryLabels['government'] },
   { value: 'education', label: industryLabels['education'] },
   { value: 'energy', label: industryLabels['energy'] },
@@ -132,7 +133,7 @@ export function DiscoveryNotesInput({
         setStockTicker(demoMetadata.stockTicker || '')
         // Set industry based on demo type
         const industryMap: Record<DemoIndustry, Industry> = {
-          mining: 'energy', // Mining falls under energy sector
+          mining: 'mining-resources',
           retail: 'retail',
           financial: 'financial-services'
         }
