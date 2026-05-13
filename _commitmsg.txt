@@ -1,42 +1,30 @@
-feat(sales): Phase 5 — internal sales CSV ingest with footprint badge
+feat(workspace): Phase 6.1 + 6.2 — backend status badge + estate templates
 
-What this adds:
+Phase 6 streamlining (first two wins):
 
-src/lib/types.ts
-  • InternalSalesRecord: customerId, accountId, arrUSD,
-    expansionPipelineUSD, productsOwned[], renewalDate, segment,
-    accountTier, primaryContact, notes, source ('csv-upload' | 'graph'
-    | 'dynamics' | 'msx'), importedAt, rawRow
+src/components/BackendStatusBadge.tsx
+  • Live dot in NavigationHeader (online/degraded/offline/checking)
+  • Polls /api/health every 60s; click to force recheck
+  • One-shot toast on online→offline and offline→online transitions
+  • Tooltip shows last-checked timestamp
+  • 8s fetch timeout via AbortController
 
-src/lib/sales-data-service.ts
-  • parseSalesCsv(file, defaultCustomerId?) — PapaParse with tolerant
-    header alias map (matches "ARR", "annual revenue", "products owned",
-    "workloads", "renewal date", etc.); handles "$1.2M" / "5k" / "R12,000"
-    notation; splits products on , ; |
-  • saveSalesRecords / getSalesForCustomer / listAllSalesRecords /
-    removeSalesForCustomer / clearAllSalesRecords (localStorage v1)
-  • findOwnedOverlap(record, solutions[]) — loose substring match
-  • estimateImplementationDiscount(baseUSD, overlapCount) — 15% per
-    overlapping product, capped at 60%
+src/components/NavigationHeader.tsx
+  • Mounted BackendStatusBadge in the right slot of the full-variant
+    header (replaces the empty spacer)
 
-src/components/InternalSalesUpload.tsx
-  • Drag-drop + file picker; preview top 5 rows with parse stats;
-    "import N records" CTA; shows current saved record per customer
-    with one-click clear; data never leaves the browser
-
-src/components/ExistingFootprintBadge.tsx
-  • Pluggable badge: <ExistingFootprintBadge customerId solutions
-    baseImplementationUSD />. Renders nothing if no overlap; hover shows
-    owned products + estimated $ implementation saving
+src/lib/solution-blueprint/estate-templates.ts
+  • 5 one-click estate presets:
+      – Standard Microsoft stack
+      – Azure + AWS hybrid
+      – Sovereign / regulated
+      – Data + analytics modernisation
+      – Greenfield / startup
+  • applyEstateTemplate(base, id) — merges owned services (union),
+    template wins for posture/identity/CICD/IaC fields
 
 src/components/SolutionBlueprintWorkspace.tsx
-  • InternalSalesUpload mounted in the "Connect data" tab beneath
-    IQConnectionsPanel — same place architects already gather signals
-
-package.json
-  • Added papaparse + @types/papaparse
-
-Stretch (Phase 5b, NOT built — documented in plan): /api/sales-data
-backed by Microsoft Graph + Dynamics 365 OData (OAuth-on-behalf-of).
-The on-disk record shape is forward-compatible (source field already
-allows 'graph' | 'dynamics' | 'msx').
+  • New "Quick start: estate templates" card at top of the Estate tab.
+    Each preset shows the description as a tooltip; one click and the
+    estate fills with sensible defaults so architects don't have to
+    pick through 30+ controls for every customer.

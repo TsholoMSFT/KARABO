@@ -71,6 +71,7 @@ import { EstateBanner } from './solution-blueprint/EstateBanner'
 import { LearnMorePopover } from './solution-blueprint/LearnMorePopover'
 import { IQConnectionsPanel, type IQInsightHint } from './solution-blueprint/IQConnectionsPanel'
 import { InternalSalesUpload } from './InternalSalesUpload'
+import { ESTATE_TEMPLATES, applyEstateTemplate } from '@/lib/solution-blueprint/estate-templates'
 import { BlueprintCopilotRail } from './solution-blueprint/BlueprintCopilotRail'
 import { BlueprintAgentRunner } from './solution-blueprint/BlueprintAgentRunner'
 import {
@@ -656,6 +657,34 @@ function EstatePanel({
   }, [])
 
   return (
+    <div className="space-y-4">
+      <Card className="border-dashed">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Quick start: estate templates</CardTitle>
+          <CardDescription className="text-xs">
+            One-click presets for common starting postures. They merge with what you've already set —
+            owned services are added (not replaced); other fields adopt the template.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          {ESTATE_TEMPLATES.map((t) => (
+            <Button
+              key={t.id}
+              size="sm"
+              variant="outline"
+              className="h-auto py-1.5 px-2 text-[11px]"
+              title={t.description}
+              onClick={() => {
+                onChange(applyEstateTemplate(estate, t.id))
+                toast.success(`Applied estate template: ${t.label}`)
+              }}
+            >
+              {t.label}
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
+
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
@@ -868,6 +897,7 @@ function EstatePanel({
           {estate.ownedServiceIds.length} service{estate.ownedServiceIds.length === 1 ? '' : 's'} marked as owned.
         </CardFooter>
       </Card>
+    </div>
     </div>
   )
 }

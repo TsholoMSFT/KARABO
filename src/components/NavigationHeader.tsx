@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { House, ArrowLeft, Sparkle } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
+import { BackendStatusBadge } from './BackendStatusBadge'
 
 interface NavigationHeaderProps {
   onBackToLanding?: () => void
@@ -121,8 +122,10 @@ export function NavigationHeader({
             </div>
           )}
 
-          {/* Right: Spacer for balance */}
-          <div className="w-24" />
+          {/* Right: Live backend status */}
+          <div className="w-24 flex items-center justify-end">
+            <BackendStatusBadge />
+          </div>
         </div>
       </div>
     </motion.header>
