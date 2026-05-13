@@ -1,22 +1,60 @@
-feat(blueprint): Blueprint Copilot rail (Option A+B) — AI suggestions + auto-IQ + cost meter
+feat(blueprint): Phase C — Foundry agent autopilot for Blueprint Copilot
+
+Layered architecture (A+B → C):
+  Off / Suggest / Autopilot
+  • Off       → no AI
+  • Suggest   → deterministic rail (already shipped, c1501e9)
+  • Autopilot → THIS COMMIT: real Foundry agent loop
 
 What this adds:
-- src/lib/blueprint-copilot-service.ts
-  * nextSuggestions(state): deterministic next-best-action engine
-  * runIQDiscovery(customer): parallel pull from Graph/Foundry/Fabric/Work + grounding note
-  * generateStarterUseCases(): 3 candidate use cases grounded on estate + IQ (analysis → gpt-4o-mini)
-  * recommendArchetype(): LLM tiebreaker over recommender (analysis → gpt-4o-mini)
-  * generateExecBrief(): board-ready 1-pager (executive → gpt-4o)
-  * Per-customer USD spend ledger in localStorage with budget cap (default $0.50)
 
-- src/components/solution-blueprint/BlueprintCopilotRail.tsx
-  * Sticky right-rail card; mode select (Off | Suggest | Autopilot, default Suggest)
-  * Shows top 3 suggestions with 1-click run, est cost in cents per action
-  * Live $ spend bar + per-model breakdown
-  * Autopilot auto-fires safe-to-autorun actions (currently: pull-iq)
+api/src/lib/agent-tools.ts
+  • AGENT_TOOL_DEFINITIONS: 8 tools (graph_search, foundry_knowledge,
+    fabric_workspaces, work_retrieval, company_financials,
+    economic_snapshot, estimate_run_cost, request_human_input)
+  • dispatchTool(): routes Foundry tool_calls to existing /api/* endpoints
+    so the agent shares the same backend surface as the Copilot rail
+  • Lightweight server-side cost estimator (mirrors src/lib/cost-engine.ts
+    heuristics) so estimate_run_cost works without bundling the full
+    pricing JSON
 
-- src/components/SolutionBlueprintWorkspace.tsx
-  * 2-col layout when AI mode is on (1fr | 340px rail)
-  * Controlled tabs so the rail can navigate
-  * Auto-runs IQ pull-all once per customer (B-slice) when mode != off; cached in localStorage
-  * Dispatcher applies generated use cases / archetype picks / exec briefs back into existing stores
+api/src/functions/agent-provision.ts
+  • POST /api/agent-provision → idempotent create-or-update of the
+    "karabo-blueprint-copilot" Foundry agent with our tool catalog and
+    instructions; cached agentId per cold start; ?force=true to reprovision
+  • Uses the same SP/MI bearer flow as the IQ connectors via iq-credential
+  • Returns { configured, agentId, model, toolCount } or a notConfigured
+    response with the env vars the operator needs to set
+
+api/src/functions/agent-run.ts
+  • mode=create  → opens a thread with the customer brief, returns runId
+  • mode=send    → posts a follow-up user message (used for human-in-loop)
+  • mode=poll    → drains tool_calls automatically (calling dispatchTool
+    for each), then returns the latest run state, messages and any
+    pending request_human_input prompt
+
+api/src/index.ts
+  • Registers agent-provision + agent-run
+
+src/lib/agent-client.ts
+  • Typed client: provisionAgent, createRun, sendMessage, pollRun
+
+src/components/solution-blueprint/BlueprintAgentRunner.tsx
+  • Autopilot UI: provisions on mount, opens thread with customer brief
+    + estate notes + grounding signals, polls every 2.5 s
+  • Renders assistant turns as markdown; shows pendingTool prompts inline
+    for human-in-the-loop with quick-reply option chips
+  • Surfaces notConfigured cleanly when the Foundry env vars aren't set
+
+src/components/SolutionBlueprintWorkspace.tsx
+  • aiMode === 'autopilot' now mounts BlueprintAgentRunner above the rail
+
+Operational notes:
+  • Required env: AZURE_FOUNDRY_ENDPOINT, AZURE_FOUNDRY_PROJECT_NAME,
+    AZURE_FOUNDRY_MODEL_NAME (default gpt-4o-mini), plus the same
+    AZURE_TENANT_ID/AZURE_CLIENT_ID/AZURE_CLIENT_SECRET (or MI) used by
+    the IQ connectors. Identity needs Cognitive Services User on the
+    Foundry resource.
+  • SELF_FUNCTION_BASE_URL must be set so dispatchTool can call sibling
+    HTTP endpoints (e.g. https://<func>.azurewebsites.net).
+  • API typechecks clean (exit 0).

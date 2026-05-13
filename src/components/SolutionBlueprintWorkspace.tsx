@@ -71,6 +71,7 @@ import { EstateBanner } from './solution-blueprint/EstateBanner'
 import { LearnMorePopover } from './solution-blueprint/LearnMorePopover'
 import { IQConnectionsPanel, type IQInsightHint } from './solution-blueprint/IQConnectionsPanel'
 import { BlueprintCopilotRail } from './solution-blueprint/BlueprintCopilotRail'
+import { BlueprintAgentRunner } from './solution-blueprint/BlueprintAgentRunner'
 import {
   runIQDiscovery,
   generateStarterUseCases,
@@ -590,7 +591,15 @@ export function SolutionBlueprintWorkspace({ customers, initialCustomerId, initi
           </TabsContent>
         </Tabs>
         {aiMode !== 'off' && (
-          <div className="lg:sticky lg:top-4">
+          <div className="lg:sticky lg:top-4 space-y-3">
+            {aiMode === 'autopilot' && selectedCustomer && (
+              <BlueprintAgentRunner
+                customerId={selectedCustomer.id}
+                customerName={selectedCustomer.name}
+                estateNotes={estate?.notes}
+                groundingNote={iqGroundingByCustomer[selectedCustomer.id]}
+              />
+            )}
             <BlueprintCopilotRail
               state={copilotState}
               mode={aiMode}
