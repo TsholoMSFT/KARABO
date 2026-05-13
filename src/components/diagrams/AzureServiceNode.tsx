@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { Badge } from '@/components/ui/badge'
 import { AzureIcon } from './AzureIcon'
@@ -16,16 +16,33 @@ function AzureServiceNodeImpl({ data, selected }: NodeProps<AzureServiceNodeType
   const colors = chipStyle(component)
   const vendor = component.service?.vendor
 
+  const nodeRef = useRef<HTMLDivElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (nodeRef.current) {
+      nodeRef.current.style.width = '220px'
+      nodeRef.current.style.borderColor = colors.stroke
+      nodeRef.current.style.boxShadow = selected ? `0 0 0 2px ${colors.stroke}66` : ''
+    }
+    if (footerRef.current) {
+      footerRef.current.style.background = colors.fill
+      footerRef.current.style.color = colors.text
+      footerRef.current.style.borderColor = colors.stroke
+    }
+    // Style the React Flow handles by querying within this node
+    if (nodeRef.current) {
+      const handles = nodeRef.current.querySelectorAll<HTMLElement>('.react-flow__handle')
+      handles.forEach((h) => { h.style.background = colors.stroke })
+    }
+  }, [colors.stroke, colors.fill, colors.text, selected])
+
   return (
     <div
+      ref={nodeRef}
       className="rounded-md border bg-card text-card-foreground shadow-sm"
-      style={{
-        width: 220,
-        borderColor: colors.stroke,
-        boxShadow: selected ? `0 0 0 2px ${colors.stroke}66` : undefined,
-      }}
     >
-      <Handle type="target" position={Position.Top} style={{ background: colors.stroke }} />
+      <Handle type="target" position={Position.Top} />
       <div className="flex items-start gap-2 p-2.5">
         <AzureIcon serviceId={component.service?.id} fallbackLabel={component.service?.name ?? component.capabilityName} size={28} />
         <div className="min-w-0 flex-1">
@@ -41,8 +58,8 @@ function AzureServiceNodeImpl({ data, selected }: NodeProps<AzureServiceNodeType
         </div>
       </div>
       <div
+        ref={footerRef}
         className="flex items-center justify-between border-t px-2 py-1"
-        style={{ background: colors.fill, color: colors.text, borderColor: colors.stroke }}
       >
         <span className="text-[10px] font-semibold uppercase tracking-wide">{component.layer}</span>
         <div className="flex gap-1">
@@ -55,7 +72,7 @@ function AzureServiceNodeImpl({ data, selected }: NodeProps<AzureServiceNodeType
           )}
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ background: colors.stroke }} />
+      <Handle type="source" position={Position.Bottom} />
     </div>
   )
 }

@@ -301,9 +301,16 @@ export async function fetchRSSFromBlobStorage(
     }
     
     const response = await fetch(url.toString())
-    
+
+    // Never throw on non-2xx — backend already returns 200 with diagnostics in
+    // every recoverable failure mode. A non-2xx here means the proxy or runtime
+    // itself failed; surface that as an inline empty-state, not a red toast.
     if (!response.ok) {
-      throw new Error(`Failed to fetch RSS: ${response.status}`)
+      const text = await response.text().catch(() => '')
+      return {
+        items: [],
+        message: `RSS service unavailable (HTTP ${response.status}). ${text.slice(0, 200)}`.trim(),
+      }
     }
 
     const data = await response.json().catch(() => ({} as any))

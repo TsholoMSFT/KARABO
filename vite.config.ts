@@ -21,9 +21,11 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     proxy: {
-      // Proxy /api requests to Azure Functions running on port 7071
+      // Proxy /api requests to Azure Functions running on port 7071.
+      // Use 127.0.0.1 (not localhost) so Node doesn't resolve to ::1 while the
+      // Functions host only listens on IPv4 (0.0.0.0:7071).
       '/api': {
-        target: 'http://localhost:7071',
+        target: 'http://127.0.0.1:7071',
         changeOrigin: true,
         secure: false,
       },

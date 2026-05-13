@@ -137,7 +137,7 @@ function FlowDiagramInner({ result, pathKind, flowLayoutKey, className }: FlowDi
   }, [pathKind, reactFlow])
 
   return (
-    <div className={className} style={{ height: 520, position: 'relative' }} ref={containerRef}>
+    <div className={`${className ?? ''} h-[520px] relative`} ref={containerRef}>
       <ReactFlow
         nodes={nodes}
         edges={edges}

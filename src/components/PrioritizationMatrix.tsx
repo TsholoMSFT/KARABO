@@ -226,19 +226,19 @@ export function PrioritizationMatrix({
       <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground px-1">
         <span className="font-medium text-foreground/70">Dot color (Impact × Feasibility):</span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-full" style={{ background: 'oklch(0.58 0.18 195)' }} />
+          <span className="inline-block w-3 h-3 rounded-full bg-[oklch(0.58_0.18_195)]" />
           ≥ 70 (Strong)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-full" style={{ background: 'oklch(0.60 0.18 250)' }} />
+          <span className="inline-block w-3 h-3 rounded-full bg-[oklch(0.60_0.18_250)]" />
           40–69 (Moderate)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-full" style={{ background: 'oklch(0.65 0.20 310)' }} />
+          <span className="inline-block w-3 h-3 rounded-full bg-[oklch(0.65_0.20_310)]" />
           20–39 (Low)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-full" style={{ background: 'oklch(0.55 0.15 270)' }} />
+          <span className="inline-block w-3 h-3 rounded-full bg-[oklch(0.55_0.15_270)]" />
           &lt; 20 (Minimal)
         </span>
       </div>

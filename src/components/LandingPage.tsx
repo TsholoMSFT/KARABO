@@ -22,7 +22,8 @@ import {
   ShieldCheck,
   CaretDown,
   CaretUp,
-  Buildings
+  Buildings,
+  Compass
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AboutSection } from '@/components/AboutSection'
@@ -35,6 +36,7 @@ interface LandingPageProps {
   onStartSovereignCloud?: () => void
   onStartSolutionBlueprint?: () => void
   onStartEnterpriseDiscovery: () => void
+  onStartDUCE?: () => void
   onStartNotesAnalysis?: () => void
   onViewExisting: () => void
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
@@ -52,6 +54,7 @@ export function LandingPage({
   onStartSovereignCloud,
   onStartSolutionBlueprint,
   onStartEnterpriseDiscovery,
+  onStartDUCE,
   onStartNotesAnalysis, 
   onViewExisting,
   onStartDemo,
@@ -334,6 +337,55 @@ export function LandingPage({
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* DUCE — Innovation Hub Engine Card */}
+          {onStartDUCE && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.63 }}
+            >
+              <Card className="h-full border-2 border-violet-500/40 hover:shadow-lg transition-all duration-300 hover:border-violet-500 bg-gradient-to-br from-violet-500/5 to-transparent">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-violet-500/10">
+                      <Compass size={28} weight="duotone" className="text-violet-500" />
+                    </div>
+                    <Badge variant="outline" className="text-xs">Decision Engine</Badge>
+                  </div>
+                  <CardTitle className="text-xl">DUCE — Innovation Hub Engine</CardTitle>
+                  <CardDescription className="text-sm">
+                    6-step decision-driven flow: strategy → process → problems → use cases → deep dive → outputs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <Lightbulb size={16} weight="duotone" className="mt-0.5 text-violet-500 flex-shrink-0" />
+                      <span>Quantify problems, classify AI fit, and rank dispositions deterministically</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-violet-500 flex-shrink-0" />
+                      <span>Recommend architecture patterns from a curated library + co-lead TA inputs</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-violet-500 flex-shrink-0" />
+                      <span>Produce roadmap, decision log, and exportable knowledge output</span>
+                    </li>
+                  </ul>
+                  <Separator />
+                  <Button
+                    onClick={onStartDUCE}
+                    className="w-full gap-2 bg-violet-600 hover:bg-violet-700 text-white"
+                    size="lg"
+                  >
+                    <Compass size={20} weight="duotone" />
+                    Start DUCE
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           {/* Sovereign Cloud Assessment Card */}
           {onStartSovereignCloud && (

@@ -69,6 +69,7 @@ const CustomerSelector = lazy(() => import('@/components/CustomerSelector').then
 const EnterpriseDiscoveryOrchestrator = lazy(() => import('@/components/enterprise-discovery/EnterpriseDiscoveryOrchestratorMVP').then(m => ({ default: m.EnterpriseDiscoveryOrchestratorMVP })))
 const FinancialImpactTab = lazy(() => import('@/components/FinancialImpactTab').then(m => ({ default: m.FinancialImpactTab })))
 const ImportUseCasesDialog = lazy(() => import('@/components/ImportUseCasesDialog').then(m => ({ default: m.ImportUseCasesDialog })))
+const DUCEWizard = lazy(() => import('@/components/duce').then(m => ({ default: m.DUCEWizard })))
 
 /** Fallback spinner for lazy-loaded components */
 function LazyFallback() {
@@ -79,7 +80,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -543,6 +544,26 @@ function App() {
     setCurrentView('enterprise-discovery')
   }
 
+  const handleStartDUCE = () => {
+    // Reuse selected session if present; otherwise create a lightweight one so DUCE has a sessionId.
+    if (!selectedSessionId) {
+      const session: DiscoverySession = {
+        id: `duce-${Date.now()}`,
+        customerId: '',
+        customerName: 'New DUCE Engagement',
+        name: 'DUCE Session',
+        industry: 'general',
+        responses: [],
+        suggestedUseCases: [],
+        createdAt: Date.now(),
+        completedAt: Date.now(),
+      }
+      addSession(session)
+      setSelectedSessionId(session.id)
+    }
+    setCurrentView('duce-wizard')
+  }
+
   const handleResumeEnterpriseDiscovery = (session: AnyEnterpriseSession) => {
     setCurrentEnterpriseSession(session)
     setCurrentView('enterprise-discovery')
@@ -893,6 +914,7 @@ function App() {
           onStartSovereignCloud={handleStartSovereignCloud}
           onStartSolutionBlueprint={handleStartSolutionBlueprint}
           onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
+          onStartDUCE={handleStartDUCE}
           onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
           onSelectTemplate={handleSelectTemplate}
@@ -900,6 +922,27 @@ function App() {
           demoIndustry={demoIndustry}
           onEnterDemoMode={handleEnterDemoMode}
         />
+      )}
+
+      {currentView === 'duce-wizard' && selectedSessionId && (
+        <Suspense fallback={<LazyFallback />}>
+          <SectionErrorBoundary>
+            <DUCEWizard
+              sessionId={selectedSessionId}
+              customerName={discoverySessions?.find(s => s.id === selectedSessionId)?.customerName}
+              industry={discoverySessions?.find(s => s.id === selectedSessionId)?.industry}
+              primaryStakeholder={discoverySessions?.find(s => s.id === selectedSessionId)?.primaryStakeholder}
+              useCases={(useCases || []).filter(u => u.discoverySessionId === selectedSessionId)}
+              onUseCasesChange={(next) => {
+                setUseCases((current) => {
+                  const others = (current || []).filter(u => u.discoverySessionId !== selectedSessionId)
+                  return [...others, ...next.map(u => ({ ...u, discoverySessionId: selectedSessionId }))]
+                })
+              }}
+              onExit={handleBackToLanding}
+            />
+          </SectionErrorBoundary>
+        </Suspense>
       )}
 
       {currentView === 'enterprise-discovery' && (

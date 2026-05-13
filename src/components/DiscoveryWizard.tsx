@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileMagnifyingGlass, SkipForward, Mountains } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
+import { InlineDisclaimer } from '@/components/Disclaimer'
 import { CompanyResearch } from '@/components/CompanyResearch'
 import { CompanyInsight } from '@/lib/company-research-service'
 

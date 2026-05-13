@@ -5,6 +5,7 @@
  * Designed to sit alongside existing badges (data source, regulatory risk).
  */
 
+import { useEffect, useRef } from 'react'
 import { ATMScore, ATM_TIER_CONFIG } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -59,23 +60,7 @@ export function ATMBadge({ atmScore, size = 'sm', showScore = true, className = 
               {/* Dimension mini-bars */}
               <div className="space-y-1 pt-1">
                 {atmScore.dimensions.map((dim) => (
-                  <div key={dim.dimension} className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground w-24 truncate">
-                      {dim.label}
-                    </span>
-                    <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${dim.normalizedScore}%`,
-                          backgroundColor: getBarColor(dim.normalizedScore),
-                        }}
-                      />
-                    </div>
-                    <span className="text-[10px] text-muted-foreground w-6 text-right">
-                      {Math.round(dim.normalizedScore)}
-                    </span>
-                  </div>
+                  <DimensionBar key={dim.dimension} label={dim.label} normalizedScore={dim.normalizedScore} />
                 ))}
               </div>
 
@@ -114,4 +99,30 @@ function getBarColor(score: number): string {
   if (score >= 60) return 'oklch(0.75 0.16 80)'   // amber
   if (score >= 40) return 'oklch(0.65 0.08 250)'  // slate-blue
   return 'oklch(0.55 0.06 250)'                    // muted
+}
+
+interface DimensionBarProps {
+  label: string
+  normalizedScore: number
+}
+
+function DimensionBar({ label, normalizedScore }: DimensionBarProps) {
+  const barRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = barRef.current
+    if (!el) return
+    el.style.width = `${normalizedScore}%`
+    el.style.backgroundColor = getBarColor(normalizedScore)
+  }, [normalizedScore])
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-muted-foreground w-24 truncate">{label}</span>
+      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+        <div ref={barRef} className="h-full rounded-full transition-all" />
+      </div>
+      <span className="text-[10px] text-muted-foreground w-6 text-right">
+        {Math.round(normalizedScore)}
+      </span>
+    </div>
+  )
 }

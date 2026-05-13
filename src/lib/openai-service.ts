@@ -25,7 +25,6 @@ const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || '/api'
 // All AI calls route through the serverside proxy — no keys in the browser.
 // The VITE_AZURE_OPENAI_* / VITE_OPENAI_* env vars have been intentionally removed
 // to prevent accidental key exposure in the client bundle.
-const USE_PROXY = true
 
 // ============================================================================
 // RESPONSE CACHING
@@ -875,6 +874,7 @@ declare global {
     estimateEffort: typeof estimateEffort
     estimateCOI: typeof estimateCOI
     estimateROI: typeof estimateROI
+    generateSuccessMetrics: typeof generateSuccessMetrics
     clearAICache: typeof clearAICache
     getAICacheStats: typeof getCacheStats
   }

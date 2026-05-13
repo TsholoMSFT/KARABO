@@ -7,6 +7,7 @@ import {
   parseRSSItems,
   type RSSItem,
 } from "../lib/xml-utils";
+import { getOrFetchRSS, type CacheResult } from "../lib/rss-cache";
 
 /**
  * Azure Function to fetch RSS feeds from Blob Storage
@@ -58,15 +59,23 @@ async function fetchLiveRSS(companyName: string, context: InvocationContext): Pr
   }
 }
 
-// Always-resolving wrapper around fetchLiveRSS, used by the outer handler
-// as a last-resort fallback so the UI never sees a 5xx for transient infra.
-async function safeLiveRSS(companyName: string, context: InvocationContext) {
-  if (!companyName) return { items: [] as RSSItem[], message: undefined as string | undefined };
-  try {
-    const items = await fetchLiveRSS(companyName, context);
-    return { items, message: undefined };
-  } catch (err: any) {
-    return { items: [] as RSSItem[], message: `Live RSS fetch failed: ${safeErrorMessage(err, "unknown")}` };
+// Always-resolving wrapper that uses the SWR cache. Returns a CacheResult
+// the handler can render directly. Empty company yields an empty result.
+async function cachedLiveRSS(companyName: string, context: InvocationContext): Promise<CacheResult> {
+  if (!companyName) return { items: [], source: "none" };
+  return getOrFetchRSS(companyName, (c) => fetchLiveRSS(c, context), context);
+}
+
+function sourceLabel(s: CacheResult["source"]): string {
+  switch (s) {
+    case "fresh":
+      return "live-cache";
+    case "stale":
+      return "live-cache-stale";
+    case "live":
+      return "live";
+    default:
+      return "none";
   }
 }
 
@@ -90,12 +99,28 @@ async function rssFeedsHandler(
 
   // Check if storage is configured
   if (!storageConnectionString) {
-    context.warn("Azure Storage not configured - returning empty RSS");
+    context.warn("Azure Storage not configured - attempting live RSS fallback");
+    if (companyParam) {
+      const live = await cachedLiveRSS(companyParam, context);
+      return {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: {
+          items: live.items,
+          message:
+            live.message ??
+            `Live RSS fetched for "${companyParam}" (storage not configured)`,
+          company: companyParam,
+          source: sourceLabel(live.source),
+          ageMs: live.ageMs,
+        },
+      };
+    }
     return {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: { 
-        items: [], 
+      jsonBody: {
+        items: [],
         message:
           "RSS storage not configured. Add AZURE_STORAGE_CONNECTION_STRING (preferred) or AzureWebJobsStorage to the environment.",
       },
@@ -122,31 +147,23 @@ async function rssFeedsHandler(
       context.warn("Azure Storage unreachable:", connError.message);
       if (companyParam) {
         context.log(`Storage unavailable, falling back to live RSS for "${companyParam}"...`);
-        try {
-          const liveItems = await fetchLiveRSS(companyParam, context);
-          return {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            jsonBody: {
-              items: liveItems,
-              message: `Live RSS fetched for "${companyParam}" (storage unavailable)`,
-              company: companyParam,
-              source: "live",
-              totalBlobs: 0,
-            },
-          };
-        } catch (liveError: any) {
-          return {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            jsonBody: {
-              items: [],
-              message: `Storage unavailable and live RSS failed: ${liveError.message}`,
-              company: companyParam,
-              source: "none",
-            },
-          };
-        }
+        const live = await cachedLiveRSS(companyParam, context);
+        return {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          jsonBody: {
+            items: live.items,
+            message:
+              live.message ??
+              (live.items.length
+                ? `Live RSS fetched for "${companyParam}" (storage unavailable)`
+                : `Storage unavailable and live RSS returned no items`),
+            company: companyParam,
+            source: sourceLabel(live.source),
+            ageMs: live.ageMs,
+            totalBlobs: 0,
+          },
+        };
       }
       return {
         status: 200,
@@ -183,32 +200,23 @@ async function rssFeedsHandler(
       // No cached blobs found - try live RSS fetch if company specified
       if (companyParam) {
         context.log(`No cached RSS for "${companyParam}", fetching live...`);
-        try {
-          const liveItems = await fetchLiveRSS(companyParam, context);
-          return {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            jsonBody: {
-              items: liveItems,
-              message: `Live RSS fetched for "${companyParam}" (not cached yet)`,
-              company: companyParam,
-              source: "live",
-              totalBlobs: 0,
-            },
-          };
-        } catch (liveError: any) {
-          context.error(`Live RSS fetch failed for "${companyParam}":`, liveError);
-          return {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            jsonBody: {
-              items: [],
-              message: `No cached RSS for "${companyParam}" and live fetch failed: ${liveError.message}`,
-              company: companyParam,
-              source: "none",
-            },
-          };
-        }
+        const live = await cachedLiveRSS(companyParam, context);
+        return {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          jsonBody: {
+            items: live.items,
+            message:
+              live.message ??
+              (live.items.length
+                ? `Live RSS fetched for "${companyParam}" (not cached yet)`
+                : `No cached RSS for "${companyParam}" and live fetch returned no items`),
+            company: companyParam,
+            source: sourceLabel(live.source),
+            ageMs: live.ageMs,
+            totalBlobs: 0,
+          },
+        };
       }
       
       return {
@@ -270,11 +278,11 @@ async function rssFeedsHandler(
       },
     };
   } catch (error: any) {
-    // Last-resort: never let an uncaught error 500 the UI. Try live RSS;
-    // if that also fails, return 200 with an empty list and a diagnostic
+    // Last-resort: never let an uncaught error 500 the UI. Try cached/live RSS;
+    // if that also returns nothing, return 200 with an empty list and a diagnostic
     // message so the frontend renders the empty state instead of a toast.
-    context.error("RSS feeds error (falling back to live):", error);
-    const fallback = await safeLiveRSS(companyParam, context);
+    context.error("RSS feeds error (falling back to cache/live):", error);
+    const fallback = await cachedLiveRSS(companyParam, context);
     return {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -286,7 +294,8 @@ async function rssFeedsHandler(
             ? `Cache read failed (${safeErrorMessage(error, "unknown")}); returned live RSS for "${companyParam}".`
             : `RSS unavailable: ${safeErrorMessage(error, "unknown")}`),
         company: companyParam || null,
-        source: fallback.items.length ? "live" : "none",
+        source: sourceLabel(fallback.source),
+        ageMs: fallback.ageMs,
       },
     };
   }
