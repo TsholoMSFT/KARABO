@@ -190,15 +190,19 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
     let config = getDeploymentConfig(model, targetCloud);
     let actualModel = model;
 
+    // A config is "valid" if endpoint is set; key only required in key-auth mode.
+    const isConfigValid = (c: DeploymentConfig | null | undefined): c is DeploymentConfig =>
+      Boolean(c && c.endpoint && (!REQUIRES_KEY || c.key));
+
     // Validate configuration, fallback if needed
-    if (!config || !config.endpoint || !config.key) {
+    if (!isConfigValid(config)) {
       context.log(`Model ${model} not configured for ${targetCloud}, attempting fallback...`);
-      
+
       // Fallback chain: AI Hub models → gpt-4o-mini → gpt-4o
       const fallbackOrder: ModelType[] = ["gpt-5-nano", "gpt-4o-mini", "gpt-4o"];
       for (const fallbackModel of fallbackOrder) {
         const fallbackConfig = getDeploymentConfig(fallbackModel, targetCloud);
-        if (fallbackConfig && fallbackConfig.endpoint && fallbackConfig.key) {
+        if (isConfigValid(fallbackConfig)) {
           context.log(`Falling back to ${fallbackModel} on ${targetCloud}`);
           config = fallbackConfig;
           actualModel = fallbackModel;
@@ -206,7 +210,7 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
         }
       }
 
-      if (!config || !config.endpoint || !config.key) {
+      if (!isConfigValid(config)) {
         return {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
