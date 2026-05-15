@@ -1348,7 +1348,11 @@ function App() {
                 />
 
                 {(customerMetadata?.executiveSummary || '').trim() ? (
-                  <ExecutiveSummary summary={customerMetadata?.executiveSummary || ''} />
+                  <ExecutiveSummary
+                    summary={customerMetadata?.executiveSummary || ''}
+                    customerName={customerMetadata?.customerName}
+                    industry={selectedSession?.industry}
+                  />
                 ) : shouldOfferExecutiveSummaryGeneration ? (
                   <Card className="border-2 bg-card mb-6">
                     <CardHeader className="pb-3">
