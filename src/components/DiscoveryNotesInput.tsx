@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { NavigationHeader } from '@/components/NavigationHeader'
+import { MeetingUpload } from '@/components/MeetingUpload'
 import { Sparkle, FileText, Info, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -428,6 +429,12 @@ export function DiscoveryNotesInput({
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                <MeetingUpload
+                  disabled={isAnalyzing}
+                  onTranscript={(text) => setNotes((prev) => (prev ? prev.trimEnd() + '\n\n' + text : text))}
+                  className="mb-2"
+                />
 
                 <Textarea
                   id="notes"
