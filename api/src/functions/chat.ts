@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { makeCorsHeaders, safeErrorMessage } from "../lib/xml-utils";
+import { getAoaiAuthHeaders } from "../lib/iq-credential";
 
 /**
  * Azure Function Proxy for Azure OpenAI
@@ -39,8 +40,9 @@ const AZURE_CN_OPENAI_API_KEY = process.env.AZURE_CN_OPENAI_API_KEY;
 const AI_HUB_ENDPOINT = process.env.AI_HUB_ENDPOINT;
 const AI_HUB_API_KEY = process.env.AI_HUB_API_KEY;
 
-// Authentication mode: 'key' (default) or 'entra-id'
-const AUTH_TYPE = process.env.AZURE_OPENAI_AUTH_TYPE || "key";
+// Authentication mode: 'entra-id' (default — keys disabled) or 'key'
+const AUTH_TYPE = (process.env.AZURE_OPENAI_AUTH_TYPE || "entra-id").toLowerCase();
+const REQUIRES_KEY = AUTH_TYPE === "key";
 
 // ── API versions per cloud ───────────────────────────────────────────
 // 2025-04-01-preview supports both GPT-5/o-series (max_completion_tokens) and
@@ -73,42 +75,49 @@ interface DeploymentConfig {
 /**
  * Resolve endpoint + key for a given cloud environment.
  */
+function hasAuth(endpoint: string | undefined, key: string | undefined): boolean {
+  if (!endpoint) return false;
+  if (REQUIRES_KEY) return Boolean(key);
+  return true; // entra-id only needs an endpoint
+}
+
 function getCloudConfig(cloud: CloudEnvironment): { endpoint: string; key: string } | null {
   switch (cloud) {
     case "government":
     case "government-dod":
-      if (AZURE_GOV_OPENAI_ENDPOINT && AZURE_GOV_OPENAI_API_KEY) {
-        return { endpoint: AZURE_GOV_OPENAI_ENDPOINT, key: AZURE_GOV_OPENAI_API_KEY };
+      if (hasAuth(AZURE_GOV_OPENAI_ENDPOINT, AZURE_GOV_OPENAI_API_KEY)) {
+        return { endpoint: AZURE_GOV_OPENAI_ENDPOINT!, key: AZURE_GOV_OPENAI_API_KEY || "" };
       }
-      // Fall through to public if gov not configured
       break;
     case "china":
-      if (AZURE_CN_OPENAI_ENDPOINT && AZURE_CN_OPENAI_API_KEY) {
-        return { endpoint: AZURE_CN_OPENAI_ENDPOINT, key: AZURE_CN_OPENAI_API_KEY };
+      if (hasAuth(AZURE_CN_OPENAI_ENDPOINT, AZURE_CN_OPENAI_API_KEY)) {
+        return { endpoint: AZURE_CN_OPENAI_ENDPOINT!, key: AZURE_CN_OPENAI_API_KEY || "" };
       }
       break;
     case "eu-boundary":
     case "public":
     default:
-      if (AZURE_OPENAI_ENDPOINT && AZURE_OPENAI_API_KEY) {
-        return { endpoint: AZURE_OPENAI_ENDPOINT, key: AZURE_OPENAI_API_KEY };
+      if (hasAuth(AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY)) {
+        return { endpoint: AZURE_OPENAI_ENDPOINT!, key: AZURE_OPENAI_API_KEY || "" };
       }
       break;
   }
-  // Fallback: try public cloud config  
-  if (AZURE_OPENAI_ENDPOINT && AZURE_OPENAI_API_KEY) {
-    return { endpoint: AZURE_OPENAI_ENDPOINT, key: AZURE_OPENAI_API_KEY };
+  if (hasAuth(AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY)) {
+    return { endpoint: AZURE_OPENAI_ENDPOINT!, key: AZURE_OPENAI_API_KEY || "" };
   }
   return null;
 }
 
 function getDeploymentConfig(model: ModelType, cloud: CloudEnvironment = AZURE_CLOUD_ENV): DeploymentConfig | null {
-  // AI Hub models (only available in public cloud)
-  if ((model === "phi-4-mini-instruct" || model === "gpt-5-nano") && AI_HUB_ENDPOINT && AI_HUB_API_KEY) {
+  // Dedicated AI Hub endpoint (separate from primary AOAI/Foundry resource)
+  if ((model === "phi-4-mini-instruct" || model === "gpt-5-nano") && hasAuth(AI_HUB_ENDPOINT, AI_HUB_API_KEY)) {
     return {
-      endpoint: AI_HUB_ENDPOINT,
-      key: AI_HUB_API_KEY,
-      deployment: model,
+      endpoint: AI_HUB_ENDPOINT!,
+      key: AI_HUB_API_KEY || "",
+      deployment:
+        model === "phi-4-mini-instruct"
+          ? process.env.AI_HUB_DEPLOYMENT_PHI || "Phi-4-mini-instruct"
+          : process.env.AI_HUB_DEPLOYMENT_NANO || "gpt-5-nano",
       isAIHub: true,
       cloud: "public",
     };
@@ -121,9 +130,14 @@ function getDeploymentConfig(model: ModelType, cloud: CloudEnvironment = AZURE_C
   const deploymentMap: Record<string, string> = {
     "gpt-4o": process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O || "gpt-4o",
     "gpt-4o-mini": process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI || "gpt-4o-mini",
-    // Phi/nano fall through to GPT models when AI Hub not configured
-    "phi-4-mini-instruct": process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI || "gpt-4o-mini",
-    "gpt-5-nano": process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI || "gpt-4o-mini",
+    "phi-4-mini-instruct":
+      process.env.AZURE_OPENAI_DEPLOYMENT_PHI ||
+      process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI ||
+      "gpt-4o-mini",
+    "gpt-5-nano":
+      process.env.AZURE_OPENAI_DEPLOYMENT_NANO ||
+      process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI ||
+      "gpt-4o-mini",
   };
 
   return {
@@ -147,17 +161,7 @@ interface ChatRequest {
  * Get Entra ID (AAD) token for Azure OpenAI.
  * Uses DefaultAzureCredential which supports managed identity, VS Code, CLI, etc.
  */
-async function getEntraIdToken(context: InvocationContext): Promise<string | null> {
-  try {
-    const { DefaultAzureCredential } = await import("@azure/identity");
-    const credential = new DefaultAzureCredential();
-    const tokenResponse = await credential.getToken("https://cognitiveservices.azure.com/.default");
-    return tokenResponse.token;
-  } catch (error: any) {
-    context.warn(`Entra ID auth failed, falling back to API key: ${error.message}`);
-    return null;
-  }
-}
+// Token acquisition is now handled by getAoaiAuthHeaders in iq-credential.
 
 const corsHeaders = makeCorsHeaders("POST, OPTIONS");
 
@@ -234,22 +238,21 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
       requestBody.response_format = { type: "json_object" };
     }
 
-    // Build auth headers — Entra ID or API key
+    // Build auth headers — Entra ID (default) or API key
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-
-    if (AUTH_TYPE === "entra-id" && !config.isAIHub) {
-      const token = await getEntraIdToken(context);
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-        context.log(`Using Entra ID auth for ${actualModel} on ${config.cloud}`);
-      } else {
-        // Fallback to API key
-        headers["api-key"] = config.key;
-        context.log(`Entra ID unavailable, using API key for ${actualModel} on ${config.cloud}`);
-      }
-    } else {
-      headers["api-key"] = config.key;
+    const authHeaders = await getAoaiAuthHeaders(config.key || undefined);
+    if (!authHeaders) {
+      return {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        jsonBody: {
+          error:
+            "No auth method available. Set AZURE_OPENAI_AUTH_TYPE=entra-id with valid az login / managed identity, or provide AZURE_OPENAI_API_KEY.",
+        },
+      };
     }
+    Object.assign(headers, authHeaders);
+    context.log(`Auth=${authHeaders.Authorization ? "entra-id" : "api-key"} model=${actualModel} cloud=${config.cloud} aiHub=${config.isAIHub}`);
 
     context.log(`Calling ${actualModel} (requested: ${model}) on ${config.cloud} at ${config.endpoint}`);
 

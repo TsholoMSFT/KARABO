@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { makeCorsHeaders } from '../lib/xml-utils'
+import { getAoaiAuthHeaders } from '../lib/iq-credential'
 
 const corsHeaders = makeCorsHeaders('POST, OPTIONS')
 
@@ -21,11 +22,20 @@ async function embeddingsHandler(req: HttpRequest, _context: InvocationContext):
   const deployment = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || 'text-embedding-3-large'
   const apiVersion = process.env.AZURE_OPENAI_EMBEDDING_API_VERSION || '2024-10-21'
 
-  if (!endpoint || !apiKey) {
+  if (!endpoint) {
     return {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      jsonBody: { error: 'AZURE_OPENAI_ENDPOINT / AZURE_OPENAI_API_KEY not configured' },
+      jsonBody: { error: 'AZURE_OPENAI_ENDPOINT not configured' },
+    }
+  }
+
+  const authHeaders = await getAoaiAuthHeaders(apiKey)
+  if (!authHeaders) {
+    return {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      jsonBody: { error: 'No auth available (set AZURE_OPENAI_AUTH_TYPE=entra-id with az login, or supply AZURE_OPENAI_API_KEY)' },
     }
   }
 
@@ -46,7 +56,7 @@ async function embeddingsHandler(req: HttpRequest, _context: InvocationContext):
   try {
     const r = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ input }),
     })
     if (!r.ok) {

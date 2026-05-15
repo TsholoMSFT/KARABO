@@ -1,6 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { AzureKeyCredential, SearchClient } from '@azure/search-documents'
 import { makeCorsHeaders } from '../lib/xml-utils'
+import { getAoaiAuthHeaders } from '../lib/iq-credential'
 
 const corsHeaders = makeCorsHeaders('POST, OPTIONS')
 
@@ -36,11 +37,13 @@ async function embedQuery(text: string): Promise<number[] | null> {
   const apiKey = process.env.AZURE_OPENAI_API_KEY
   const deployment = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || 'text-embedding-3-large'
   const apiVersion = process.env.AZURE_OPENAI_EMBEDDING_API_VERSION || '2024-10-21'
-  if (!endpoint || !apiKey) return null
+  if (!endpoint) return null
+  const authHeaders = await getAoaiAuthHeaders(apiKey)
+  if (!authHeaders) return null
   const url = `${endpoint.replace(/\/$/, '')}/openai/deployments/${deployment}/embeddings?api-version=${apiVersion}`
   const r = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
+    headers: { 'Content-Type': 'application/json', ...authHeaders },
     body: JSON.stringify({ input: text }),
   })
   if (!r.ok) return null
