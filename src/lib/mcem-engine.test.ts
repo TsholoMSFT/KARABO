@@ -11,6 +11,8 @@ import {
   prepareHandoff,
   acceptHandoff,
   buildHandoffChecklist,
+  recommendedNextAction,
+  getOpportunityUseCases,
 } from './mcem-engine'
 import type { Opportunity } from './mcem'
 
@@ -257,5 +259,44 @@ describe('closeOpportunity', () => {
     const closed = closeOpportunity(opp, { note: 'Budget cut' })
     expect(closed.status).toBe('closed-lost')
     expect(closed.history[closed.history.length - 1]?.note).toBe('Budget cut')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Convenience helpers
+// ---------------------------------------------------------------------------
+
+describe('getOpportunityUseCases', () => {
+  it('resolves the use-case objects backing an opportunity', () => {
+    const a = makeUseCase({ problemConfirmed: true })
+    const b = makeUseCase({ problemConfirmed: true })
+    const opp = promoteUseCasesToOpportunity([a, b], { customerId: 'c' })
+    const resolved = getOpportunityUseCases(opp, [a, b, makeUseCase()])
+    expect(resolved.map((u) => u.id).sort()).toEqual([a.id, b.id].sort())
+  })
+})
+
+describe('recommendedNextAction', () => {
+  it('surfaces the first unmet gate requirement', () => {
+    const uc = makeUseCase({ problemConfirmed: false })
+    const opp = promote([uc])
+    expect(recommendedNextAction(opp, [uc])).toMatch(/problem statement/i)
+  })
+
+  it('prompts to advance when the gate is clear', () => {
+    const uc = makeUseCase({ problemConfirmed: true, impact: 7, feasibility: 6 })
+    const opp = promote([uc])
+    expect(recommendedNextAction(opp, [uc])).toMatch(/advance to stage 2/i)
+  })
+
+  it('reports a handed-off opportunity as done', () => {
+    const uc = fullyQualifiedUseCase()
+    let opp = promote([uc])
+    opp = advanceStage(opp, [uc])
+    opp = advanceStage(opp, [uc])
+    opp = advanceStage(opp, [uc])
+    opp = prepareHandoff(opp, [uc], { csaName: 'CSA Casey' })
+    opp = acceptHandoff(opp, 'CSA Casey')
+    expect(recommendedNextAction(opp, [uc])).toMatch(/done/i)
   })
 })

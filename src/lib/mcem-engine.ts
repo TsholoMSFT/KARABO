@@ -462,3 +462,38 @@ export function acceptHandoff(
     updatedAt: now,
   }
 }
+
+// ============================================================================
+// CONVENIENCE / UI HELPERS
+// ============================================================================
+
+/** Resolve the actual use-case objects an opportunity is built from. */
+export function getOpportunityUseCases(
+  opportunity: Pick<Opportunity, 'useCaseIds'>,
+  allUseCases: UseCase[],
+): UseCase[] {
+  return allUseCases.filter((uc) => opportunity.useCaseIds.includes(uc.id))
+}
+
+/**
+ * Human-readable next step for an opportunity — the first unmet gate
+ * requirement, otherwise a prompt to advance (or finish the handshake).
+ * Drives the "what do I do next?" hint on the pipeline board.
+ */
+export function recommendedNextAction(
+  opportunity: Opportunity,
+  allUseCases: UseCase[],
+): string {
+  if (opportunity.status === 'closed-lost') return 'Closed (lost) — no action.'
+  if (opportunity.status === 'handed-off') return 'Handed off to the CSU. Done.'
+
+  const gate = evaluateStageGate(opportunity, allUseCases)
+  const firstUnmet = gate.requirements.find((r) => !r.met)
+  if (firstUnmet) return firstUnmet.hint ?? firstUnmet.label
+
+  if (opportunity.stage < 4) {
+    const next = MCEM_STAGES[(opportunity.stage + 1) as McemStage]
+    return `Ready to advance to Stage ${next.stage}: ${next.name}.`
+  }
+  return 'Handshake ready — record CSA acceptance to complete.'
+}
