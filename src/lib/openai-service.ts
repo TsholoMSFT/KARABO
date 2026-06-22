@@ -194,6 +194,9 @@ async function callViaProxy(
   if (cloudEnvironment) requestBody.cloudEnvironment = cloudEnvironment
 
   const maxRetries = 2
+  // Abort a stalled request so a down/slow backend surfaces an error instead of
+  // hanging the UI forever (the Vite dev proxy has no timeout of its own).
+  const REQUEST_TIMEOUT_MS = 60_000
   let lastError: Error | null = null
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -204,13 +207,21 @@ async function callViaProxy(
         console.log(`[AI] Retry ${attempt}/${maxRetries} for ${model}...`)
       }
 
-      const response = await fetch(`${API_ENDPOINT}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      })
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+      let response: Response
+      try {
+        response = await fetch(`${API_ENDPOINT}/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(timeoutId)
+      }
 
       const rawText = await response.text()
       let data: ProxyResponse | null = null
@@ -241,7 +252,15 @@ async function callViaProxy(
 
       return data.content
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
+      // Translate low-level fetch failures into actionable messages so the UI can
+      // tell the user the backend is unreachable rather than failing mutely.
+      if (error instanceof Error && error.name === 'AbortError') {
+        lastError = new Error('AI request timed out — the backend may be unavailable.')
+      } else if (error instanceof TypeError) {
+        lastError = new Error('Could not reach the AI backend. Is the Functions host running on :7071?')
+      } else {
+        lastError = error instanceof Error ? error : new Error(String(error))
+      }
       if (attempt >= maxRetries) throw lastError
     }
   }
