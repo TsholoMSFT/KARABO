@@ -2371,6 +2371,12 @@ export interface DiscoverySession {
   earningsInsights?: EarningsInsight[] // AI-extracted insights from earnings calls
   companyInsights?: CompanyInsight[] // AI-extracted insights from company research (news, docs, etc.)
   companyResearchSummary?: string // AI-generated summary of company research insights
+
+  // Entity-aware account drivers (live-generated)
+  pressureThemes?: PressureTheme[] // Company pressure/priority themes (earnings & financials driven)
+  auditThemes?: AuditTheme[]       // Public-sector audit-failure themes (AGSA / Treasury driven)
+  commitments?: Commitment[]       // Management commitments (company) OR remedial directives (public sector)
+  briefingAgenda?: BriefingAgenda  // Generated half-day briefing agenda
   
   // ============================================================================
   // INNOVATION HUB METHODOLOGY: BUSINESS ENVISIONING DATA
@@ -2409,6 +2415,145 @@ export interface EarningsInsight {
   quote?: string
   source: string
   relevanceScore: number
+}
+
+// ============================================================================
+// ENTITY-AWARE THEMES & COMMITMENTS
+// Companies -> PressureTheme (earnings/financials). Public sector -> AuditTheme (AGSA).
+// Both map to an Azure SolutionArea + BriefingTrack and drive the Pipeline Plan.
+// ============================================================================
+
+/** Briefing-track identifier (A–E). Labels/mapping live in lib/briefing-tracks.ts. */
+export type BriefingTrackId = 'A' | 'B' | 'C' | 'D' | 'E'
+
+/** Category of a private-sector pressure/priority theme (earnings-driven). */
+export type PressureThemeCategory =
+  | 'growth'            // revenue growth / market expansion
+  | 'margin-cost'       // margin pressure / cost efficiency
+  | 'digital'           // digital transformation / modernisation
+  | 'customer'          // customer experience / retention / churn
+  | 'supply-chain'      // supply-chain resilience
+  | 'data-analytics'    // data & analytics maturity
+  | 'cyber-resilience'  // cybersecurity & operational resilience
+  | 'workforce'         // talent / workforce productivity
+  | 'regulatory-esg'    // regulatory / ESG / privacy
+  | 'm-and-a'           // M&A / integration
+  | 'competition'       // competitive / disruption threat
+  | 'energy-security'   // SA-specific: load-shedding / energy continuity
+
+export const PRESSURE_THEME_CATEGORY_LABELS: Record<PressureThemeCategory, string> = {
+  'growth': 'Growth & Market Expansion',
+  'margin-cost': 'Margin & Cost Pressure',
+  'digital': 'Digital Transformation',
+  'customer': 'Customer Experience & Retention',
+  'supply-chain': 'Supply-Chain Resilience',
+  'data-analytics': 'Data & Analytics Maturity',
+  'cyber-resilience': 'Cybersecurity & Resilience',
+  'workforce': 'Talent & Workforce Productivity',
+  'regulatory-esg': 'Regulatory, ESG & Privacy',
+  'm-and-a': 'M&A & Integration',
+  'competition': 'Competitive & Disruption Threat',
+  'energy-security': 'Energy Security & Continuity',
+}
+
+/** A live-extracted strategic/financial pressure theme for a company. */
+export interface PressureTheme {
+  id: string
+  title: string
+  category: PressureThemeCategory
+  description: string
+  /** Verbatim supporting evidence (quote / statistic) from a source. */
+  evidence?: string
+  source?: 'earnings-call' | '10-K' | '10-Q' | 'annual-report' | 'sens' | 'trading-statement' | 'news' | 'analyst' | 'financials' | 'manual'
+  sourceDate?: string
+  /** 1 (watch) – 5 (urgent). */
+  severity?: number
+  solutionArea?: SolutionArea
+  briefingTrack?: BriefingTrackId
+  linkedUseCaseIds?: string[]
+  createdAt: number
+}
+
+/** AGSA audit-failure theme classification rubric (T1–T11). */
+export type AuditThemeCategory =
+  | 'T1-irregular-expenditure'
+  | 'T2-consequence-mgmt'
+  | 'T3-financial-misstatement'
+  | 'T4-performance-reporting'
+  | 'T5-it-controls'
+  | 'T6-cybersecurity'
+  | 'T7-backup-dr'
+  | 'T8-legacy-infrastructure'
+  | 'T9-failed-ict-projects'
+  | 'T10-data-integrity'
+  | 'T11-scm-case-backlog'
+
+export const AUDIT_THEME_CATEGORY_LABELS: Record<AuditThemeCategory, string> = {
+  'T1-irregular-expenditure': 'T1 – Irregular / Unauthorised & Fruitless Expenditure',
+  'T2-consequence-mgmt': 'T2 – No Consequence Management / Weak Accountability',
+  'T3-financial-misstatement': 'T3 – Material Financial Misstatements & Late Submission',
+  'T4-performance-reporting': 'T4 – Unreliable Performance / Service-Delivery Reporting',
+  'T5-it-controls': 'T5 – Weak IT General Controls / Security Management',
+  'T6-cybersecurity': 'T6 – Cybersecurity Weaknesses & Breaches',
+  'T7-backup-dr': 'T7 – Backup & Disaster Recovery Gaps',
+  'T8-legacy-infrastructure': 'T8 – Ageing / Legacy Infrastructure',
+  'T9-failed-ict-projects': 'T9 – Failed ICT Projects / Unused Licences',
+  'T10-data-integrity': 'T10 – Data Integrity / Integration',
+  'T11-scm-case-backlog': 'T11 – SCM / Case-Backlog Weaknesses',
+}
+
+/** A live-extracted audit-failure theme for a public-sector entity. */
+export interface AuditTheme {
+  id: string
+  title: string
+  category: AuditThemeCategory
+  description: string
+  /** Verbatim supporting evidence (finding / statistic) from a source. */
+  evidence?: string
+  source?: 'agsa-pfma' | 'agsa-mfma' | 'annual-report' | 'municipal-money' | 'vulekamali' | 'pmg' | 'news' | 'manual'
+  sourceDate?: string
+  /** 1 (watch) – 5 (urgent). */
+  severity?: number
+  /** Audit opinion, e.g. 'Unqualified', 'Qualified', 'Adverse', 'Disclaimer'. */
+  auditOutcome?: string
+  solutionArea?: SolutionArea
+  briefingTrack?: BriefingTrackId
+  linkedUseCaseIds?: string[]
+  createdAt: number
+}
+
+/** A management commitment (company) or remedial directive (public sector). */
+export interface Commitment {
+  id: string
+  kind: 'management-commitment' | 'remedial-directive'
+  statement: string
+  /** Who made/issued it: executive name/role, or issuing authority (AGSA, National Treasury). */
+  source?: string
+  sourceDate?: string
+  /** Target date or timeframe, e.g. 'FY26', 'within 90 days'. */
+  timeframe?: string
+  status?: 'committed' | 'in-progress' | 'at-risk' | 'met' | 'unknown'
+  /** How Microsoft/Azure helps deliver it. */
+  howAzureHelps?: string
+  linkedThemeIds?: string[]
+  createdAt: number
+}
+
+/** A single session in a generated half-day briefing agenda. */
+export interface BriefingAgendaSession {
+  startTime: string   // e.g. '09:30'
+  endTime: string     // e.g. '10:15'
+  title: string
+  focus: string
+  solutionArea?: SolutionArea
+  briefingTrack?: BriefingTrackId
+  linkedThemeIds?: string[]
+}
+
+export interface BriefingAgenda {
+  title: string
+  generatedAt: number
+  sessions: BriefingAgendaSession[]
 }
 
 export interface SourceTextHighlight {

@@ -65,11 +65,13 @@ const LiveDiscoverySetup = lazy(() => import('@/components/LiveDiscoverySetup').
 const SessionManager = lazy(() => import('@/components/SessionManager').then(m => ({ default: m.SessionManager })))
 const SessionComparison = lazy(() => import('@/components/SessionComparison').then(m => ({ default: m.SessionComparison })))
 const SessionMetadataForm = lazy(() => import('@/components/SessionMetadataForm').then(m => ({ default: m.SessionMetadataForm })))
+const PortfolioIntelligenceView = lazy(() => import('@/components/PortfolioIntelligenceView').then(m => ({ default: m.PortfolioIntelligenceView })))
 const CustomerSelector = lazy(() => import('@/components/CustomerSelector').then(m => ({ default: m.CustomerSelector })))
 const EnterpriseDiscoveryOrchestrator = lazy(() => import('@/components/enterprise-discovery/EnterpriseDiscoveryOrchestratorMVP').then(m => ({ default: m.EnterpriseDiscoveryOrchestratorMVP })))
 const FinancialImpactTab = lazy(() => import('@/components/FinancialImpactTab').then(m => ({ default: m.FinancialImpactTab })))
 const ImportUseCasesDialog = lazy(() => import('@/components/ImportUseCasesDialog').then(m => ({ default: m.ImportUseCasesDialog })))
 const DUCEWizard = lazy(() => import('@/components/duce').then(m => ({ default: m.DUCEWizard })))
+const PipelineBoard = lazy(() => import('@/components/PipelineBoard').then(m => ({ default: m.PipelineBoard })))
 
 /** Fallback spinner for lazy-loaded components */
 function LazyFallback() {
@@ -80,7 +82,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -917,11 +919,58 @@ function App() {
           onStartDUCE={handleStartDUCE}
           onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
+          onOpenPortfolio={() => setCurrentView('portfolio')}
           onSelectTemplate={handleSelectTemplate}
           isDemoMode={isDemoMode}
           demoIndustry={demoIndustry}
           onEnterDemoMode={handleEnterDemoMode}
         />
+      )}
+
+      {currentView === 'portfolio' && (
+        <>
+          <NavigationHeader
+            onBackToLanding={handleBackToLanding}
+            onBack={handleBackToLanding}
+            backLabel="Back"
+            title="Portfolio Intelligence"
+            subtitle="Pipeline plan across companies and public sector"
+          />
+          <div className="container mx-auto px-4 md:px-6 py-8 max-w-[1400px]">
+            <SectionErrorBoundary>
+              <PortfolioIntelligenceView />
+            </SectionErrorBoundary>
+          </div>
+        </>
+      )}
+
+      {currentView === 'pipeline' && (
+        <>
+          <NavigationHeader
+            onBackToLanding={handleBackToLanding}
+            onBack={() => setCurrentView('dashboard')}
+            backLabel="Back to dashboard"
+            title="Use-case pipeline"
+            subtitle="Validate use cases and progress opportunities through MCEM"
+          />
+          <div className="container mx-auto px-4 md:px-6 py-8 max-w-[1400px]">
+            <SectionErrorBoundary>
+              <Suspense fallback={<LazyFallback />}>
+                {selectedCustomerId ? (
+                  <PipelineBoard
+                    useCases={filteredUseCases}
+                    customerId={selectedCustomerId}
+                    discoverySessionId={selectedSessionId ?? undefined}
+                    onUpdateUseCase={handleUpdateUseCase}
+                    actorName={selectedSession?.accountTeamRep}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">Select a customer to view its pipeline.</p>
+                )}
+              </Suspense>
+            </SectionErrorBoundary>
+          </div>
+        </>
       )}
 
       {currentView === 'duce-wizard' && selectedSessionId && (
@@ -1298,6 +1347,14 @@ function App() {
                 ID-8 - Use Case Assessment
               </h2>
             </motion.header>
+
+            {selectedSessionId && (
+              <div className="mb-6 flex justify-center">
+                <Button variant="outline" onClick={() => setCurrentView('pipeline')}>
+                  <Funnel className="mr-2" /> Open use-case pipeline
+                </Button>
+              </div>
+            )}
 
             {!selectedSession && (discoverySessions?.length === 0 || !discoverySessions) ? (
               <>

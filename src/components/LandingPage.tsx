@@ -39,6 +39,7 @@ interface LandingPageProps {
   onStartDUCE?: () => void
   onStartNotesAnalysis?: () => void
   onViewExisting: () => void
+  onOpenPortfolio?: () => void
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onSelectTemplate?: (template: SessionTemplate) => void
@@ -57,6 +58,7 @@ export function LandingPage({
   onStartDUCE,
   onStartNotesAnalysis, 
   onViewExisting,
+  onOpenPortfolio,
   onStartDemo,
   onStartEnterpriseDemo,
   onSelectTemplate,
@@ -522,6 +524,12 @@ export function LandingPage({
                   ? `Continue Existing (${customers.length} session${customers.length !== 1 ? 's' : ''})`
                   : 'Continue Existing'}
               </Button>
+              {onOpenPortfolio && (
+                <Button onClick={onOpenPortfolio} variant="outline" className="gap-2">
+                  <Buildings size={18} weight="duotone" />
+                  Portfolio Intelligence
+                </Button>
+              )}
             </div>
           </motion.div>
         </div>
