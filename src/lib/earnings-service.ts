@@ -191,6 +191,10 @@ export interface TickerLookupResponse {
   tickers: TickerLookupResult[]
   diagnostics: TickerDiagnostics
   cached?: boolean
+  /** High-level outcome so the UI can tell "no match" apart from "backend down". */
+  status?: 'ok' | 'empty' | 'unreachable' | 'error'
+  /** Human-readable explanation for non-ok statuses. */
+  message?: string
 }
 
 /**
@@ -201,7 +205,7 @@ export interface TickerLookupResponse {
  */
 export async function lookupTickerSymbol(companyName: string): Promise<TickerLookupResponse> {
   if (!companyName || companyName.trim().length < 2) {
-    return { tickers: [], diagnostics: {} }
+    return { tickers: [], diagnostics: {}, status: 'empty' }
   }
 
   // Cold-start tolerance: SWA can drop the first call to a freshly-deployed
@@ -220,29 +224,43 @@ export async function lookupTickerSymbol(companyName: string): Promise<TickerLoo
       throw err
     }
     const result = await response.json()
+    const tickers = (result.tickers || []) as TickerLookupResult[]
     return {
-      tickers: result.tickers || [],
+      tickers,
       diagnostics: result.diagnostics || {},
       cached: !!result.cached,
+      status: tickers.length > 0 ? 'ok' : 'empty',
     }
   }
 
   const isRetryable = (e: any) =>
     !e?.status || e.status === 0 || e.status === 408 || e.status === 502 || e.status === 503 || e.status === 504
 
+  // Turn a thrown fetch/HTTP error into a UI-friendly status + message so the
+  // form can tell "no match" apart from "the backend is unreachable".
+  const classify = (e: any): Pick<TickerLookupResponse, 'status' | 'message'> => {
+    if (!e?.status) {
+      return { status: 'unreachable', message: 'Could not reach the research backend. Is the API running on :7071?' }
+    }
+    if (e.status === 404) {
+      return { status: 'unreachable', message: 'Ticker lookup endpoint not found — the backend may be offline or not deployed.' }
+    }
+    return { status: 'error', message: e?.message || `Ticker lookup failed (HTTP ${e.status}).` }
+  }
+
   try {
     return await attempt()
   } catch (firstErr: any) {
     if (!isRetryable(firstErr)) {
       console.error('Ticker lookup error:', firstErr)
-      return { tickers: [], diagnostics: {} }
+      return { tickers: [], diagnostics: {}, ...classify(firstErr) }
     }
     await new Promise((r) => setTimeout(r, 1500))
     try {
       return await attempt()
     } catch (secondErr) {
       console.error('Ticker lookup error (after retry):', secondErr)
-      return { tickers: [], diagnostics: {} }
+      return { tickers: [], diagnostics: {}, ...classify(secondErr) }
     }
   }
 }

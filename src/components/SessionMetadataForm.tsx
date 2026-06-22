@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { useCustomers } from '@/hooks/use-customers'
-import { lookupTickerSymbol, TickerLookupResult, TickerDiagnostics } from '@/lib/earnings-service'
+import { lookupTickerSymbol, TickerLookupResult, TickerDiagnostics, TickerLookupResponse } from '@/lib/earnings-service'
 import { fetchCompanyFinancials } from '@/lib/economic-context-service'
 import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext, AccountSegment, ACCOUNT_SEGMENT_LABELS, ACCOUNT_SEGMENT_DESCRIPTIONS, ACCOUNT_SEGMENT_META, UserRole, USER_ROLE_LABELS, USER_ROLE_DESCRIPTIONS, USER_ROLE_ICONS } from '@/lib/types'
 import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info, ShieldCheck, CurrencyDollar, Buildings, UsersThree } from '@phosphor-icons/react'
@@ -101,6 +101,11 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [tickerSuggestions, setTickerSuggestions] = useState<TickerLookupResult[]>([])
   const [tickerDiagnostics, setTickerDiagnostics] = useState<TickerDiagnostics>({})
+  const [tickerStatus, setTickerStatus] = useState<TickerLookupResponse['status']>(undefined)
+  const [tickerMessage, setTickerMessage] = useState('')
+  // Remembers the last customer name we auto-searched so the debounced effect
+  // fires once per name instead of looping forever when no ticker is found.
+  const autoSearchedNameRef = useRef('')
   const [isSearchingTicker, setIsSearchingTicker] = useState(false)
   const [showTickerSuggestions, setShowTickerSuggestions] = useState(false)
   const [tickerAutoPopulated, setTickerAutoPopulated] = useState(false)
@@ -119,30 +124,42 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
   }, [isDemoMode, demoIndustry])
 
   // Auto-search ticker when customer name is filled
-  const handleTickerSearch = useCallback(async () => {
+  const handleTickerSearch = useCallback(async (opts?: { auto?: boolean }) => {
+    const auto = opts?.auto === true
     if (!metadata.customerName.trim() || metadata.customerName.trim().length < 3) {
-      toast.error('Please enter a customer name (minimum 3 characters)')
+      if (!auto) toast.error('Please enter a customer name (minimum 3 characters)')
       return
     }
 
     setIsSearchingTicker(true)
-    setShowTickerSuggestions(true)
+    if (!auto) setShowTickerSuggestions(true)
     setTickerSuggestions([])
     setTickerDiagnostics({})
+    setTickerStatus(undefined)
+    setTickerMessage('')
 
     try {
-      const { tickers, diagnostics } = await lookupTickerSymbol(metadata.customerName)
+      const { tickers, diagnostics, status, message } = await lookupTickerSymbol(metadata.customerName)
       setTickerSuggestions(tickers)
       setTickerDiagnostics(diagnostics)
+      setTickerStatus(status)
+      setTickerMessage(message || '')
 
-      if (tickers.length === 0) {
-        toast.info('No ticker symbols found. You can enter one manually.')
-      } else {
-        toast.success(`Found ${tickers.length} ticker suggestion${tickers.length !== 1 ? 's' : ''}`)
+      if (tickers.length > 0) {
+        setShowTickerSuggestions(true)
+        if (!auto) toast.success(`Found ${tickers.length} ticker suggestion${tickers.length !== 1 ? 's' : ''}`)
+      } else if (!auto) {
+        if (status === 'unreachable' || status === 'error') {
+          toast.error(message || 'Ticker lookup is unavailable right now. You can enter one manually.')
+        } else {
+          toast.info('No ticker symbols found. You can enter one manually.')
+        }
       }
     } catch (error) {
       console.error('Ticker lookup error:', error)
-      toast.error('Failed to search ticker symbols. You can enter one manually.')
+      setTickerStatus('error')
+      setTickerMessage('Failed to search ticker symbols. You can enter one manually.')
+      if (!auto) toast.error('Failed to search ticker symbols. You can enter one manually.')
     } finally {
       setIsSearchingTicker(false)
     }
@@ -156,9 +173,11 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
         metadata.customerName.trim().length >= 3 && 
         !metadata.stockTicker && 
         !tickerAutoPopulated &&
-        !isSearchingTicker
+        !isSearchingTicker &&
+        metadata.customerName.trim().toLowerCase() !== autoSearchedNameRef.current
       ) {
-        handleTickerSearch()
+        autoSearchedNameRef.current = metadata.customerName.trim().toLowerCase()
+        handleTickerSearch({ auto: true })
       }
     }, 1500) // Debounce 1.5 seconds
 
@@ -219,13 +238,10 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
     setMetadata((current) => ({ ...current, [field]: value }))
   }
 
-  const isValid =
-    metadata.customerName.trim() &&
-    metadata.innovationHubSPOC.trim() &&
-    metadata.primaryStakeholder.trim() &&
-    metadata.accountTeamRep.trim() &&
-    metadata.innovationHubLocation.trim() &&
-    metadata.solutionEngineer.trim()
+  // Only the customer name is required to start a discovery session. Every other
+  // field is optional metadata that can be completed later — gating "Continue" on
+  // all of them made the button look broken when optional fields were left blank.
+  const isValid = metadata.customerName.trim().length > 0
 
   return (
     <>
@@ -348,6 +364,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                 <Label htmlFor="customer-name" className="flex items-center gap-2">
                   <Building size={16} />
                   Customer Name
+                  <span className="text-destructive" aria-hidden="true">*</span>
                 </Label>
                 <Input
                   id="customer-name"
@@ -487,7 +504,7 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleTickerSearch}
+                    onClick={() => handleTickerSearch()}
                     disabled={isSearchingTicker || !metadata.customerName.trim()}
                     className="gap-2"
                   >
@@ -586,6 +603,23 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {showTickerSuggestions && !isSearchingTicker && tickerSuggestions.length === 0 && tickerStatus && tickerStatus !== 'ok' && (
+                  <div
+                    className={`flex items-start gap-2 text-xs rounded-lg border p-2.5 ${
+                      tickerStatus === 'empty'
+                        ? 'text-muted-foreground bg-muted/30'
+                        : 'text-amber-700 dark:text-amber-400 border-amber-500/40 bg-amber-500/5'
+                    }`}
+                  >
+                    <Info size={14} className="mt-0.5 flex-shrink-0" />
+                    <span>
+                      {tickerStatus === 'empty'
+                        ? 'No ticker symbols matched this name. Enter it manually if you know it.'
+                        : tickerMessage || 'Ticker lookup is unavailable right now. Enter the ticker manually.'}
+                    </span>
+                  </div>
+                )}
               </div>
               )}
 
@@ -723,13 +757,20 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
               </div>
             </div>
 
-            <div className="flex gap-4 justify-end pt-4">
-              <Button variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
-              <Button onClick={() => onSubmit(metadata)} disabled={!isValid}>
-                Continue to Discovery
-              </Button>
+            <div className="flex flex-col gap-2 pt-4">
+              {!isValid && (
+                <p className="text-xs text-muted-foreground text-right">
+                  Enter a customer name to continue.
+                </p>
+              )}
+              <div className="flex gap-4 justify-end">
+                <Button variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+                <Button onClick={() => onSubmit(metadata)} disabled={!isValid}>
+                  Continue to Discovery
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

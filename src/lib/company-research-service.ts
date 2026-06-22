@@ -307,9 +307,16 @@ export async function fetchRSSFromBlobStorage(
     // itself failed; surface that as an inline empty-state, not a red toast.
     if (!response.ok) {
       const text = await response.text().catch(() => '')
+      const contentType = response.headers.get('content-type') || ''
+      // A 404 that returns the SPA's index.html means the request never reached
+      // the Functions backend — show a clear reason instead of dumping raw HTML.
+      const looksLikeHtml = contentType.includes('text/html') || /^\s*<(?:!doctype|html)/i.test(text)
+      const detail = looksLikeHtml
+        ? 'The research backend is offline or not deployed.'
+        : text.slice(0, 200).trim()
       return {
         items: [],
-        message: `RSS service unavailable (HTTP ${response.status}). ${text.slice(0, 200)}`.trim(),
+        message: `RSS service unavailable (HTTP ${response.status})${detail ? `. ${detail}` : ''}`,
       }
     }
 
