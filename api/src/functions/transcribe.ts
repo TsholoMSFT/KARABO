@@ -54,7 +54,7 @@ async function transcribeHandler(req: HttpRequest, context: InvocationContext): 
     }
   }
 
-  let form: FormData
+  let form: Awaited<ReturnType<typeof req.formData>>
   try {
     form = await req.formData()
   } catch (err) {

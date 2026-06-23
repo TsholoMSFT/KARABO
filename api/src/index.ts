@@ -24,6 +24,7 @@ import "./functions/realtime-session";
 import "./functions/exchange-rates";
 import "./functions/economic-data";
 import "./functions/company-financials";
+import "./functions/company-profile";
 import "./functions/graph-query";
 import "./functions/foundry-iq";
 import "./functions/fabric-iq";

@@ -777,6 +777,7 @@ Keep questions conversational, specific to their answer, and focused on discover
             <CardContent>
               <CompanyResearch
                 companyName={sessionMetadata.customerName}
+                entityType={sessionMetadata.entityType}
                 onInsightsChange={handleCompanyInsightsChange}
                 onSummaryChange={handleCompanyResearchSummaryChange}
                 initialInsights={companyInsights}

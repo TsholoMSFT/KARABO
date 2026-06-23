@@ -16,8 +16,10 @@ import {
   Trash,
   ArrowsClockwise,
   CaretDown,
-  CaretUp
+  CaretUp,
+  Buildings
 } from '@phosphor-icons/react'
+import { ENTITY_TYPE_LABELS, type EntityType } from '@/lib/types'
 import { toast } from 'sonner'
 import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
 import { AIDataDisclosure } from '@/components/AIDataDisclosure'
@@ -32,11 +34,15 @@ import {
   fetchRSSFromBlobStorage,
   rssItemsToText,
   getCategoryColor,
-  SUGGESTED_RSS_FEEDS
+  SUGGESTED_RSS_FEEDS,
+  fetchCompanyProfile,
+  companyProfileToText,
+  type CompanyProfile
 } from '@/lib/company-research-service'
 
 interface CompanyResearchProps {
   companyName: string
+  entityType?: EntityType
   onInsightsChange: (insights: CompanyInsight[]) => void
   onSummaryChange?: (summary: string) => void
   initialInsights?: CompanyInsight[]
@@ -45,6 +51,7 @@ interface CompanyResearchProps {
 
 export function CompanyResearch({ 
   companyName, 
+  entityType,
   onInsightsChange,
   onSummaryChange,
   initialInsights = [],
@@ -59,6 +66,10 @@ export function CompanyResearch({
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
   const [rssItems, setRssItems] = useState<RSSFeedItem[]>([])
   const [isLoadingRSS, setIsLoadingRSS] = useState(false)
+  const [profile, setProfile] = useState<CompanyProfile | null>(null)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
+  const [profileMessage, setProfileMessage] = useState('')
+  const [profileCountry, setProfileCountry] = useState('')
   const [showAllInsights, setShowAllInsights] = useState(false)
 
   // Update parent when insights change
@@ -82,7 +93,8 @@ export function CompanyResearch({
       const newInsights = await extractInsightsFromText(
         pastedText, 
         companyName, 
-        sourceTitle || 'Pasted Content'
+        sourceTitle || 'Pasted Content',
+        entityType
       )
       
       const source: CompanySource = {
@@ -119,7 +131,7 @@ export function CompanyResearch({
     setIsExtracting(true)
     try {
       const content = await extractTextFromFile(file)
-      const newInsights = await extractInsightsFromText(content, companyName, file.name)
+      const newInsights = await extractInsightsFromText(content, companyName, file.name, entityType)
       
       const source: CompanySource = {
         id: crypto.randomUUID(),
@@ -195,7 +207,7 @@ export function CompanyResearch({
     setIsExtracting(true)
     try {
       const rssText = rssItemsToText(rssItems, 10)
-      const newInsights = await extractInsightsFromText(rssText, companyName, 'RSS News Feed')
+      const newInsights = await extractInsightsFromText(rssText, companyName, 'RSS News Feed', entityType)
 
       if (newInsights.length === 0) {
         toast.info('No insights extracted from RSS items', {
@@ -217,6 +229,58 @@ export function CompanyResearch({
       toast.success(`Extracted ${newInsights.length} insights from RSS`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to extract from RSS')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
+  const handleFetchProfile = async () => {
+    if (!companyName.trim()) {
+      toast.error('Please enter a company name first')
+      return
+    }
+    setIsLoadingProfile(true)
+    setProfileMessage('')
+    try {
+      const { profile: resolved, message } = await fetchCompanyProfile(companyName, {
+        country: profileCountry.trim() || undefined,
+      })
+      if (resolved) {
+        setProfile(resolved)
+        toast.success(`Profile resolved for ${resolved.identity.name}`)
+      } else {
+        setProfile(null)
+        setProfileMessage(message || 'No company profile found. Try adding a country code or use the other tabs.')
+        toast.info(message || 'No company profile found.')
+      }
+    } catch (error) {
+      setProfileMessage(error instanceof Error ? error.message : 'Failed to fetch company profile')
+      toast.error('Failed to fetch company profile')
+    } finally {
+      setIsLoadingProfile(false)
+    }
+  }
+
+  const handleExtractFromProfile = async () => {
+    if (!profile) return
+    setIsExtracting(true)
+    try {
+      const profileText = companyProfileToText(profile)
+      const newInsights = await extractInsightsFromText(profileText, companyName, 'Company Profile', entityType)
+
+      const source: CompanySource = {
+        id: crypto.randomUUID(),
+        type: 'text',
+        title: 'Company Profile',
+        content: profileText.substring(0, 500),
+        addedAt: new Date().toISOString(),
+      }
+
+      setSources(prev => [...prev, source])
+      setInsights(prev => [...prev, ...newInsights])
+      toast.success(`Extracted ${newInsights.length} insights from profile`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to extract from profile')
     } finally {
       setIsExtracting(false)
     }
@@ -274,8 +338,18 @@ export function CompanyResearch({
       </CardHeader>
       
       <CardContent>
+        {entityType && entityType !== 'public-company' && (
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+            <Buildings size={14} className="mt-0.5 flex-shrink-0 text-primary" />
+            <span>
+              <span className="font-medium text-foreground">{ENTITY_TYPE_LABELS[entityType]}:</span>{' '}
+              No public market data is available for non-listed entities — research uses news (by company name),
+              uploaded documents, pasted content, and any financial context you provided, analysed with that lens.
+            </span>
+          </div>
+        )}
         <Tabs defaultValue="paste" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="paste" className="gap-2">
               <FileText size={16} /> Paste Text
             </TabsTrigger>
@@ -284,6 +358,9 @@ export function CompanyResearch({
             </TabsTrigger>
             <TabsTrigger value="rss" className="gap-2">
               <Rss size={16} /> RSS Feeds
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="gap-2">
+              <Buildings size={16} /> Profile
             </TabsTrigger>
           </TabsList>
 
@@ -428,6 +505,103 @@ export function CompanyResearch({
                 ))}
               </div>
             </div>
+          </TabsContent>
+
+          {/* Profile Tab — name-based identity lookup (works for non-listed entities) */}
+          <TabsContent value="profile" className="space-y-4 mt-4">
+            <div className="flex items-end gap-2">
+              <div className="flex-1 space-y-1">
+                <Label htmlFor="profile-country" className="text-xs">Country (optional, ISO code)</Label>
+                <Input
+                  id="profile-country"
+                  placeholder="e.g., GB, US, ZA"
+                  value={profileCountry}
+                  onChange={(e) => setProfileCountry(e.target.value.toUpperCase().slice(0, 2))}
+                  className="uppercase"
+                />
+              </div>
+              <Button onClick={handleFetchProfile} disabled={isLoadingProfile || !companyName.trim()} className="gap-2">
+                {isLoadingProfile ? <SpinnerGap size={16} className="animate-spin" /> : <MagnifyingGlass size={16} />}
+                Look up profile
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Resolves company identity by name (Wikidata, SEC Form D, Companies House, OpenCorporates) — works for
+              private and non-listed entities, no stock ticker required.
+            </p>
+
+            {profileMessage && !profile && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
+                <Buildings size={14} className="mt-0.5 flex-shrink-0" />
+                <span>{profileMessage}</span>
+              </div>
+            )}
+
+            {profile && (
+              <div className="space-y-3 rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold">{profile.identity.name}</p>
+                    {profile.identity.industry && (
+                      <p className="text-xs text-muted-foreground">{profile.identity.industry}</p>
+                    )}
+                  </div>
+                  <Badge variant={profile.isPublic ? 'default' : 'secondary'}>
+                    {profile.isPublic
+                      ? `Public${profile.ticker ? ` · ${profile.ticker.symbol}` : ''}`
+                      : 'Private / non-listed'}
+                  </Badge>
+                </div>
+                {profile.identity.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-3">{profile.identity.description}</p>
+                )}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  {profile.identity.headquarters && (
+                    <div><span className="text-muted-foreground">HQ:</span> {profile.identity.headquarters}</div>
+                  )}
+                  {profile.identity.founded && (
+                    <div><span className="text-muted-foreground">Founded:</span> {profile.identity.founded}</div>
+                  )}
+                  {typeof profile.identity.employees === 'number' && (
+                    <div><span className="text-muted-foreground">Employees:</span> {profile.identity.employees.toLocaleString()}</div>
+                  )}
+                  {profile.identity.website && (
+                    <div className="truncate"><span className="text-muted-foreground">Web:</span> {profile.identity.website}</div>
+                  )}
+                </div>
+                {profile.registry.length > 0 && (
+                  <div className="text-xs">
+                    <p className="font-medium mb-1">Registry records</p>
+                    <ul className="space-y-0.5 text-muted-foreground">
+                      {profile.registry.slice(0, 3).map((r, i) => (
+                        <li key={i} className="truncate">
+                          [{r.registry}] {r.name}{r.companyNumber ? ` (No. ${r.companyNumber})` : ''}{r.status ? ` — ${r.status}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {profile.privatePlacements.length > 0 && (
+                  <div className="text-xs">
+                    <p className="font-medium mb-1">SEC Form D (private placements)</p>
+                    <ul className="space-y-0.5 text-muted-foreground">
+                      {profile.privatePlacements.slice(0, 3).map((f, i) => (
+                        <li key={i} className="truncate">{f.issuer}{f.filedAt ? ` · filed ${f.filedAt}` : ''}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <Button onClick={handleExtractFromProfile} disabled={isExtracting} size="sm" className="gap-2">
+                  {isExtracting ? <SpinnerGap size={14} className="animate-spin" /> : <Lightbulb size={14} />}
+                  Extract insights from profile
+                </Button>
+              </div>
+            )}
+            <AIDataDisclosure
+              fields={['company name', 'country']}
+              model="gpt-4o-mini"
+              note="The company name is sent to free registry/identity sources; the resolved profile is then summarised by AI into insights."
+            />
           </TabsContent>
         </Tabs>
 

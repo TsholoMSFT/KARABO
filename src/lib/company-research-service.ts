@@ -8,6 +8,8 @@
 
 import { callAIForTask } from './openai-service'
 import { parseJsonLenient } from './lenient-json'
+import { extractTextFromAttachments } from './attachment-text'
+import type { EntityType } from './types'
 
 // ============================================================================
 // TYPES
@@ -78,12 +80,31 @@ export interface RSSFeedConfig {
 // ============================================================================
 
 /**
+ * Entity-aware guidance injected into the extraction prompt so research works
+ * for non-listed entities (private companies, government, non-profits) without
+ * assuming public-market data.
+ */
+function buildEntityResearchGuidance(entityType: EntityType | undefined, companyName: string): string {
+  switch (entityType) {
+    case 'private-company':
+      return `\nENTITY CONTEXT: ${companyName} is a PRIVATELY HELD company with no public stock listing — do not assume market-cap, share-price, or analyst-rating data. Base insights on operational, strategic, technology, hiring, and news signals.`
+    case 'government':
+      return `\nENTITY CONTEXT: ${companyName} is a GOVERNMENT / PUBLIC-SECTOR organization — frame insights around public-service outcomes, citizen/constituent impact, regulatory mandates, and budget allocation (not revenue or profit).`
+    case 'non-profit':
+      return `\nENTITY CONTEXT: ${companyName} is a NON-PROFIT / NGO — frame insights around mission impact, beneficiaries and donors, grants and funding, and operational efficiency (not profit).`
+    default:
+      return ''
+  }
+}
+
+/**
  * Extract business insights from text content using AI
  */
 export async function extractInsightsFromText(
   content: string,
   companyName: string,
-  sourceTitle: string = 'Pasted Content'
+  sourceTitle: string = 'Pasted Content',
+  entityType?: EntityType
 ): Promise<CompanyInsight[]> {
   if (!content.trim()) {
     return []
@@ -117,7 +138,9 @@ export async function extractInsightsFromText(
     return undefined
   }
 
-  const prompt = `You are a business analyst preparing for an AI discovery session with ${companyName}.
+  const entityGuidance = buildEntityResearchGuidance(entityType, companyName)
+
+  const prompt = `You are a business analyst preparing for an AI discovery session with ${companyName}.${entityGuidance}
 
 CONTENT TO ANALYZE:
 """
@@ -201,9 +224,11 @@ Return valid JSON only.`
 // ============================================================================
 
 /**
- * Extract text from uploaded files
- * Supports: .txt, .md, .csv, .json
- * PDF/Word/Excel require Azure Document Intelligence (not implemented)
+ * Extract text from uploaded files.
+ * Plain text (.txt, .md, .csv, .json) is read directly; rich documents
+ * (.pdf, .docx, .xlsx) and images are parsed client-side where possible and
+ * fall back to the server-side Document Intelligence OCR endpoint (/api/ocr)
+ * via src/lib/attachment-text.ts.
  */
 export async function extractTextFromFile(file: File): Promise<string> {
   const extension = file.name.split('.').pop()?.toLowerCase()
@@ -213,8 +238,8 @@ export async function extractTextFromFile(file: File): Promise<string> {
     case 'md':
     case 'csv':
       return await file.text()
-    
-    case 'json':
+
+    case 'json': {
       const jsonContent = await file.text()
       try {
         const parsed = JSON.parse(jsonContent)
@@ -222,20 +247,31 @@ export async function extractTextFromFile(file: File): Promise<string> {
       } catch {
         return jsonContent
       }
+    }
 
     case 'pdf':
-      throw new Error('PDF extraction requires Azure Document Intelligence. Please copy and paste the text content instead.')
-
     case 'docx':
     case 'doc':
-      throw new Error('Word document extraction requires Azure Document Intelligence. Please copy and paste the text content instead.')
-
     case 'xlsx':
     case 'xls':
-      throw new Error('Excel extraction requires Azure Document Intelligence. Please copy and paste the relevant data instead.')
+    case 'png':
+    case 'jpg':
+    case 'jpeg':
+    case 'webp':
+    case 'gif':
+    case 'tiff':
+    case 'bmp': {
+      const { results, combinedText, warnings } = await extractTextFromAttachments([file])
+      const text = combinedText.trim()
+      if (!text) {
+        const reason = results[0]?.warnings?.join(' ') || warnings.join(' ') || 'No extractable text found.'
+        throw new Error(`Could not extract text from ${file.name}. ${reason}`)
+      }
+      return text
+    }
 
     default:
-      throw new Error(`Unsupported file type: .${extension}. Supported types: .txt, .md, .csv, .json`)
+      throw new Error(`Unsupported file type: .${extension}. Supported types: .txt, .md, .csv, .json, .pdf, .docx, .xlsx, images.`)
   }
 }
 
@@ -394,6 +430,130 @@ export function rssItemsToText(items: RSSFeedItem[], maxItems: number = 10): str
     .slice(0, maxItems)
     .map(item => `HEADLINE: ${item.title}\nDATE: ${item.pubDate}\nSUMMARY: ${item.description}\n`)
     .join('\n---\n')
+}
+
+// ============================================================================
+// COMPANY PROFILE (works for public AND private / non-listed companies)
+// ============================================================================
+
+export interface CompanyProfileRegistryRecord {
+  registry: string
+  name: string
+  companyNumber?: string
+  jurisdiction?: string
+  status?: string
+  companyType?: string
+  incorporatedOn?: string
+  registeredAddress?: string
+  sicCodes?: string[]
+  url?: string
+}
+
+export interface CompanyProfileFormDFiling {
+  issuer: string
+  filedAt?: string
+  accessionNo?: string
+  cik?: string
+  url?: string
+}
+
+export interface CompanyProfile {
+  query: { company: string; country?: string }
+  identity: {
+    name: string
+    aliases?: string[]
+    description?: string
+    website?: string
+    industry?: string
+    founded?: string
+    headquarters?: string
+    employees?: number
+  }
+  isPublic: boolean
+  ticker?: { symbol: string; exchange?: string }
+  registry: CompanyProfileRegistryRecord[]
+  privatePlacements: CompanyProfileFormDFiling[]
+  sources: { name: string; url?: string }[]
+  diagnostics: Record<string, string>
+  fetchedAt: string
+}
+
+export interface FetchCompanyProfileResult {
+  profile?: CompanyProfile
+  message?: string
+}
+
+/**
+ * Resolve a company by NAME (+ optional ISO country code) via the unified
+ * /api/company-profile aggregator. Works for listed and non-listed companies
+ * and never throws — backend failures are surfaced as an inline message.
+ */
+export async function fetchCompanyProfile(
+  companyName: string,
+  options: { country?: string; apiEndpoint?: string } = {}
+): Promise<FetchCompanyProfileResult> {
+  const { country, apiEndpoint = '/api' } = options
+  if (!companyName || companyName.trim().length < 2) {
+    return { message: 'Enter a company name (at least 2 characters).' }
+  }
+  try {
+    const url = new URL(`${apiEndpoint}/company-profile`, window.location.origin)
+    url.searchParams.set('company', companyName.trim())
+    if (country) url.searchParams.set('country', country)
+
+    const response = await fetch(url.toString())
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      const contentType = response.headers.get('content-type') || ''
+      const looksLikeHtml = contentType.includes('text/html') || /^\s*<(?:!doctype|html)/i.test(text)
+      const detail = looksLikeHtml ? 'The research backend is offline or not deployed.' : text.slice(0, 200).trim()
+      return { message: `Company profile service unavailable (HTTP ${response.status})${detail ? `. ${detail}` : ''}` }
+    }
+    const data = (await response.json()) as CompanyProfile
+    return { profile: data }
+  } catch (error) {
+    console.error('Failed to fetch company profile:', error)
+    return { message: error instanceof Error ? error.message : 'Failed to fetch company profile' }
+  }
+}
+
+/**
+ * Flatten a CompanyProfile into text suitable for AI insight extraction.
+ */
+export function companyProfileToText(profile: CompanyProfile): string {
+  const id = profile.identity
+  const lines: string[] = []
+  lines.push(`COMPANY: ${id.name}`)
+  if (id.description) lines.push(`DESCRIPTION: ${id.description}`)
+  if (id.industry) lines.push(`INDUSTRY: ${id.industry}`)
+  if (id.headquarters) lines.push(`HEADQUARTERS: ${id.headquarters}`)
+  if (id.founded) lines.push(`FOUNDED: ${id.founded}`)
+  if (typeof id.employees === 'number') lines.push(`EMPLOYEES: ${id.employees.toLocaleString()}`)
+  if (id.website) lines.push(`WEBSITE: ${id.website}`)
+  lines.push(
+    `LISTING STATUS: ${
+      profile.isPublic
+        ? 'Public' + (profile.ticker ? ` (${profile.ticker.symbol}${profile.ticker.exchange ? ' on ' + profile.ticker.exchange : ''})` : '')
+        : 'Private / non-listed'
+    }`
+  )
+  if (profile.registry.length) {
+    lines.push('\nREGISTRY RECORDS:')
+    for (const r of profile.registry.slice(0, 5)) {
+      lines.push(
+        `- [${r.registry}] ${r.name}${r.companyNumber ? ` (No. ${r.companyNumber})` : ''}${r.status ? ` \u2014 ${r.status}` : ''}` +
+          `${r.jurisdiction ? `, ${r.jurisdiction}` : ''}${r.incorporatedOn ? `, inc. ${r.incorporatedOn}` : ''}` +
+          `${r.sicCodes?.length ? `, SIC ${r.sicCodes.join('/')}` : ''}`
+      )
+    }
+  }
+  if (profile.privatePlacements.length) {
+    lines.push('\nSEC FORM D (PRIVATE PLACEMENTS):')
+    for (const f of profile.privatePlacements.slice(0, 5)) {
+      lines.push(`- ${f.issuer}${f.filedAt ? ` filed ${f.filedAt}` : ''}`)
+    }
+  }
+  return lines.join('\n')
 }
 
 // ============================================================================
