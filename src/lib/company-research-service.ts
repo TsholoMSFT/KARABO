@@ -459,6 +459,71 @@ export async function searchCompanyNews(
   }
 }
 
+// ============================================================================
+// REGULATORY FILINGS (SEC EDGAR + JSE/SENS via /api/filings-feeds)
+// ============================================================================
+
+export interface FetchFilingsResult {
+  items: RSSFeedItem[]
+  source?: string
+  company?: string
+  blobName?: string
+  lastModified?: string
+  totalBlobs?: number
+  message?: string
+}
+
+/**
+ * Fetch recent regulatory filings (SEC EDGAR + JSE/SENS announcements) for a
+ * company via /api/filings-feeds. The backend serves cached filings from blob
+ * storage (populated by the karabo-filings-monitor Logic App) and falls back to
+ * a live SEC EDGAR + JSE news query when no cache exists. Never throws on a
+ * recoverable failure — returns an empty item list with a diagnostic message.
+ *
+ * @param companyName - Company to fetch filings for.
+ * @param apiEndpoint - Base API URL (default '/api').
+ */
+export async function fetchCompanyFilings(
+  companyName: string,
+  apiEndpoint: string = '/api'
+): Promise<FetchFilingsResult> {
+  try {
+    const url = new URL(`${apiEndpoint}/filings-feeds`, window.location.origin)
+    if (companyName?.trim()) url.searchParams.set('company', companyName.trim())
+
+    const response = await fetch(url.toString())
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      const contentType = response.headers.get('content-type') || ''
+      const looksLikeHtml = contentType.includes('text/html') || /^\s*<(?:!doctype|html)/i.test(text)
+      const detail = looksLikeHtml
+        ? 'The research backend is offline or not deployed.'
+        : text.slice(0, 200).trim()
+      return {
+        items: [],
+        message: `Filings service unavailable (HTTP ${response.status})${detail ? `. ${detail}` : ''}`,
+      }
+    }
+
+    const data = await response.json().catch(() => ({} as any))
+    return {
+      items: Array.isArray(data?.items) ? (data.items as RSSFeedItem[]) : [],
+      source: typeof data?.source === 'string' ? data.source : undefined,
+      company: typeof data?.company === 'string' ? data.company : undefined,
+      blobName: typeof data?.blobName === 'string' ? data.blobName : undefined,
+      lastModified: typeof data?.lastModified === 'string' ? data.lastModified : undefined,
+      totalBlobs: typeof data?.totalBlobs === 'number' ? data.totalBlobs : undefined,
+      message: typeof data?.message === 'string' ? data.message : undefined,
+    }
+  } catch (error) {
+    console.error('Failed to fetch company filings:', error)
+    return {
+      items: [],
+      message: error instanceof Error ? error.message : 'Failed to fetch company filings',
+    }
+  }
+}
+
 /**
  * Parse RSS XML content into feed items
  */

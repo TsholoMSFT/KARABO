@@ -6,7 +6,10 @@ const corsHeaders = makeCorsHeaders('POST, OPTIONS')
 const DOC_INTELLIGENCE_ENDPOINT = process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
 const DOC_INTELLIGENCE_KEY = process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY
 
-const API_VERSION = process.env.AZURE_DOCUMENT_INTELLIGENCE_API_VERSION || '2023-07-31'
+// The analyze URL below targets the v4.0 `documentintelligence/...` path, which
+// requires the 2024-11-30 (GA) API version. (The older `2023-07-31` GA used the
+// `formrecognizer/...` path and is incompatible with this route.)
+const API_VERSION = process.env.AZURE_DOCUMENT_INTELLIGENCE_API_VERSION || '2024-11-30'
 
 async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms))

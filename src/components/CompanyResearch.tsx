@@ -17,7 +17,8 @@ import {
   ArrowsClockwise,
   CaretDown,
   CaretUp,
-  Buildings
+  Buildings,
+  Bank
 } from '@phosphor-icons/react'
 import { ENTITY_TYPE_LABELS, type EntityType } from '@/lib/types'
 import { toast } from 'sonner'
@@ -34,12 +35,14 @@ import {
   fetchRSSFromBlobStorage,
   rssItemsToText,
   searchCompanyNews,
+  fetchCompanyFilings,
   getCategoryColor,
   SUGGESTED_RSS_FEEDS,
   fetchCompanyProfile,
   companyProfileToText,
   type CompanyProfile,
-  type NewsSearchResultItem
+  type NewsSearchResultItem,
+  type FetchFilingsResult
 } from '@/lib/company-research-service'
 
 interface CompanyResearchProps {
@@ -73,6 +76,10 @@ export function CompanyResearch({
   const [isSearchingNews, setIsSearchingNews] = useState(false)
   const [newsSearchMethod, setNewsSearchMethod] = useState<'vector' | 'keyword' | undefined>()
   const [newsSearchMessage, setNewsSearchMessage] = useState('')
+  const [filingsItems, setFilingsItems] = useState<RSSFeedItem[]>([])
+  const [isLoadingFilings, setIsLoadingFilings] = useState(false)
+  const [filingsSource, setFilingsSource] = useState('')
+  const [filingsMessage, setFilingsMessage] = useState('')
   const [profile, setProfile] = useState<CompanyProfile | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState('')
@@ -263,6 +270,72 @@ export function CompanyResearch({
     }
   }
 
+  const handleFetchFilings = async () => {
+    if (!companyName.trim()) {
+      toast.error('Please enter a company name first')
+      return
+    }
+
+    setIsLoadingFilings(true)
+    try {
+      const result: FetchFilingsResult = await fetchCompanyFilings(companyName)
+      setFilingsItems(result.items)
+      setFilingsSource(result.source || '')
+      setFilingsMessage(result.items.length === 0 ? (result.message || 'No regulatory filings found.') : '')
+
+      if (result.items.length === 0) {
+        toast.info(result.message || 'No regulatory filings found.')
+      } else {
+        toast.success(`Loaded ${result.items.length} filings`)
+      }
+    } catch (error) {
+      toast.error('Failed to fetch filings')
+    } finally {
+      setIsLoadingFilings(false)
+    }
+  }
+
+  const handleExtractFromFilings = async () => {
+    if (filingsItems.length === 0) {
+      toast.error('No filings to analyze. Fetch filings first.')
+      return
+    }
+
+    if (!companyName.trim()) {
+      toast.error('Please enter a company name first')
+      return
+    }
+
+    setIsExtracting(true)
+    try {
+      const filingsText = rssItemsToText(filingsItems, 12)
+      const newInsights = await extractInsightsFromText(filingsText, companyName, 'Regulatory Filings', entityType)
+
+      if (newInsights.length === 0) {
+        toast.info('No insights extracted from filings', {
+          description: 'Filings loaded successfully, but the AI extraction returned no insights. Check that /api/chat is configured.',
+        })
+      }
+
+      const source: CompanySource = {
+        id: crypto.randomUUID(),
+        type: 'rss',
+        title: 'Regulatory Filings',
+        content: `${filingsItems.length} filing items`,
+        addedAt: new Date().toISOString(),
+      }
+
+      setSources(prev => [...prev, source])
+      setInsights(prev => [...prev, ...newInsights])
+
+      toast.success(`Extracted ${newInsights.length} insights from filings`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to extract from filings')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
   const handleFetchProfile = async () => {
     if (!companyName.trim()) {
       toast.error('Please enter a company name first')
@@ -378,7 +451,7 @@ export function CompanyResearch({
           </div>
         )}
         <Tabs defaultValue="paste" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="paste" className="gap-2">
               <FileText size={16} /> Paste Text
             </TabsTrigger>
@@ -387,6 +460,9 @@ export function CompanyResearch({
             </TabsTrigger>
             <TabsTrigger value="rss" className="gap-2">
               <Rss size={16} /> RSS Feeds
+            </TabsTrigger>
+            <TabsTrigger value="filings" className="gap-2">
+              <Bank size={16} /> Filings
             </TabsTrigger>
             <TabsTrigger value="profile" className="gap-2">
               <Buildings size={16} /> Profile
@@ -442,12 +518,15 @@ export function CompanyResearch({
           <TabsContent value="upload" className="space-y-4 mt-4">
             <div className="border-2 border-dashed rounded-lg p-8 text-center">
               <Upload size={32} className="mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mb-4">
-                Upload .txt, .md, .csv, or .json files
+              <p className="text-sm text-muted-foreground mb-1">
+                Upload a document to extract insights
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Word (.docx), Excel (.xlsx), PDF, text (.txt, .md, .csv, .json) and images
               </p>
               <input
                 type="file"
-                accept=".txt,.md,.csv,.json"
+                accept=".txt,.md,.csv,.json,.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.gif,.tiff,.bmp"
                 onChange={handleFileUpload}
                 className="hidden"
                 id="file-upload"
@@ -459,8 +538,12 @@ export function CompanyResearch({
                 </label>
               </Button>
               <p className="text-xs text-muted-foreground mt-4">
-                PDF, Word, and Excel require Azure Document Intelligence (coming soon)
+                Word, Excel and text-based PDFs are parsed in your browser. Scanned PDFs and
+                images are read with Azure Document Intelligence. Max 10&nbsp;MB per file.
               </p>
+              {!companyName.trim() && (
+                <p className="text-xs text-amber-600 mt-2">Enter a company name first to enable uploads.</p>
+              )}
             </div>
           </TabsContent>
 
@@ -593,6 +676,93 @@ export function CompanyResearch({
                 ))}
               </div>
             </div>
+          </TabsContent>
+
+          {/* Filings Tab — SEC EDGAR + JSE/SENS regulatory filings */}
+          <TabsContent value="filings" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Recent regulatory filings &amp; announcements (SEC EDGAR + JSE/SENS)
+              </p>
+              <div className="flex items-center gap-2">
+                {filingsSource && (
+                  <Badge variant="outline" className="text-[10px] uppercase">{filingsSource}</Badge>
+                )}
+                <Button variant="outline" size="sm" onClick={handleFetchFilings} disabled={isLoadingFilings}>
+                  {isLoadingFilings ? (
+                    <SpinnerGap size={14} className="animate-spin mr-1" />
+                  ) : (
+                    <ArrowsClockwise size={14} className="mr-1" />
+                  )}
+                  Fetch filings
+                </Button>
+              </div>
+            </div>
+
+            {filingsItems.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{filingsItems.length} filing items</p>
+                  <Button size="sm" onClick={handleExtractFromFilings} disabled={isExtracting || !companyName.trim()}>
+                    {isExtracting ? (
+                      <SpinnerGap size={14} className="animate-spin mr-1" />
+                    ) : (
+                      <Lightbulb size={14} className="mr-1" />
+                    )}
+                    Extract Insights
+                  </Button>
+                </div>
+                <div className="max-h-72 overflow-y-auto space-y-2">
+                  {filingsItems.map((item, i) => {
+                    const isSec = /^\[SEC\]/i.test(item.title)
+                    const isJse = /^\[JSE\]/i.test(item.title)
+                    const cleanTitle = item.title.replace(/^\[(SEC|JSE)\]\s*/i, '')
+                    const parsedDate = item.pubDate ? new Date(item.pubDate) : null
+                    const dateValid = parsedDate !== null && !isNaN(parsedDate.getTime())
+                    return (
+                      <a
+                        key={i}
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-2 border rounded hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium leading-snug">{cleanTitle}</p>
+                          {(isSec || isJse) && (
+                            <Badge variant="secondary" className="shrink-0 text-[10px]">
+                              {isSec ? 'SEC' : 'JSE'}
+                            </Badge>
+                          )}
+                        </div>
+                        {dateValid && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {parsedDate!.toLocaleDateString()}
+                          </p>
+                        )}
+                      </a>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {filingsItems.length === 0 && filingsMessage && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
+                <Bank size={14} className="mt-0.5 flex-shrink-0" />
+                <span>{filingsMessage}</span>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Filings are collected every 12 hours by the karabo-filings-monitor Logic App and served from blob
+              storage, with a live SEC EDGAR + JSE news fallback when no cache exists.
+            </p>
+            <AIDataDisclosure
+              fields={['company name']}
+              model="gpt-4o-mini"
+              note="Filing headlines are sent to AI to extract structured insights about the company."
+            />
           </TabsContent>
 
           {/* Profile Tab — name-based identity lookup (works for non-listed entities) */}
