@@ -298,10 +298,12 @@ async function filingsFeedsHandler(req: HttpRequest, context: InvocationContext)
  * { items: RSSItem[] }; legacy blobs are raw RSS/Atom XML. Handle both.
  */
 function parseFilingsBlob(raw: string): RSSItem[] {
-  const trimmed = (raw || "").trimStart();
-  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+  // Strip a leading UTF-8 BOM (the azureblob connector prepends one) and surrounding
+  // whitespace so JSON.parse doesn't choke on a leading \uFEFF.
+  const cleaned = (raw || "").replace(/^\uFEFF/, "").trim();
+  if (cleaned.startsWith("{") || cleaned.startsWith("[")) {
     try {
-      const parsed = JSON.parse(raw);
+      const parsed = JSON.parse(cleaned);
       const arr = Array.isArray(parsed) ? parsed : parsed?.items;
       if (Array.isArray(arr)) {
         return arr
@@ -317,7 +319,7 @@ function parseFilingsBlob(raw: string): RSSItem[] {
       /* not JSON — fall through to XML parsing */
     }
   }
-  return parseRSSItems(raw);
+  return parseRSSItems(cleaned);
 }
 
 app.http("filings-feeds", {
