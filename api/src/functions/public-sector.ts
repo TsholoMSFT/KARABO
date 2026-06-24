@@ -183,24 +183,40 @@ async function fetchPublicSectorNews(entity: string): Promise<RSSItem[]> {
 const GOV_KEYWORDS =
   /(government|agency|department|ministry|municipal|provincial|state[- ]owned|parastatal|public (?:body|entity|service|sector|institution)|revenue service|authority|commission|legislature|metropolitan)/i;
 
-async function detectEntityType(entity: string): Promise<{ label?: string; isPublicSector: boolean }> {
-  const search = async (term: string): Promise<any[]> => {
-    const url =
-      `https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=en&type=item&limit=7&origin=*` +
-      `&search=${encodeURIComponent(term)}`;
-    const data = await fetchJson(url, { "User-Agent": UA });
-    return Array.isArray(data?.search) ? data.search : [];
-  };
-  const isGov = (c: any) => GOV_KEYWORDS.test(`${c?.description || ""} ${c?.label || ""}`);
+// Curated entity-type labels for well-known South-African public-sector bodies
+// whose short names collide with unrelated Wikidata items (e.g. SARS = disease,
+// SASSA = surname). Keyed by lower-cased name / acronym.
+const ZA_PUBLIC_SECTOR_TYPES: Record<string, string> = {
+  sars: "revenue service",
+  "south african revenue service": "revenue service",
+  sassa: "government agency",
+  "south african social security agency": "government agency",
+  nsfas: "government agency",
+  uif: "government agency",
+  raf: "government agency",
+  "road accident fund": "government agency",
+  saps: "government department",
+  eskom: "state-owned enterprise",
+  transnet: "state-owned enterprise",
+  prasa: "state-owned enterprise",
+  denel: "state-owned enterprise",
+  sabc: "state-owned enterprise",
+  "south african airways": "state-owned enterprise",
+};
 
-  // Acronyms collide on Wikidata (e.g. SARS = disease, SASSA = surname), so when
-  // no candidate looks public-sector and the name reads like an acronym/short
-  // form, retry with an SA-scoped query to surface the actual government entity.
-  let candidates = await search(entity);
-  const looksAcronym = /^[A-Z0-9&.\- ]{2,8}$/.test(entity) || entity.length <= 6;
-  if (!candidates.some(isGov) && looksAcronym) {
-    candidates = [...candidates, ...(await search(`${entity} South Africa`))];
-  }
+async function detectEntityType(entity: string): Promise<{ label?: string; isPublicSector: boolean }> {
+  const curated = ZA_PUBLIC_SECTOR_TYPES[entity.trim().toLowerCase()];
+  if (curated) return { label: curated, isPublicSector: true };
+
+  // Wikidata `wbsearchentities` matches labels/aliases; the top hit that reads as
+  // public-sector wins. (Ambiguous acronyms are handled by the curated map above
+  // and by the PMG-presence fallback in the handler.)
+  const url =
+    `https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=en&type=item&limit=10&origin=*` +
+    `&search=${encodeURIComponent(entity)}`;
+  const data = await fetchJson(url, { "User-Agent": UA });
+  const candidates: any[] = Array.isArray(data?.search) ? data.search : [];
+  const isGov = (c: any) => GOV_KEYWORDS.test(`${c?.description || ""} ${c?.label || ""}`);
 
   const chosen = candidates.find(isGov) || candidates[0];
   if (!chosen?.id) return { isPublicSector: false };
@@ -299,15 +315,24 @@ async function publicSectorHandler(request: HttpRequest, context: InvocationCont
     items.push(it);
   }
 
+  // Parliament actively overseeing an entity is a strong public-sector signal, so
+  // trust PMG presence when Wikidata can't confirm the type (e.g. acronym clashes).
+  let entityType = etype.value.label;
+  let isPublicSector = etype.value.isPublicSector;
+  if (!isPublicSector && pmg.value.length > 0) {
+    isPublicSector = true;
+    entityType = "public sector entity";
+  }
+
   const isMunicipal =
     /\b(municipalit|metro|city of|local municipality|district municipality)\b/i.test(entity) ||
-    /municipal/i.test(etype.value.label || "");
+    /municipal/i.test(entityType || "");
 
   const data: PublicSectorResponse = {
     entity,
     country,
-    entityType: etype.value.label,
-    isPublicSector: etype.value.isPublicSector,
+    entityType,
+    isPublicSector,
     items,
     portals: buildPortals(isMunicipal),
     source: "live",
