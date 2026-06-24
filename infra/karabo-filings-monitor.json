@@ -1,0 +1,116 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "KARABO filings watcher Logic App. On a recurrence, fetches filings-related signals (SEC filings / JSE SENS / results & trading statements) for a watchlist of companies and writes them as raw RSS/Atom XML into the 'filings' blob container as '{company}-filings-<timestamp>.xml', which the api/filings-feeds function reads as a warm cache (with a live SEC EDGAR + JSE fallback). It REUSES the existing 'azureblob' API connection already authorized for karabo-rss-monitor, so no new connection/secret is required."
+  },
+  "parameters": {
+    "companies": {
+      "type": "array",
+      "defaultValue": [
+        "Microsoft",
+        "MTN Group",
+        "Standard Bank",
+        "Naspers",
+        "Vodacom",
+        "Sasol",
+        "Shoprite Holdings",
+        "Discovery Limited",
+        "Absa Group"
+      ],
+      "metadata": { "description": "Watchlist of companies to pre-cache filings for. Editable in the portal." }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "northcentralus",
+      "metadata": { "description": "Must match the region of the reused azureblob API connection." }
+    },
+    "blobConnectionId": {
+      "type": "string",
+      "defaultValue": "/subscriptions/78d2ff46-2b11-4389-b9dd-6a5fd684e326/resourceGroups/rg-tsetati/providers/Microsoft.Web/connections/azureblob"
+    },
+    "blobApiId": {
+      "type": "string",
+      "defaultValue": "/subscriptions/78d2ff46-2b11-4389-b9dd-6a5fd684e326/providers/Microsoft.Web/locations/northcentralus/managedApis/azureblob"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "karabo-filings-monitor",
+      "location": "[parameters('location')]",
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "$connections": { "type": "Object", "defaultValue": {} },
+            "companies": { "type": "Array", "defaultValue": [] }
+          },
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": { "frequency": "Hour", "interval": 12 }
+            }
+          },
+          "actions": {
+            "For_Each_Company": {
+              "type": "Foreach",
+              "foreach": "@parameters('companies')",
+              "runtimeConfiguration": { "concurrency": { "repetitions": 3 } },
+              "actions": {
+                "HTTP": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "GET",
+                    "uri": "https://news.google.com/rss/search?q=@{encodeUriComponent(concat(items('For_Each_Company'), ' (SEC filing OR SENS OR annual results OR trading statement OR 8-K OR 10-K)'))}&hl=en-US&gl=US&ceid=US:en",
+                    "headers": {
+                      "User-Agent": "Mozilla/5.0 (compatible; KARABO/1.0; +https://karabo.app)",
+                      "Accept": "application/rss+xml, application/xml, text/xml, */*"
+                    }
+                  }
+                },
+                "Create_blob": {
+                  "type": "ApiConnection",
+                  "runAfter": { "HTTP": ["Succeeded"] },
+                  "inputs": {
+                    "host": {
+                      "connection": { "name": "@parameters('$connections')['azureblob']['connectionId']" }
+                    },
+                    "method": "post",
+                    "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+                    "queries": {
+                      "folderPath": "/filings",
+                      "name": "@{replace(toLower(items('For_Each_Company')), ' ', '-')}-filings-@{utcNow('yyyy-MM-dd-HH-mm')}.xml",
+                      "queryParametersSingleEncoded": true
+                    },
+                    "body": "@body('HTTP')",
+                    "headers": { "ReadFileMetadataFromServer": true }
+                  },
+                  "runtimeConfiguration": { "contentTransfer": { "transferMode": "Chunked" } }
+                }
+              }
+            }
+          }
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "azureblob": {
+                "connectionId": "[parameters('blobConnectionId')]",
+                "connectionName": "azureblob",
+                "id": "[parameters('blobApiId')]"
+              }
+            }
+          },
+          "companies": { "value": "[parameters('companies')]" }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "workflowName": { "type": "string", "value": "karabo-filings-monitor" }
+  }
+}
