@@ -18,7 +18,8 @@ import {
   CaretDown,
   CaretUp,
   Buildings,
-  Bank
+  Bank,
+  Scales
 } from '@phosphor-icons/react'
 import { ENTITY_TYPE_LABELS, type EntityType } from '@/lib/types'
 import { toast } from 'sonner'
@@ -40,9 +41,12 @@ import {
   SUGGESTED_RSS_FEEDS,
   fetchCompanyProfile,
   companyProfileToText,
+  fetchPublicSectorSignals,
   type CompanyProfile,
   type NewsSearchResultItem,
-  type FetchFilingsResult
+  type FetchFilingsResult,
+  type FetchPublicSectorResult,
+  type PublicSectorPortal
 } from '@/lib/company-research-service'
 
 interface CompanyResearchProps {
@@ -80,6 +84,11 @@ export function CompanyResearch({
   const [isLoadingFilings, setIsLoadingFilings] = useState(false)
   const [filingsSource, setFilingsSource] = useState('')
   const [filingsMessage, setFilingsMessage] = useState('')
+  const [publicSectorItems, setPublicSectorItems] = useState<RSSFeedItem[]>([])
+  const [publicSectorPortals, setPublicSectorPortals] = useState<PublicSectorPortal[]>([])
+  const [isLoadingPublicSector, setIsLoadingPublicSector] = useState(false)
+  const [publicSectorEntityType, setPublicSectorEntityType] = useState('')
+  const [publicSectorMessage, setPublicSectorMessage] = useState('')
   const [profile, setProfile] = useState<CompanyProfile | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState('')
@@ -336,6 +345,73 @@ export function CompanyResearch({
     }
   }
 
+  const handleFetchPublicSector = async () => {
+    if (!companyName.trim()) {
+      toast.error('Please enter a company name first')
+      return
+    }
+
+    setIsLoadingPublicSector(true)
+    try {
+      const result: FetchPublicSectorResult = await fetchPublicSectorSignals(companyName)
+      setPublicSectorItems(result.items)
+      setPublicSectorPortals(result.portals)
+      setPublicSectorEntityType(result.entityType || '')
+      setPublicSectorMessage(result.items.length === 0 ? (result.message || 'No public-sector signals found.') : '')
+
+      if (result.items.length === 0) {
+        toast.info(result.message || 'No public-sector signals found.')
+      } else {
+        toast.success(`Loaded ${result.items.length} public-sector signals`)
+      }
+    } catch (error) {
+      toast.error('Failed to fetch public-sector intelligence')
+    } finally {
+      setIsLoadingPublicSector(false)
+    }
+  }
+
+  const handleExtractFromPublicSector = async () => {
+    if (publicSectorItems.length === 0) {
+      toast.error('No public-sector signals to analyze. Fetch signals first.')
+      return
+    }
+
+    if (!companyName.trim()) {
+      toast.error('Please enter a company name first')
+      return
+    }
+
+    setIsExtracting(true)
+    try {
+      const text = rssItemsToText(publicSectorItems, 12)
+      const newInsights = await extractInsightsFromText(text, companyName, 'Public Sector Intelligence', entityType)
+
+      if (newInsights.length === 0) {
+        toast.info('No insights extracted from public-sector signals', {
+          description: 'Signals loaded successfully, but the AI extraction returned no insights. Check that /api/chat is configured.',
+        })
+      }
+
+      const source: CompanySource = {
+        id: crypto.randomUUID(),
+        type: 'rss',
+        title: 'Public Sector Intelligence',
+        content: `${publicSectorItems.length} public-sector signals`,
+        addedAt: new Date().toISOString(),
+      }
+
+      setSources(prev => [...prev, source])
+      setInsights(prev => [...prev, ...newInsights])
+
+      toast.success(`Extracted ${newInsights.length} insights from public-sector intelligence`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to extract from public-sector signals')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
   const handleFetchProfile = async () => {
     if (!companyName.trim()) {
       toast.error('Please enter a company name first')
@@ -451,7 +527,7 @@ export function CompanyResearch({
           </div>
         )}
         <Tabs defaultValue="paste" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="paste" className="gap-2">
               <FileText size={16} /> Paste Text
             </TabsTrigger>
@@ -463,6 +539,9 @@ export function CompanyResearch({
             </TabsTrigger>
             <TabsTrigger value="filings" className="gap-2">
               <Bank size={16} /> Filings
+            </TabsTrigger>
+            <TabsTrigger value="public-sector" className="gap-2">
+              <Scales size={16} /> Public Sector
             </TabsTrigger>
             <TabsTrigger value="profile" className="gap-2">
               <Buildings size={16} /> Profile
@@ -762,6 +841,119 @@ export function CompanyResearch({
               fields={['company name']}
               model="gpt-4o-mini"
               note="Filing headlines are sent to AI to extract structured insights about the company."
+            />
+          </TabsContent>
+
+          {/* Public Sector Tab — non-listed entities (PMG + ZA news + open-gov portals) */}
+          <TabsContent value="public-sector" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground">
+                Intelligence for non-listed / public-sector entities (Parliament, budgets, audits, tenders)
+              </p>
+              <div className="flex items-center gap-2">
+                {publicSectorEntityType && (
+                  <Badge variant="outline" className="text-[10px] capitalize">{publicSectorEntityType}</Badge>
+                )}
+                <Button variant="outline" size="sm" onClick={handleFetchPublicSector} disabled={isLoadingPublicSector}>
+                  {isLoadingPublicSector ? (
+                    <SpinnerGap size={14} className="animate-spin mr-1" />
+                  ) : (
+                    <ArrowsClockwise size={14} className="mr-1" />
+                  )}
+                  Fetch intelligence
+                </Button>
+              </div>
+            </div>
+
+            {publicSectorItems.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{publicSectorItems.length} signals</p>
+                  <Button size="sm" onClick={handleExtractFromPublicSector} disabled={isExtracting || !companyName.trim()}>
+                    {isExtracting ? (
+                      <SpinnerGap size={14} className="animate-spin mr-1" />
+                    ) : (
+                      <Lightbulb size={14} className="mr-1" />
+                    )}
+                    Extract Insights
+                  </Button>
+                </div>
+                <div className="max-h-72 overflow-y-auto space-y-2">
+                  {publicSectorItems.map((item, i) => {
+                    const isPmg = /^\[PMG\]/i.test(item.title)
+                    const isNews = /^\[News\]/i.test(item.title)
+                    const cleanTitle = item.title.replace(/^\[(PMG|News)\]\s*/i, '')
+                    const parsedDate = item.pubDate ? new Date(item.pubDate) : null
+                    const dateValid = parsedDate !== null && !isNaN(parsedDate.getTime())
+                    return (
+                      <a
+                        key={i}
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-2 border rounded hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium leading-snug">{cleanTitle}</p>
+                          {(isPmg || isNews) && (
+                            <Badge variant="secondary" className="shrink-0 text-[10px]">
+                              {isPmg ? 'PMG' : 'News'}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {item.description && (
+                            <p className="text-xs text-muted-foreground">{item.description}</p>
+                          )}
+                          {dateValid && (
+                            <p className="text-xs text-muted-foreground">· {parsedDate!.toLocaleDateString()}</p>
+                          )}
+                        </div>
+                      </a>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {publicSectorItems.length === 0 && publicSectorMessage && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
+                <Scales size={14} className="mt-0.5 flex-shrink-0" />
+                <span>{publicSectorMessage}</span>
+              </div>
+            )}
+
+            {publicSectorPortals.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Authoritative open-government sources</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {publicSectorPortals.map((portal, i) => (
+                    <a
+                      key={i}
+                      href={portal.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-2 border rounded hover:bg-muted/50 transition-colors"
+                    >
+                      <p className="text-sm font-medium leading-snug">{portal.name}</p>
+                      {portal.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{portal.description}</p>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Aggregates Parliamentary Monitoring Group oversight records and public-sector-tuned South-African
+              news, with deep-links to National Treasury (Vulekamali, eTenders, Municipal Money) and the
+              Auditor-General &mdash; for entities that don&apos;t list on an exchange or file with a securities regulator.
+            </p>
+            <AIDataDisclosure
+              fields={['entity name']}
+              model="gpt-4o-mini"
+              note="Public-sector signal headlines are sent to AI to extract structured insights about the entity."
             />
           </TabsContent>
 

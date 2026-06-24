@@ -580,6 +580,81 @@ export function rssItemsToText(items: RSSFeedItem[], maxItems: number = 10): str
 }
 
 // ============================================================================
+// PUBLIC SECTOR / NON-LISTED ENTITY INTELLIGENCE (via /api/public-sector)
+// ============================================================================
+
+export interface PublicSectorPortal {
+  name: string
+  url: string
+  description?: string
+}
+
+export interface FetchPublicSectorResult {
+  items: RSSFeedItem[]
+  portals: PublicSectorPortal[]
+  entity?: string
+  entityType?: string
+  isPublicSector?: boolean
+  source?: string
+  message?: string
+}
+
+/**
+ * Fetch public-sector intelligence for a NON-LISTED entity (government
+ * department, agency, provincial / municipal government, state-owned
+ * enterprise) via /api/public-sector. Aggregates Parliamentary Monitoring Group
+ * oversight records, public-sector-tuned South-African news and authoritative
+ * open-government portal links — the cases the SEC/JSE filings path and the
+ * ticker-based financials path cannot serve. Never throws on a recoverable
+ * failure — returns an empty list with a diagnostic message.
+ *
+ * @param entity - Entity to research (e.g. 'SASSA', 'Western Cape Government').
+ * @param apiEndpoint - Base API URL (default '/api').
+ */
+export async function fetchPublicSectorSignals(
+  entity: string,
+  apiEndpoint: string = '/api'
+): Promise<FetchPublicSectorResult> {
+  try {
+    const url = new URL(`${apiEndpoint}/public-sector`, window.location.origin)
+    if (entity?.trim()) url.searchParams.set('entity', entity.trim())
+
+    const response = await fetch(url.toString())
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      const contentType = response.headers.get('content-type') || ''
+      const looksLikeHtml = contentType.includes('text/html') || /^\s*<(?:!doctype|html)/i.test(text)
+      const detail = looksLikeHtml
+        ? 'The research backend is offline or not deployed.'
+        : text.slice(0, 200).trim()
+      return {
+        items: [],
+        portals: [],
+        message: `Public-sector service unavailable (HTTP ${response.status})${detail ? `. ${detail}` : ''}`,
+      }
+    }
+
+    const data = await response.json().catch(() => ({} as any))
+    return {
+      items: Array.isArray(data?.items) ? (data.items as RSSFeedItem[]) : [],
+      portals: Array.isArray(data?.portals) ? (data.portals as PublicSectorPortal[]) : [],
+      entity: typeof data?.entity === 'string' ? data.entity : undefined,
+      entityType: typeof data?.entityType === 'string' ? data.entityType : undefined,
+      isPublicSector: typeof data?.isPublicSector === 'boolean' ? data.isPublicSector : undefined,
+      source: typeof data?.source === 'string' ? data.source : undefined,
+      message: typeof data?.message === 'string' ? data.message : undefined,
+    }
+  } catch (error) {
+    console.error('Failed to fetch public-sector signals:', error)
+    return {
+      items: [],
+      portals: [],
+      message: error instanceof Error ? error.message : 'Failed to fetch public-sector signals',
+    }
+  }
+}
+
+// ============================================================================
 // COMPANY PROFILE (works for public AND private / non-listed companies)
 // ============================================================================
 
