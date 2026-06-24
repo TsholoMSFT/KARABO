@@ -23,7 +23,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar, ShieldCheck } from '@phosphor-icons/react'
+import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar, ShieldCheck, Calculator } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Footer } from '@/components/ui/footer'
@@ -72,6 +72,7 @@ const FinancialImpactTab = lazy(() => import('@/components/FinancialImpactTab').
 const ImportUseCasesDialog = lazy(() => import('@/components/ImportUseCasesDialog').then(m => ({ default: m.ImportUseCasesDialog })))
 const DUCEWizard = lazy(() => import('@/components/duce').then(m => ({ default: m.DUCEWizard })))
 const PipelineBoard = lazy(() => import('@/components/PipelineBoard').then(m => ({ default: m.PipelineBoard })))
+const UnitEconomicsEngine = lazy(() => import('@/components/UnitEconomicsEngine').then(m => ({ default: m.UnitEconomicsEngine })))
 
 /** Fallback spinner for lazy-loaded components */
 function LazyFallback() {
@@ -82,7 +83,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -973,6 +974,18 @@ function App() {
         </>
       )}
 
+      {currentView === 'unit-economics' && (
+        <Suspense fallback={<LazyFallback />}>
+          <UnitEconomicsEngine
+            customerName={selectedSession?.customerName}
+            annualRevenueUSD={selectedSession?.manualFinancials?.annualRevenue}
+            itBudgetUSD={selectedSession?.manualFinancials?.itBudget}
+            onBack={() => setCurrentView('dashboard')}
+            onBackToLanding={handleBackToLanding}
+          />
+        </Suspense>
+      )}
+
       {currentView === 'duce-wizard' && selectedSessionId && (
         <Suspense fallback={<LazyFallback />}>
           <SectionErrorBoundary>
@@ -1348,13 +1361,16 @@ function App() {
               </h2>
             </motion.header>
 
-            {selectedSessionId && (
-              <div className="mb-6 flex justify-center">
+            <div className="mb-6 flex justify-center gap-3 flex-wrap">
+              {selectedSessionId && (
                 <Button variant="outline" onClick={() => setCurrentView('pipeline')}>
                   <Funnel className="mr-2" /> Open use-case pipeline
                 </Button>
-              </div>
-            )}
+              )}
+              <Button variant="outline" onClick={() => setCurrentView('unit-economics')}>
+                <Calculator className="mr-2" /> Unit economics engine
+              </Button>
+            </div>
 
             {!selectedSession && (discoverySessions?.length === 0 || !discoverySessions) ? (
               <>
