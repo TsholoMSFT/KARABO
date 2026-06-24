@@ -48,21 +48,94 @@ async function fetchWithTimeout(url: string, headers: Record<string, string>): P
   }
 }
 
-/** Fetch live filings: SEC EDGAR (official US) + a JSE/SENS Google-News proxy (South Africa). */
-async function fetchLiveFilings(company: string, context: InvocationContext): Promise<RSSItem[]> {
-  const q = encodeURIComponent(company);
+/**
+ * Live US filings via the SEC EDGAR full-text search API (efts.sec.gov), which
+ * returns real filings (form type, filer, date, accession) instead of the
+ * company-search disambiguation rows that `browse-edgar` yields. Results are
+ * narrowed to filers whose name matches the query so unrelated co-mentions are
+ * excluded, and collapsed to one row per filing (the raw feed has one hit per
+ * document/exhibit within a filing).
+ */
+async function fetchSecFilings(company: string, context: InvocationContext): Promise<RSSItem[]> {
+  const url = `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(
+    `"${company}"`,
+  )}&forms=10-K,10-Q,8-K,20-F,6-K,40-F`;
 
-  // SEC EDGAR requires a descriptive User-Agent with contact info.
-  const secUrl = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${q}&type=&dateb=&owner=include&count=40&output=atom`;
+  let raw: string;
+  try {
+    // SEC requires a descriptive User-Agent with contact info.
+    raw = await fetchWithTimeout(url, {
+      "User-Agent": "KARABO-Research/1.0 (research@karabo.app)",
+      Accept: "application/json",
+    });
+  } catch (e: any) {
+    context.warn(`filings: SEC EDGAR fetch failed: ${e?.message ?? "unknown"}`);
+    return [];
+  }
+
+  let data: any;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    context.warn("filings: SEC EDGAR returned non-JSON");
+    return [];
+  }
+
+  const hits = data?.hits?.hits;
+  if (!Array.isArray(hits)) return [];
+
+  const lc = company.toLowerCase();
+  const seenAccession = new Set<string>();
+  const items: RSSItem[] = [];
+
+  for (const hit of hits) {
+    const s = hit?._source;
+    if (!s) continue;
+
+    const rawName =
+      Array.isArray(s.display_names) && s.display_names.length ? String(s.display_names[0]) : "";
+    // Precision: keep only filings whose filer name matches the queried company.
+    if (lc && rawName && !rawName.toLowerCase().includes(lc)) continue;
+
+    const adsh = String(s.adsh || (typeof hit._id === "string" ? hit._id.split(":")[0] : "")).trim();
+    if (!adsh || seenAccession.has(adsh)) continue; // one row per filing, not per exhibit
+    seenAccession.add(adsh);
+
+    const form = String(s.form || (Array.isArray(s.root_forms) && s.root_forms[0]) || "Filing").trim();
+    const fileDate = String(s.file_date || "").trim();
+    const cleanName = rawName.replace(/\s*\(CIK\s*\d+\)\s*$/i, "").replace(/\s+/g, " ").trim();
+    const cik = Array.isArray(s.ciks) && s.ciks.length ? String(s.ciks[0]).replace(/^0+/, "") : "";
+    const adshNoDash = adsh.replace(/-/g, "");
+    const link =
+      cik && adshNoDash
+        ? `https://www.sec.gov/Archives/edgar/data/${cik}/${adshNoDash}/${adsh}-index.htm`
+        : `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik || encodeURIComponent(company)}&type=&dateb=&owner=include&count=40`;
+
+    const descParts: string[] = [];
+    if (s.file_description) descParts.push(String(s.file_description));
+    if (Array.isArray(s.items) && s.items.length) descParts.push(`Items ${s.items.join(", ")}`);
+
+    items.push({
+      title: `[SEC] ${form}${cleanName ? ` \u2014 ${cleanName}` : ""}`,
+      description: descParts.join(" \u00b7 ") || `${form} filing`,
+      link,
+      pubDate: fileDate ? new Date(`${fileDate}T00:00:00Z`).toUTCString() : "",
+    });
+
+    if (items.length >= 25) break;
+  }
+
+  return items;
+}
+
+/** Fetch live filings: SEC EDGAR full-text (official US) + a JSE/SENS Google-News proxy (South Africa). */
+async function fetchLiveFilings(company: string, context: InvocationContext): Promise<RSSItem[]> {
   const jseUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(
     `${company} SENS JSE announcement`,
   )}&hl=en-ZA&gl=ZA&ceid=ZA:en`;
 
   const [secRes, jseRes] = await Promise.allSettled([
-    fetchWithTimeout(secUrl, {
-      "User-Agent": "KARABO-Research/1.0 (research@karabo.app)",
-      Accept: "application/atom+xml, application/xml, text/xml, */*",
-    }),
+    fetchSecFilings(company, context),
     fetchWithTimeout(jseUrl, {
       "User-Agent": "Mozilla/5.0 (compatible; KARABO/1.0; +https://karabo.app)",
       Accept: "application/rss+xml, application/xml, text/xml, */*",
@@ -70,17 +143,13 @@ async function fetchLiveFilings(company: string, context: InvocationContext): Pr
   ]);
 
   const items: RSSItem[] = [];
+
   if (secRes.status === "fulfilled") {
-    try {
-      for (const it of parseRSSItems(secRes.value)) {
-        items.push({ ...it, title: it.title.startsWith("[") ? it.title : `[SEC] ${it.title}` });
-      }
-    } catch (e: any) {
-      context.warn(`filings: SEC parse failed: ${e?.message ?? "unknown"}`);
-    }
+    items.push(...secRes.value);
   } else {
     context.warn(`filings: SEC fetch failed: ${secRes.reason?.message ?? "unknown"}`);
   }
+
   if (jseRes.status === "fulfilled") {
     try {
       for (const it of parseRSSItems(jseRes.value)) {
