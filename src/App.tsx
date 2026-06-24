@@ -73,6 +73,7 @@ const ImportUseCasesDialog = lazy(() => import('@/components/ImportUseCasesDialo
 const DUCEWizard = lazy(() => import('@/components/duce').then(m => ({ default: m.DUCEWizard })))
 const PipelineBoard = lazy(() => import('@/components/PipelineBoard').then(m => ({ default: m.PipelineBoard })))
 const UnitEconomicsEngine = lazy(() => import('@/components/UnitEconomicsEngine').then(m => ({ default: m.UnitEconomicsEngine })))
+const ValuePortfolio = lazy(() => import('@/components/ValuePortfolio').then(m => ({ default: m.ValuePortfolio })))
 
 /** Fallback spinner for lazy-loaded components */
 function LazyFallback() {
@@ -83,7 +84,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics' | 'value-portfolio'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -921,6 +922,7 @@ function App() {
           onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
           onOpenPortfolio={() => setCurrentView('portfolio')}
+          onOpenValuePortfolio={() => setCurrentView('value-portfolio')}
           onSelectTemplate={handleSelectTemplate}
           isDemoMode={isDemoMode}
           demoIndustry={demoIndustry}
@@ -940,6 +942,26 @@ function App() {
           <div className="container mx-auto px-4 md:px-6 py-8 max-w-[1400px]">
             <SectionErrorBoundary>
               <PortfolioIntelligenceView />
+            </SectionErrorBoundary>
+          </div>
+        </>
+      )}
+
+      {currentView === 'value-portfolio' && (
+        <>
+          <NavigationHeader
+            onBackToLanding={handleBackToLanding}
+            onBack={() => setCurrentView('dashboard')}
+            backLabel="Back to dashboard"
+            title="Value Portfolio"
+            subtitle="Price the use-case book as an investment portfolio"
+          />
+          <div className="container mx-auto px-4 md:px-6 py-8 max-w-[1400px]">
+            <SectionErrorBoundary>
+              <ValuePortfolio
+                useCases={filteredUseCases.length ? filteredUseCases : (useCases ?? [])}
+                customerName={selectedSession?.customerName}
+              />
             </SectionErrorBoundary>
           </div>
         </>

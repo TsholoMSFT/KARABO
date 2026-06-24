@@ -23,7 +23,8 @@ import {
   CaretDown,
   CaretUp,
   Buildings,
-  Compass
+  Compass,
+  ChartLineUp
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AboutSection } from '@/components/AboutSection'
@@ -40,6 +41,7 @@ interface LandingPageProps {
   onStartNotesAnalysis?: () => void
   onViewExisting: () => void
   onOpenPortfolio?: () => void
+  onOpenValuePortfolio?: () => void
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onSelectTemplate?: (template: SessionTemplate) => void
@@ -59,6 +61,7 @@ export function LandingPage({
   onStartNotesAnalysis, 
   onViewExisting,
   onOpenPortfolio,
+  onOpenValuePortfolio,
   onStartDemo,
   onStartEnterpriseDemo,
   onSelectTemplate,
@@ -528,6 +531,12 @@ export function LandingPage({
                 <Button onClick={onOpenPortfolio} variant="outline" className="gap-2">
                   <Buildings size={18} weight="duotone" />
                   Portfolio Intelligence
+                </Button>
+              )}
+              {onOpenValuePortfolio && (
+                <Button onClick={onOpenValuePortfolio} variant="outline" className="gap-2">
+                  <ChartLineUp size={18} weight="duotone" />
+                  Value Portfolio
                 </Button>
               )}
             </div>
