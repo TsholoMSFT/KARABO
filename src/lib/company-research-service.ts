@@ -377,6 +377,88 @@ export async function fetchRSSFromBlobStorage(
   }
 }
 
+// ============================================================================
+// SEMANTIC NEWS SEARCH (blob-backed vector search; no Azure AI Search needed)
+// ============================================================================
+
+export interface NewsSearchResultItem {
+  title: string
+  description: string
+  link: string
+  pubDate: string
+  score: number
+}
+
+export interface NewsSearchResponse {
+  query: string
+  company: string | null
+  method?: 'vector' | 'keyword'
+  model?: string
+  totalIndexed?: number
+  companiesSearched?: number
+  results: NewsSearchResultItem[]
+  message?: string
+}
+
+/**
+ * Semantic search over the cached company-news corpus via /api/news-search.
+ * Backed by text-embedding-3-large + blob storage (a low-cost alternative to
+ * Azure AI Search). Never throws on a recoverable failure — returns an empty
+ * result set with a diagnostic message instead.
+ *
+ * @param companyName - Scope the search to one company (omit for corpus-wide).
+ * @param query - The natural-language query to rank news by.
+ * @param options - apiEndpoint (default '/api') and k (max results, default 8).
+ */
+export async function searchCompanyNews(
+  companyName: string,
+  query: string,
+  options: { apiEndpoint?: string; k?: number } = {}
+): Promise<NewsSearchResponse> {
+  const apiEndpoint = options.apiEndpoint ?? '/api'
+  const k = options.k ?? 8
+  try {
+    const url = new URL(`${apiEndpoint}/news-search`, window.location.origin)
+    if (companyName?.trim()) url.searchParams.set('company', companyName.trim())
+    url.searchParams.set('q', query.trim())
+    url.searchParams.set('k', String(k))
+
+    const response = await fetch(url.toString())
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      const contentType = response.headers.get('content-type') || ''
+      const looksLikeHtml = contentType.includes('text/html') || /^\s*<(?:!doctype|html)/i.test(text)
+      const detail = looksLikeHtml ? 'The research backend is offline or not deployed.' : text.slice(0, 200).trim()
+      return {
+        query,
+        company: companyName?.trim() || null,
+        results: [],
+        message: `News search unavailable (HTTP ${response.status})${detail ? `. ${detail}` : ''}`,
+      }
+    }
+
+    const data = await response.json().catch(() => ({} as any))
+    return {
+      query: typeof data?.query === 'string' ? data.query : query,
+      company: typeof data?.company === 'string' ? data.company : (companyName?.trim() || null),
+      method: data?.method === 'vector' || data?.method === 'keyword' ? data.method : undefined,
+      model: typeof data?.model === 'string' ? data.model : undefined,
+      totalIndexed: typeof data?.totalIndexed === 'number' ? data.totalIndexed : undefined,
+      companiesSearched: typeof data?.companiesSearched === 'number' ? data.companiesSearched : undefined,
+      results: Array.isArray(data?.results) ? (data.results as NewsSearchResultItem[]) : [],
+      message: typeof data?.message === 'string' ? data.message : undefined,
+    }
+  } catch (error) {
+    console.error('Failed to search company news:', error)
+    return {
+      query,
+      company: companyName?.trim() || null,
+      results: [],
+      message: error instanceof Error ? error.message : 'Failed to search company news',
+    }
+  }
+}
+
 /**
  * Parse RSS XML content into feed items
  */

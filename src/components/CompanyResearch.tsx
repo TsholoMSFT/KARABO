@@ -33,11 +33,13 @@ import {
   generateResearchSummary,
   fetchRSSFromBlobStorage,
   rssItemsToText,
+  searchCompanyNews,
   getCategoryColor,
   SUGGESTED_RSS_FEEDS,
   fetchCompanyProfile,
   companyProfileToText,
-  type CompanyProfile
+  type CompanyProfile,
+  type NewsSearchResultItem
 } from '@/lib/company-research-service'
 
 interface CompanyResearchProps {
@@ -66,6 +68,11 @@ export function CompanyResearch({
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
   const [rssItems, setRssItems] = useState<RSSFeedItem[]>([])
   const [isLoadingRSS, setIsLoadingRSS] = useState(false)
+  const [newsQuery, setNewsQuery] = useState('')
+  const [newsResults, setNewsResults] = useState<NewsSearchResultItem[]>([])
+  const [isSearchingNews, setIsSearchingNews] = useState(false)
+  const [newsSearchMethod, setNewsSearchMethod] = useState<'vector' | 'keyword' | undefined>()
+  const [newsSearchMessage, setNewsSearchMessage] = useState('')
   const [profile, setProfile] = useState<CompanyProfile | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   const [profileMessage, setProfileMessage] = useState('')
@@ -190,6 +197,28 @@ export function CompanyResearch({
       toast.error('Failed to fetch RSS feeds')
     } finally {
       setIsLoadingRSS(false)
+    }
+  }
+
+  const handleSearchNews = async () => {
+    if (!newsQuery.trim()) return
+    if (!companyName.trim()) {
+      toast.error('Please enter a company name first')
+      return
+    }
+    setIsSearchingNews(true)
+    try {
+      const res = await searchCompanyNews(companyName, newsQuery, { k: 8 })
+      setNewsResults(res.results)
+      setNewsSearchMethod(res.method)
+      setNewsSearchMessage(res.message || '')
+      if (res.results.length === 0) {
+        toast.info(res.message || 'No matching news found')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'News search failed')
+    } finally {
+      setIsSearchingNews(false)
     }
   }
 
@@ -455,6 +484,65 @@ export function CompanyResearch({
                   )}
                   Fetch RSS
                 </Button>
+              </div>
+
+              {/* Semantic search over the cached news corpus (blob-backed vector search) */}
+              <div className="space-y-2 rounded-lg border p-3">
+                <div className="flex items-center gap-2">
+                  <MagnifyingGlass size={16} className="text-primary" />
+                  <p className="text-sm font-medium">Semantic news search</p>
+                  {newsSearchMethod && (
+                    <Badge variant="outline" className="ml-auto text-[10px] uppercase">
+                      {newsSearchMethod}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Rank cached news by meaning &mdash; e.g. &ldquo;AI data center deals&rdquo; or &ldquo;executive pay backlash&rdquo;.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={newsQuery}
+                    onChange={(e) => setNewsQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSearchNews() }}
+                    placeholder="Search company news by topic..."
+                    className="text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSearchNews}
+                    disabled={isSearchingNews || !newsQuery.trim() || !companyName.trim()}
+                  >
+                    {isSearchingNews ? (
+                      <SpinnerGap size={14} className="animate-spin" />
+                    ) : (
+                      <MagnifyingGlass size={14} />
+                    )}
+                  </Button>
+                </div>
+                {newsResults.length > 0 && (
+                  <div className="max-h-56 overflow-y-auto space-y-2 pt-1">
+                    {newsResults.map((r, i) => (
+                      <a
+                        key={i}
+                        href={r.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-2 border rounded hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium leading-snug">{r.title}</p>
+                          <Badge variant="secondary" className="shrink-0 text-[10px]">
+                            {Math.round(r.score * 100)}%
+                          </Badge>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {newsResults.length === 0 && newsSearchMessage && (
+                  <p className="text-xs text-muted-foreground">{newsSearchMessage}</p>
+                )}
               </div>
 
               {/* RSS Items Preview */}
