@@ -2,7 +2,7 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "metadata": {
-    "description": "KARABO filings watcher Logic App. On a recurrence, fetches filings-related signals (SEC filings / JSE SENS / results & trading statements) for a watchlist of companies and writes them as raw RSS/Atom XML into the 'filings' blob container as '{company}-filings-<timestamp>.xml', which the api/filings-feeds function reads as a warm cache (with a live SEC EDGAR + JSE fallback). It REUSES the existing 'azureblob' API connection already authorized for karabo-rss-monitor, so no new connection/secret is required."
+    "description": "KARABO filings watcher Logic App. On a recurrence, calls the app's own /api/filings-feeds?live=1 endpoint (real SEC EDGAR full-text + JSE/SENS, merged & deduped) for a watchlist of companies and writes the JSON into the 'filings' blob container as '{company}-filings-<timestamp>.json', which the api/filings-feeds function serves as a warm cache (with the same live path as fallback). Hardened with exponential HTTP retry, an action timeout, and a dead-letter scope that records failures to the 'filings-errors' container. REUSES the existing 'azureblob' API connection already authorized for karabo-rss-monitor, so no new connection/secret is required."
   },
   "parameters": {
     "companies": {
@@ -61,20 +61,43 @@
               "foreach": "@parameters('companies')",
               "runtimeConfiguration": { "concurrency": { "repetitions": 3 } },
               "actions": {
-                "HTTP": {
-                  "type": "Http",
-                  "inputs": {
-                    "method": "GET",
-                    "uri": "https://news.google.com/rss/search?q=@{encodeUriComponent(concat(items('For_Each_Company'), ' (SEC filing OR SENS OR annual results OR trading statement OR 8-K OR 10-K)'))}&hl=en-US&gl=US&ceid=US:en",
-                    "headers": {
-                      "User-Agent": "Mozilla/5.0 (compatible; KARABO/1.0; +https://karabo.app)",
-                      "Accept": "application/rss+xml, application/xml, text/xml, */*"
+                "Fetch_And_Store_Filings": {
+                  "type": "Scope",
+                  "actions": {
+                    "HTTP": {
+                      "type": "Http",
+                      "limit": { "timeout": "PT3M" },
+                      "inputs": {
+                        "method": "GET",
+                        "uri": "https://wonderful-ground-05f749f0f.7.azurestaticapps.net/api/filings-feeds?company=@{encodeUriComponent(items('For_Each_Company'))}&live=1",
+                        "headers": { "Accept": "application/json" },
+                        "retryPolicy": { "type": "exponential", "count": 4, "interval": "PT20S", "maximumInterval": "PT1H" }
+                      }
+                    },
+                    "Create_blob": {
+                      "type": "ApiConnection",
+                      "runAfter": { "HTTP": ["Succeeded"] },
+                      "inputs": {
+                        "host": {
+                          "connection": { "name": "@parameters('$connections')['azureblob']['connectionId']" }
+                        },
+                        "method": "post",
+                        "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
+                        "queries": {
+                          "folderPath": "/filings",
+                          "name": "@{replace(toLower(items('For_Each_Company')), ' ', '-')}-filings-@{utcNow('yyyy-MM-dd-HH-mm')}.json",
+                          "queryParametersSingleEncoded": true
+                        },
+                        "body": "@body('HTTP')",
+                        "headers": { "ReadFileMetadataFromServer": true }
+                      },
+                      "runtimeConfiguration": { "contentTransfer": { "transferMode": "Chunked" } }
                     }
                   }
                 },
-                "Create_blob": {
+                "Write_Error_Record": {
                   "type": "ApiConnection",
-                  "runAfter": { "HTTP": ["Succeeded"] },
+                  "runAfter": { "Fetch_And_Store_Filings": ["Failed", "TimedOut", "Skipped"] },
                   "inputs": {
                     "host": {
                       "connection": { "name": "@parameters('$connections')['azureblob']['connectionId']" }
@@ -82,11 +105,11 @@
                     "method": "post",
                     "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files",
                     "queries": {
-                      "folderPath": "/filings",
-                      "name": "@{replace(toLower(items('For_Each_Company')), ' ', '-')}-filings-@{utcNow('yyyy-MM-dd-HH-mm')}.xml",
+                      "folderPath": "/filings-errors",
+                      "name": "@{replace(toLower(items('For_Each_Company')), ' ', '-')}-error-@{utcNow('yyyy-MM-dd-HH-mm')}.json",
                       "queryParametersSingleEncoded": true
                     },
-                    "body": "@body('HTTP')",
+                    "body": "@{string(result('Fetch_And_Store_Filings'))}",
                     "headers": { "ReadFileMetadataFromServer": true }
                   },
                   "runtimeConfiguration": { "contentTransfer": { "transferMode": "Chunked" } }

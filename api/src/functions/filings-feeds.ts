@@ -200,6 +200,12 @@ async function filingsFeedsHandler(req: HttpRequest, context: InvocationContext)
     }
   };
 
+  // Explicit cache bypass: the filings-monitor Logic App calls this with ?live=1 to
+  // refresh the warm cache from the high-quality SEC EDGAR + JSE path; callers may also
+  // use it to force fresh data.
+  const forceLive = ["1", "true", "yes"].includes((req.query.get("live") || "").trim().toLowerCase());
+  if (forceLive) return liveFallback("Live filings (cache bypassed).");
+
   // No storage configured → straight to live.
   if (!conn) return liveFallback("Filings storage not configured; using live SEC EDGAR + JSE.");
 
@@ -236,8 +242,8 @@ async function filingsFeedsHandler(req: HttpRequest, context: InvocationContext)
 
     const dl = await container.getBlobClient(latest.name).download();
     if (!dl.readableStreamBody) return liveFallback("Cached filings blob was empty; using live SEC EDGAR + JSE.");
-    const xml = await streamToString(dl.readableStreamBody);
-    const items = parseRSSItems(xml);
+    const raw = await streamToString(dl.readableStreamBody);
+    const items = parseFilingsBlob(raw);
 
     if (items.length === 0) {
       return liveFallback("Cached filings blob had no parsable items; using live SEC EDGAR + JSE.");
@@ -255,6 +261,34 @@ async function filingsFeedsHandler(req: HttpRequest, context: InvocationContext)
     context.error("filings-feeds error (falling back to live):", error);
     return liveFallback(`Filings read failed: ${safeErrorMessage(error, "unknown")}`);
   }
+}
+
+/**
+ * Parse a cached filings blob into items. New blobs (written by the
+ * filings-monitor Logic App via /api/filings-feeds?live=1) are JSON of the form
+ * { items: RSSItem[] }; legacy blobs are raw RSS/Atom XML. Handle both.
+ */
+function parseFilingsBlob(raw: string): RSSItem[] {
+  const trimmed = (raw || "").trimStart();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(raw);
+      const arr = Array.isArray(parsed) ? parsed : parsed?.items;
+      if (Array.isArray(arr)) {
+        return arr
+          .filter((it: any) => it && (it.title || it.link))
+          .map((it: any) => ({
+            title: String(it.title ?? ""),
+            description: String(it.description ?? ""),
+            link: String(it.link ?? ""),
+            pubDate: String(it.pubDate ?? ""),
+          }));
+      }
+    } catch {
+      /* not JSON — fall through to XML parsing */
+    }
+  }
+  return parseRSSItems(raw);
 }
 
 app.http("filings-feeds", {
