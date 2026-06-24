@@ -48,28 +48,70 @@ async function fetchWithTimeout(url: string, headers: Record<string, string>): P
   }
 }
 
+const SEC_UA = "KARABO-Research/1.0 (research@karabo.app)";
+
 /**
- * Live US filings via the SEC EDGAR full-text search API (efts.sec.gov), which
- * returns real filings (form type, filer, date, accession) instead of the
- * company-search disambiguation rows that `browse-edgar` yields. Results are
- * narrowed to filers whose name matches the query so unrelated co-mentions are
- * excluded, and collapsed to one row per filing (the raw feed has one hit per
- * document/exhibit within a filing).
+ * Resolve a company name to its primary SEC CIK using the EDGAR full-text entity
+ * aggregation (a tiny hits=1 request that still returns the full entity buckets,
+ * ranked by filing count). The dominant bucket whose name matches the query is
+ * the company's own registrant entity — far more reliable than relevance-ranking
+ * raw full-text hits, which for common names is dominated by other filers.
+ */
+async function resolveSecCik(
+  company: string,
+  context: InvocationContext,
+): Promise<{ cik: string; name: string } | null> {
+  const url = `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(`"${company}"`)}&hits=1`;
+  let raw: string;
+  try {
+    raw = await fetchWithTimeout(url, { "User-Agent": SEC_UA, Accept: "application/json" });
+  } catch (e: any) {
+    context.warn(`filings: SEC CIK lookup failed: ${e?.message ?? "unknown"}`);
+    return null;
+  }
+  let data: any;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const buckets = data?.aggregations?.entity_filter?.buckets;
+  if (!Array.isArray(buckets)) return null;
+  const lc = company.toLowerCase();
+  // Buckets are ordered by filing count desc; pick the first whose name matches the query.
+  for (const b of buckets) {
+    const key = String(b?.key || "");
+    if (!key.toLowerCase().includes(lc)) continue;
+    const m = key.match(/CIK\s+(\d{6,10})/i);
+    if (m) {
+      const name = key.replace(/\s*\(CIK\s+\d+\)\s*$/i, "").replace(/\s+/g, " ").trim();
+      return { cik: m[1].replace(/^0+/, ""), name };
+    }
+  }
+  return null;
+}
+
+/**
+ * Live US filings for a company, resolved authoritatively: name → CIK (EDGAR
+ * full-text entity aggregation) → the company's own most-recent filings (EDGAR
+ * submissions API). This avoids the relevance noise of a raw full-text search,
+ * which for common names (e.g. "Microsoft") is dominated by *other* filers that
+ * merely mention the company.
  */
 async function fetchSecFilings(company: string, context: InvocationContext): Promise<RSSItem[]> {
-  const url = `https://efts.sec.gov/LATEST/search-index?q=${encodeURIComponent(
-    `"${company}"`,
-  )}&forms=10-K,10-Q,8-K,20-F,6-K,40-F`;
+  const resolved = await resolveSecCik(company, context);
+  if (!resolved) return [];
+  const { cik, name } = resolved;
+  const cik10 = cik.padStart(10, "0");
 
   let raw: string;
   try {
-    // SEC requires a descriptive User-Agent with contact info.
-    raw = await fetchWithTimeout(url, {
-      "User-Agent": "KARABO-Research/1.0 (research@karabo.app)",
+    raw = await fetchWithTimeout(`https://data.sec.gov/submissions/CIK${cik10}.json`, {
+      "User-Agent": SEC_UA,
       Accept: "application/json",
     });
   } catch (e: any) {
-    context.warn(`filings: SEC EDGAR fetch failed: ${e?.message ?? "unknown"}`);
+    context.warn(`filings: SEC submissions fetch failed: ${e?.message ?? "unknown"}`);
     return [];
   }
 
@@ -77,55 +119,42 @@ async function fetchSecFilings(company: string, context: InvocationContext): Pro
   try {
     data = JSON.parse(raw);
   } catch {
-    context.warn("filings: SEC EDGAR returned non-JSON");
     return [];
   }
 
-  const hits = data?.hits?.hits;
-  if (!Array.isArray(hits)) return [];
+  const recent = data?.filings?.recent;
+  if (!recent || !Array.isArray(recent.accessionNumber)) return [];
 
-  const lc = company.toLowerCase();
-  const seenAccession = new Set<string>();
-  const items: RSSItem[] = [];
+  const filerName = String(data?.name || name || company);
+  const wanted = new Set([
+    "10-K", "10-K/A", "10-Q", "10-Q/A", "8-K", "8-K/A", "20-F", "20-F/A", "6-K", "40-F",
+  ]);
 
-  for (const hit of hits) {
-    const s = hit?._source;
-    if (!s) continue;
+  const forms: string[] = recent.form || [];
+  const dates: string[] = recent.filingDate || [];
+  const accns: string[] = recent.accessionNumber || [];
+  const descs: string[] = recent.primaryDocDescription || [];
+  const reportItems: string[] = recent.items || [];
 
-    const rawName =
-      Array.isArray(s.display_names) && s.display_names.length ? String(s.display_names[0]) : "";
-    // Precision: keep only filings whose filer name matches the queried company.
-    if (lc && rawName && !rawName.toLowerCase().includes(lc)) continue;
-
-    const adsh = String(s.adsh || (typeof hit._id === "string" ? hit._id.split(":")[0] : "")).trim();
-    if (!adsh || seenAccession.has(adsh)) continue; // one row per filing, not per exhibit
-    seenAccession.add(adsh);
-
-    const form = String(s.form || (Array.isArray(s.root_forms) && s.root_forms[0]) || "Filing").trim();
-    const fileDate = String(s.file_date || "").trim();
-    const cleanName = rawName.replace(/\s*\(CIK\s*\d+\)\s*$/i, "").replace(/\s+/g, " ").trim();
-    const cik = Array.isArray(s.ciks) && s.ciks.length ? String(s.ciks[0]).replace(/^0+/, "") : "";
-    const adshNoDash = adsh.replace(/-/g, "");
-    const link =
-      cik && adshNoDash
-        ? `https://www.sec.gov/Archives/edgar/data/${cik}/${adshNoDash}/${adsh}-index.htm`
-        : `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cik || encodeURIComponent(company)}&type=&dateb=&owner=include&count=40`;
-
+  const out: RSSItem[] = [];
+  for (let i = 0; i < accns.length && out.length < 25; i++) {
+    const form = String(forms[i] || "");
+    if (!wanted.has(form)) continue;
+    const accn = String(accns[i] || "");
+    if (!accn) continue;
+    const accnNoDash = accn.replace(/-/g, "");
+    const date = String(dates[i] || "");
     const descParts: string[] = [];
-    if (s.file_description) descParts.push(String(s.file_description));
-    if (Array.isArray(s.items) && s.items.length) descParts.push(`Items ${s.items.join(", ")}`);
-
-    items.push({
-      title: `[SEC] ${form}${cleanName ? ` \u2014 ${cleanName}` : ""}`,
+    if (descs[i]) descParts.push(String(descs[i]));
+    if (reportItems[i]) descParts.push(`Items ${reportItems[i]}`);
+    out.push({
+      title: `[SEC] ${form} \u2014 ${filerName}`,
       description: descParts.join(" \u00b7 ") || `${form} filing`,
-      link,
-      pubDate: fileDate ? new Date(`${fileDate}T00:00:00Z`).toUTCString() : "",
+      link: `https://www.sec.gov/Archives/edgar/data/${cik}/${accnNoDash}/${accn}-index.htm`,
+      pubDate: date ? new Date(`${date}T00:00:00Z`).toUTCString() : "",
     });
-
-    if (items.length >= 25) break;
   }
-
-  return items;
+  return out;
 }
 
 /** Fetch live filings: SEC EDGAR full-text (official US) + a JSE/SENS Google-News proxy (South Africa). */

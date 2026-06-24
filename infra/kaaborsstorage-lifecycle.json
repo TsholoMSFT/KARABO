@@ -1,0 +1,26 @@
+{
+  "rules": [
+    {
+      "enabled": true,
+      "name": "expire-feed-snapshots",
+      "type": "Lifecycle",
+      "definition": {
+        "actions": {
+          "baseBlob": {
+            "delete": { "daysAfterModificationGreaterThan": 45 }
+          }
+        },
+        "filters": {
+          "blobTypes": ["blockBlob"],
+          "prefixMatch": [
+            "rss-feeds/",
+            "filings/",
+            "filings-errors/",
+            "regulatory-feeds/",
+            "news-index/"
+          ]
+        }
+      }
+    }
+  ]
+}
