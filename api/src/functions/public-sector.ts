@@ -184,16 +184,30 @@ const GOV_KEYWORDS =
   /(government|agency|department|ministry|municipal|provincial|state[- ]owned|parastatal|public (?:body|entity|service|sector|institution)|revenue service|authority|commission|legislature|metropolitan)/i;
 
 async function detectEntityType(entity: string): Promise<{ label?: string; isPublicSector: boolean }> {
-  const searchUrl =
-    `https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=en&type=item&limit=1&origin=*` +
-    `&search=${encodeURIComponent(entity)}`;
-  const sdata = await fetchJson(searchUrl, { "User-Agent": UA });
-  const top = sdata?.search?.[0];
-  if (!top?.id) return { isPublicSector: false };
+  const search = async (term: string): Promise<any[]> => {
+    const url =
+      `https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&language=en&type=item&limit=7&origin=*` +
+      `&search=${encodeURIComponent(term)}`;
+    const data = await fetchJson(url, { "User-Agent": UA });
+    return Array.isArray(data?.search) ? data.search : [];
+  };
+  const isGov = (c: any) => GOV_KEYWORDS.test(`${c?.description || ""} ${c?.label || ""}`);
 
-  const entUrl = `https://www.wikidata.org/wiki/Special:EntityData/${top.id}.json`;
+  // Acronyms collide on Wikidata (e.g. SARS = disease, SASSA = surname), so when
+  // no candidate looks public-sector and the name reads like an acronym/short
+  // form, retry with an SA-scoped query to surface the actual government entity.
+  let candidates = await search(entity);
+  const looksAcronym = /^[A-Z0-9&.\- ]{2,8}$/.test(entity) || entity.length <= 6;
+  if (!candidates.some(isGov) && looksAcronym) {
+    candidates = [...candidates, ...(await search(`${entity} South Africa`))];
+  }
+
+  const chosen = candidates.find(isGov) || candidates[0];
+  if (!chosen?.id) return { isPublicSector: false };
+
+  const entUrl = `https://www.wikidata.org/wiki/Special:EntityData/${chosen.id}.json`;
   const edata = await fetchJson(entUrl, { "User-Agent": UA });
-  const claims = edata?.entities?.[top.id]?.claims || {};
+  const claims = edata?.entities?.[chosen.id]?.claims || {};
   const p31: string[] = (claims.P31 || [])
     .map((c: any) => c?.mainsnak?.datavalue?.value?.id)
     .filter((x: any): x is string => typeof x === "string");
@@ -209,8 +223,8 @@ async function detectEntityType(entity: string): Promise<{ label?: string; isPub
 
   // Prefer the first "instance of" label that reads as public-sector; else the first.
   const govLabel = labels.find((l) => GOV_KEYWORDS.test(l));
-  const label = govLabel || labels[0] || top.description;
-  const isPublicSector = GOV_KEYWORDS.test(`${labels.join(" ")} ${top.description || ""}`);
+  const label = govLabel || labels[0] || chosen.description;
+  const isPublicSector = GOV_KEYWORDS.test(`${labels.join(" ")} ${chosen.description || ""}`);
   return { label, isPublicSector };
 }
 
