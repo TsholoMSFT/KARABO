@@ -157,39 +157,88 @@ async function fetchSecFilings(company: string, context: InvocationContext): Pro
   return out;
 }
 
-/** Fetch live filings: SEC EDGAR full-text (official US) + a JSE/SENS Google-News proxy (South Africa). */
-async function fetchLiveFilings(company: string, context: InvocationContext): Promise<RSSItem[]> {
-  const jseUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(
-    `${company} SENS JSE announcement`,
-  )}&hl=en-ZA&gl=ZA&ceid=ZA:en`;
+/** SENS-style announcement type inferred from a JSE / South-African headline. */
+function classifySens(title: string): string {
+  const t = title.toLowerCase();
+  if (/\btrading statement\b/.test(t)) return "Trading Statement";
+  if (/\btrading update\b/.test(t)) return "Trading Update";
+  if (/\bcautionary\b/.test(t)) return "Cautionary";
+  if (/\bdividend\b|\bdistribution\b/.test(t)) return "Dividend";
+  if (/\bresults\b|\bheadline earnings\b|\bswings? to\b|\b(interim|final|annual|half[- ]?year|full[- ]?year|quarterly)\b/.test(t)) return "Results";
+  if (/\b(acquisition|acquires?|disposal|merger|buyout|take[- ]?over|unbundl|scheme of arrangement)\b/.test(t)) return "Corporate Action";
+  if (/\b(director|board|ceo|cfo|chair|appoint|resign|retire|steps? down)\b/.test(t)) return "Directorate";
+  if (/\b(agm|annual general meeting|circular|prospectus)\b/.test(t)) return "Notice";
+  if (/\bsens\b/.test(t)) return "SENS";
+  return "";
+}
 
-  const [secRes, jseRes] = await Promise.allSettled([
-    fetchSecFilings(company, context),
-    fetchWithTimeout(jseUrl, {
+// Corporate suffixes/stopwords dropped when matching a company name in a headline.
+const JSE_STOPWORDS = new Set([
+  "group", "holdings", "limited", "ltd", "plc", "inc", "incorporated",
+  "corporation", "corp", "company", "the", "and", "of", "sa",
+]);
+
+/**
+ * Live JSE / SENS-style announcements for a (typically South-African) company via a
+ * ZA-scoped Google-News query targeting SENS announcement types, then narrowed to
+ * headlines that actually name the company and tagged with the detected SENS type.
+ * Authoritative SENS documents sit behind the JSE's paid feed, so this is the best
+ * free proxy; dual-listed SA issuers also surface via the SEC 6-K/20-F path.
+ */
+async function fetchJseFilings(company: string, context: InvocationContext): Promise<RSSItem[]> {
+  const query =
+    `"${company}" (SENS OR "trading statement" OR "trading update" OR "interim results" OR ` +
+    `"final results" OR "annual results" OR "results presentation" OR cautionary OR dividend OR ` +
+    `acquisition OR disposal OR "director dealings")`;
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-ZA&gl=ZA&ceid=ZA:en`;
+
+  let xml: string;
+  try {
+    xml = await fetchWithTimeout(url, {
       "User-Agent": "Mozilla/5.0 (compatible; KARABO/1.0; +https://karabo.app)",
       Accept: "application/rss+xml, application/xml, text/xml, */*",
-    }),
+    });
+  } catch (e: any) {
+    context.warn(`filings: JSE fetch failed: ${e?.message ?? "unknown"}`);
+    return [];
+  }
+
+  // Distinctive company tokens a relevant headline must contain (drops generic JSE noise).
+  const tokens = company
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 2 && !JSE_STOPWORDS.has(w));
+
+  const items: RSSItem[] = [];
+  try {
+    for (const it of parseRSSItems(xml)) {
+      const titleLc = it.title.toLowerCase();
+      if (tokens.length > 0 && !tokens.every((tok) => titleLc.includes(tok))) continue;
+      const type = classifySens(it.title);
+      items.push({
+        ...it,
+        title: it.title.startsWith("[") ? it.title : `[JSE] ${it.title}`,
+        description: type ? `SENS \u00b7 ${type}` : "JSE / SENS announcement",
+      });
+    }
+  } catch (e: any) {
+    context.warn(`filings: JSE parse failed: ${e?.message ?? "unknown"}`);
+  }
+  return items;
+}
+
+/** Fetch live filings: SEC EDGAR (US + SA dual-listings) + JSE/SENS proxy (South Africa). */
+async function fetchLiveFilings(company: string, context: InvocationContext): Promise<RSSItem[]> {
+  const [secRes, jseRes] = await Promise.allSettled([
+    fetchSecFilings(company, context),
+    fetchJseFilings(company, context),
   ]);
 
   const items: RSSItem[] = [];
-
-  if (secRes.status === "fulfilled") {
-    items.push(...secRes.value);
-  } else {
-    context.warn(`filings: SEC fetch failed: ${secRes.reason?.message ?? "unknown"}`);
-  }
-
-  if (jseRes.status === "fulfilled") {
-    try {
-      for (const it of parseRSSItems(jseRes.value)) {
-        items.push({ ...it, title: it.title.startsWith("[") ? it.title : `[JSE] ${it.title}` });
-      }
-    } catch (e: any) {
-      context.warn(`filings: JSE parse failed: ${e?.message ?? "unknown"}`);
-    }
-  } else {
-    context.warn(`filings: JSE fetch failed: ${jseRes.reason?.message ?? "unknown"}`);
-  }
+  if (secRes.status === "fulfilled") items.push(...secRes.value);
+  else context.warn(`filings: SEC fetch failed: ${secRes.reason?.message ?? "unknown"}`);
+  if (jseRes.status === "fulfilled") items.push(...jseRes.value);
+  else context.warn(`filings: JSE fetch failed: ${jseRes.reason?.message ?? "unknown"}`);
 
   // De-dupe by link.
   const seen = new Set<string>();
