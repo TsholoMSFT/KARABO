@@ -466,6 +466,9 @@ export interface UseCase {
     effort: number
   }
   kpis?: string[]
+  // Business function / department this use case primarily serves (Discovery dept dimension)
+  businessFunction?: BusinessFunction
+  secondaryBusinessFunctions?: BusinessFunction[]
   // AI Regulations & Cybersecurity (footnote-level considerations)
   aiRegulations?: AIRegulationsInfo
   cybersecurity?: CybersecurityInfo
@@ -2320,6 +2323,82 @@ export type Industry =
   | 'telecommunications'
   | 'technology-software'
 
+/**
+ * Horizontal business-function / department groups. A second discovery
+ * dimension alongside Industry: industry says WHAT the company does, business
+ * function says WHICH part of the organisation a use case serves.
+ */
+export type BusinessFunctionGroup =
+  | 'enterprise-wide'
+  | 'finance-accounting'
+  | 'people-hr'
+  | 'risk-legal-governance'
+  | 'sales-marketing-customer'
+  | 'operations-supply-chain'
+  | 'technology-data'
+  | 'corporate-strategy'
+
+/**
+ * Cross-industry business functions / departments (e.g. Finance, HR, Risk
+ * Assurance, Procurement). `cross-functional` is the explicit enterprise-wide
+ * choice; leaving the field undefined also means enterprise-wide / unscoped.
+ */
+export type BusinessFunction =
+  // Finance & Accounting
+  | 'finance'
+  | 'accounting-controllership'
+  | 'fp-and-a'
+  | 'treasury'
+  | 'tax'
+  | 'accounts-payable'
+  | 'accounts-receivable'
+  | 'investor-relations'
+  // People & HR
+  | 'human-resources'
+  | 'talent-acquisition'
+  | 'learning-development'
+  | 'compensation-payroll'
+  | 'hr-operations'
+  // Risk, Audit, Legal & Governance
+  | 'risk-management'
+  | 'internal-audit'
+  | 'legal'
+  | 'compliance'
+  | 'corporate-governance'
+  | 'data-privacy'
+  | 'fraud-financial-crime'
+  // Sales, Marketing & Customer
+  | 'sales'
+  | 'sales-operations'
+  | 'marketing'
+  | 'customer-success'
+  | 'customer-service'
+  | 'product-management'
+  // Operations & Supply Chain
+  | 'operations'
+  | 'supply-chain'
+  | 'procurement'
+  | 'manufacturing'
+  | 'quality'
+  | 'field-service'
+  // Technology & Data
+  | 'it'
+  | 'software-engineering'
+  | 'data-analytics'
+  | 'information-security'
+  | 'enterprise-architecture'
+  | 'it-service-management'
+  // Corporate & Strategy
+  | 'executive-leadership'
+  | 'corporate-strategy'
+  | 'transformation-pmo'
+  | 'corporate-communications'
+  | 'facilities-realestate'
+  | 'ehs-sustainability'
+  | 'research-development'
+  // Enterprise-wide / cross-functional
+  | 'cross-functional'
+
 export type DiscoverySessionCreationSource =
   | 'discovery'
   | 'skip-to-use-cases'
@@ -2333,6 +2412,7 @@ export interface DiscoveryQuestion {
   category: 'business' | 'technical' | 'users' | 'challenges'
   placeholder?: string
   industries?: Industry[]
+  businessFunctions?: BusinessFunction[]  // Show only for these functions (mirrors `industries`)
   isFollowUp?: boolean
   parentQuestionId?: string
   inputType?: 'text' | 'ranking'
@@ -2354,6 +2434,8 @@ export interface DiscoverySession {
   innovationHubSPOC?: string
   name: string
   industry?: Industry
+  businessFunctions?: BusinessFunction[] // Target departments/functions (empty = enterprise-wide)
+  businessUnitLabel?: string             // Optional free-text division/BU (e.g. "Personal & Business Banking")
   isDemo?: boolean  // Flag to identify demo sessions
   innovationHubLocation: string
   solutionEngineer: string
