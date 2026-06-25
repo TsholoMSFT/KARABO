@@ -101,4 +101,23 @@ describe('scoring — de-inflated and not dropped on unverifiable numbers', () =
     const ranked = getRankedUseCases([bWeak, aStrong], 'financial-impact')
     expect(ranked[0].id).toBe('a')
   })
+
+  it("'blended' ranking sorts by blended score and breaks ties deterministically", () => {
+    const strongNoMoney = uc({ id: 'strong', impact: 9, feasibility: 9, createdAt: 9 })
+    const weakBigUnverified = uc({
+      id: 'weak',
+      impact: 2,
+      feasibility: 2,
+      createdAt: 2,
+      expectedValue: { totalAnnualValue: 5_000_000, confidence: 'low' },
+    })
+    const ranked = getRankedUseCases([weakBigUnverified, strongNoMoney], 'blended')
+    expect(ranked[0].id).toBe('strong')
+
+    // Two identical-merit use cases tie on score -> older (smaller createdAt) wins.
+    const tieOld = uc({ id: 'old', impact: 5, feasibility: 5, createdAt: 1 })
+    const tieNew = uc({ id: 'new', impact: 5, feasibility: 5, createdAt: 9 })
+    const tieRanked = getRankedUseCases([tieNew, tieOld], 'blended')
+    expect(tieRanked[0].id).toBe('old')
+  })
 })

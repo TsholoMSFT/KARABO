@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf'
 import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData, ENGAGEMENT_DEFAULTS, AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG, RESPONSIBLE_AI_PRINCIPLE_LABELS } from './types'
 import type { AIGovernanceAssessment, SovereignCloudAssessment } from './types'
-import { calculateRICEScore, getQuadrant } from './scoring'
+import { calculateBlendedScore, calculateRICEScore, calculateRiskAdjustedFinancial, getQuadrant } from './scoring'
 import { getKPIById } from './kpis'
 import { DISCLAIMERS, getPolicyById } from './ai-policies'
 import { REFERENCE_ARCHITECTURES } from './microsoft-solutions'
@@ -127,7 +127,7 @@ export async function exportToPDF(
   doc.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, pageWidth / 2, y, { align: 'center' })
   y += 4
   doc.text(
-    `Scoring Method: ${scoringMethod === 'rice' ? 'RICE' : scoringMethod === 'financial-impact' ? 'Financial Impact' : 'Impact vs. Feasibility'}`,
+    `Scoring Method: ${scoringMethod === 'rice' ? 'RICE' : scoringMethod === 'blended' ? 'Balanced' : scoringMethod === 'financial-impact' ? 'Financial Impact' : 'Impact vs. Feasibility'}`,
     pageWidth / 2,
     y,
     { align: 'center' }
@@ -793,6 +793,18 @@ export async function exportToPDF(
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
       doc.text(`Impact: ${useCase.impact}/10 | Feasibility: ${useCase.feasibility}/10`, margin + 8, y)
+    } else if (scoringMethod === 'blended') {
+      const balanced = calculateBlendedScore(useCase)
+      const riskAdjusted = calculateRiskAdjustedFinancial(useCase)
+
+      doc.setFillColor(240, 240, 250)
+      doc.roundedRect(margin + 5, y - 3, pageWidth - 2 * margin - 10, 18, 2, 2, 'F')
+
+      doc.text(`Balanced Score: ${balanced.toFixed(1)}`, margin + 8, y + 2)
+      y += 7
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.text(`Impact: ${useCase.impact}/10 | Feasibility: ${useCase.feasibility}/10 | Risk-adjusted value: ${formatCurrency(riskAdjusted)}/yr`, margin + 8, y)
     } else {
       const coi = useCase.costOfInaction?.totalAnnualCOI || 0
       const ev = useCase.expectedValue?.totalAnnualValue || 0
@@ -937,6 +949,14 @@ export async function exportToPDF(
         const combinedScore = useCase.impact * useCase.feasibility
         doc.text(
           `Score: ${combinedScore.toFixed(1)} | Impact: ${useCase.impact}/10 | Feasibility: ${useCase.feasibility}/10`,
+          margin + 3,
+          y
+        )
+      } else if (scoringMethod === 'blended') {
+        const balanced = calculateBlendedScore(useCase)
+        const riskAdjusted = calculateRiskAdjustedFinancial(useCase)
+        doc.text(
+          `Balanced: ${balanced.toFixed(1)} | Impact: ${useCase.impact}/10 | Feasibility: ${useCase.feasibility}/10 | Risk-adj: ${formatCurrency(riskAdjusted)}/yr`,
           margin + 3,
           y
         )

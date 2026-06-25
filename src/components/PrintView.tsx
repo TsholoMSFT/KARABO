@@ -84,7 +84,7 @@ export function PrintView({
             </h1>
             <p className="text-muted-foreground">
               Generated on {new Date().toLocaleDateString()} using{' '}
-              {scoringMethod === 'rice' ? 'RICE' : 'Impact/Feasibility'} scoring
+              {scoringMethod === 'rice' ? 'RICE' : scoringMethod === 'blended' ? 'Balanced' : 'Impact/Feasibility'} scoring
             </p>
           </header>
 

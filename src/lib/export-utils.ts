@@ -129,7 +129,7 @@ export function exportToExcel(
   }
   summaryRows.push([cell('Assessment Summary', String, { fontWeight: 'bold' })])
   summaryRows.push([cell('', String)])
-  summaryRows.push([cell('Scoring Method:', String), cell(scoringMethod === 'rice' ? 'RICE Framework' : 'Impact/Feasibility Matrix', String)])
+  summaryRows.push([cell('Scoring Method:', String), cell(scoringMethod === 'rice' ? 'RICE Framework' : scoringMethod === 'blended' ? 'Balanced (Strategic + Risk-Adjusted)' : scoringMethod === 'financial-impact' ? 'Financial Impact' : 'Impact/Feasibility Matrix', String)])
   summaryRows.push([cell('Total Use Cases:', String), cell(useCases.length, Number)])
   summaryRows.push([cell('Export Date:', String), cell(new Date().toISOString().split('T')[0], String)])
   summaryRows.push([cell('Effort Unit:', String), cell(effortUnit, String)])

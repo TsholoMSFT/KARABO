@@ -2302,7 +2302,7 @@ export interface BusinessEnvisioningData {
   }
 }
 
-export type ScoringMethod = 'impact-feasibility' | 'rice' | 'financial-impact'
+export type ScoringMethod = 'impact-feasibility' | 'rice' | 'financial-impact' | 'blended'
 
 export interface RICEScore {
   score: number

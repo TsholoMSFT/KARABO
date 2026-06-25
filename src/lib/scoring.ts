@@ -72,6 +72,15 @@ export function getRankedUseCases(
     })
   }
 
+  if (method === 'blended') {
+    return [...useCases].sort((a, b) => {
+      const scoreA = calculateBlendedScore(a)
+      const scoreB = calculateBlendedScore(b)
+      if (scoreB === scoreA) return a.createdAt - b.createdAt
+      return scoreB - scoreA
+    })
+  }
+
   return [...useCases].sort((a, b) => {
     const scoreA = calculateRICEScore(a)
     const scoreB = calculateRICEScore(b)

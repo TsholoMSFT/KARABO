@@ -23,7 +23,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar, ShieldCheck, Calculator } from '@phosphor-icons/react'
+import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar, ShieldCheck, Calculator, Scales } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Footer } from '@/components/ui/footer'
@@ -179,7 +179,7 @@ function App() {
     stockTicker?: string
   } | null>('discovery-draft', null)
   
-  const [scoringMethod, setScoringMethod] = useState<ScoringMethod>('impact-feasibility')
+  const [scoringMethod, setScoringMethod] = useState<ScoringMethod>('blended')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [tableExportOpen, setTableExportOpen] = useState(false)
   const [sessionManagerOpen, setSessionManagerOpen] = useState(false)
@@ -1523,7 +1523,12 @@ function App() {
                       onValueChange={(value) => setScoringMethod(value as ScoringMethod)}
                       className="w-full sm:w-auto"
                     >
-                      <TabsList className="grid w-full sm:w-auto grid-cols-3">
+                      <TabsList className="grid w-full sm:w-auto grid-cols-4">
+                        <TabsTrigger value="blended" className="gap-2">
+                          <Scales size={18} />
+                          <span className="hidden sm:inline">Balanced</span>
+                          <span className="sm:hidden">Bal</span>
+                        </TabsTrigger>
                         <TabsTrigger value="impact-feasibility" className="gap-2">
                           <ChartScatter size={18} />
                           <span className="hidden sm:inline">Impact/Feasibility</span>
@@ -1587,6 +1592,31 @@ function App() {
                 />
 
                 <AnimatePresence mode="wait">
+                  {scoringMethod === 'blended' && (
+                    <motion.div
+                      key="blended"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.4, ease: 'easeInOut' }}
+                    >
+                      <div className="bg-muted/30 rounded-lg border border-border p-5">
+                        <div className="flex items-start gap-3">
+                          <Scales size={22} className="text-primary mt-0.5 flex-shrink-0" />
+                          <div className="space-y-1">
+                            <h3 className="text-lg font-semibold text-foreground">Balanced ranking</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Use cases are ordered by strategic merit (impact, feasibility, alignment, and KPI coverage)
+                              plus a risk-adjusted, log-scaled financial nudge. Large or hard-to-verify dollar figures can’t
+                              dominate, so a strong use case is never dropped just because its numbers are difficult to prove.
+                              See the full order in <span className="font-medium text-foreground">All Use Cases</span> below.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
                   {scoringMethod === 'impact-feasibility' && (
                     <motion.div
                       key="impact-feasibility"

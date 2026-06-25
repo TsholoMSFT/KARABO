@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Sparkle, TrendUp, Lightning, Calculator, CurrencyDollar, TreeStructure, Eye } from '@phosphor-icons/react'
-import { calculateFinancialImpactScore, calculateRICEScore, getQuadrant } from '@/lib/scoring'
+import { calculateBlendedScore, calculateFinancialImpactScore, calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 
@@ -96,14 +96,16 @@ export function TopRecommendations({
               ? calculateRICEScore(useCase)
               : scoringMethod === 'impact-feasibility'
                 ? useCase.impact * useCase.feasibility
-                : calculateFinancialImpactScore(useCase)
+                : scoringMethod === 'blended'
+                  ? calculateBlendedScore(useCase)
+                  : calculateFinancialImpactScore(useCase)
 
             const quadrant = getQuadrant(useCase.impact, useCase.feasibility)
             const isQuickWin = quadrant === 'Quick Wins'
             const disposition = useCase.disposition ?? 'pursue'
             const isDeferred = disposition === 'defer'
             const isNoGo = disposition === 'no-go'
-            const scoreLabel = scoringMethod === 'rice' ? 'RICE' : scoringMethod === 'impact-feasibility' ? 'Score' : 'Impact'
+            const scoreLabel = scoringMethod === 'rice' ? 'RICE' : scoringMethod === 'impact-feasibility' ? 'Score' : scoringMethod === 'blended' ? 'Balanced' : 'Impact'
 
             return (
               <motion.div
