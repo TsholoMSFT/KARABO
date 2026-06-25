@@ -17,6 +17,8 @@ import { downloadMarkdown, downloadDocxFromMarkdown, artifactFilename } from '@/
 import { AgendaBuilderDialog, type EngagementToolContext } from '@/components/engagement/AgendaBuilderDialog'
 import { FollowupEmailDialog } from '@/components/engagement/FollowupEmailDialog'
 import { ArchitectureDiagramDialog } from '@/components/engagement/ArchitectureDiagramDialog'
+import { TimelineGeneratorDialog } from '@/components/engagement/TimelineGeneratorDialog'
+import { CloseoutDialog } from '@/components/engagement/CloseoutDialog'
 
 interface EngagementHubProps {
   customerName?: string
@@ -39,8 +41,8 @@ interface ToolDef {
 const TOOLS: ToolDef[] = [
   { kind: 'agenda', label: 'Agenda Builder', description: 'Time-boxed session agenda from notes / transcript', icon: <CalendarBlank size={22} weight="duotone" />, status: 'ready' },
   { kind: 'email', label: 'Follow-up Email', description: 'Audience-calibrated recap email', icon: <EnvelopeSimple size={22} weight="duotone" />, status: 'ready' },
-  { kind: 'timeline', label: 'Task Timeline', description: 'T-28 → T+3 plan, Planner-ready CSV', icon: <ListChecks size={22} weight="duotone" />, status: 'soon' },
-  { kind: 'closeout', label: 'Closeout / Debrief', description: 'Decisions, actions, risks, next steps', icon: <ClipboardText size={22} weight="duotone" />, status: 'soon' },
+  { kind: 'timeline', label: 'Task Timeline', description: 'T-28 → T+3 plan, Planner-ready CSV', icon: <ListChecks size={22} weight="duotone" />, status: 'ready' },
+  { kind: 'closeout', label: 'Closeout / Debrief', description: 'Decisions, actions, risks, next steps', icon: <ClipboardText size={22} weight="duotone" />, status: 'ready' },
   { kind: 'diagram', label: 'Architecture Diagram', description: 'Mermaid diagram from notes', icon: <TreeStructure size={22} weight="duotone" />, status: 'soon' },
   { kind: 'journey', label: 'Customer Journey', description: 'Promote to an engagement journey', icon: <Path size={22} weight="duotone" />, status: 'soon' },
   { kind: 'initiator', label: 'Engagement Initiator', description: 'Scaffold engagement metadata + tasks', icon: <FolderPlus size={22} weight="duotone" />, status: 'soon' },
@@ -290,6 +292,23 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, onB
         <ArchitectureDiagramDialog
           open={activeTool === 'diagram'}
           onOpenChange={(o) => setActiveTool(o ? 'diagram' : null)}
+          context={toolContext}
+          onSaveArtifact={(artifact) => saveArtifact(selected.id, artifact)}
+        />
+      )}
+      {selected && (
+        <TimelineGeneratorDialog
+          open={activeTool === 'timeline'}
+          onOpenChange={(o) => setActiveTool(o ? 'timeline' : null)}
+          context={toolContext}
+          engagementDate={selected.engagementDate}
+          onSaveArtifact={(artifact) => saveArtifact(selected.id, artifact)}
+        />
+      )}
+      {selected && (
+        <CloseoutDialog
+          open={activeTool === 'closeout'}
+          onOpenChange={(o) => setActiveTool(o ? 'closeout' : null)}
           context={toolContext}
           onSaveArtifact={(artifact) => saveArtifact(selected.id, artifact)}
         />
