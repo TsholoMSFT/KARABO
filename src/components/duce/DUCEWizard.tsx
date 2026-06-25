@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Slider } from '@/components/ui/slider'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
@@ -28,7 +28,7 @@ import {
 } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
-import type { UseCase, Industry } from '@/lib/types'
+import type { UseCase, Industry, BusinessFunction } from '@/lib/types'
 import type {
   AIFitCategory,
   DecisionContext,
@@ -50,6 +50,7 @@ import {
 
 import { UserModeToggle } from './UserModeToggle'
 import { StrategicObjectivesForm } from './StrategicObjectivesForm'
+import { groupedBusinessFunctions, businessFunctionLabel } from '@/lib/business-functions'
 import { ProcessMappingTable } from './ProcessMappingTable'
 import { ProblemQuantificationStep } from './ProblemQuantificationStep'
 import { FeasibilityBreakdownEditor } from './FeasibilityBreakdownEditor'
@@ -170,7 +171,7 @@ export function DUCEWizard({
   }
 
   const addUseCase = () => {
-    const uc = newUseCase()
+    const uc: UseCase = { ...newUseCase(), businessFunction: ctx.businessFunctions?.[0] }
     onUseCasesChange([...useCases, uc])
   }
 
@@ -224,6 +225,7 @@ export function DUCEWizard({
               <p className="text-xs text-muted-foreground">
                 {customerName ?? 'Engagement'}
                 {industry ? ` · ${industry}` : ''}
+                {ctx.businessFunctions?.[0] ? ` · ${businessFunctionLabel(ctx.businessFunctions[0])}` : ''}
               </p>
             </div>
           </div>
@@ -327,6 +329,27 @@ export function DUCEWizard({
                         <SelectItem value="pilot">Pilot</SelectItem>
                         <SelectItem value="department">Departmental</SelectItem>
                         <SelectItem value="enterprise">Enterprise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">Business function</Label>
+                    <Select
+                      value={ctx.businessFunctions?.[0] ?? ''}
+                      onValueChange={(v) => setContext({ businessFunctions: v ? [v as BusinessFunction] : undefined })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Enterprise-wide (all functions)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {groupedBusinessFunctions().map((g) => (
+                          <SelectGroup key={g.group}>
+                            <SelectLabel>{g.label}</SelectLabel>
+                            {g.functions.map((f) => (
+                              <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

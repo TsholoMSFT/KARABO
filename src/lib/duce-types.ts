@@ -5,6 +5,8 @@
 // the legacy session shape.
 // ============================================================================
 
+import type { BusinessFunction } from './types'
+
 export type UserMode = 'facilitator' | 'participant'
 
 // ----------------------------------------------------------------------------
@@ -140,6 +142,7 @@ export interface ArchitecturePattern {
 // ----------------------------------------------------------------------------
 export interface DecisionContext {
   industry?: string
+  businessFunctions?: BusinessFunction[]
   dataResidency?: 'sovereign-required' | 'preferred' | 'flexible'
   realTime?: boolean
   externalUsers?: boolean
