@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
 import { calculatePaybackPeriod, calculateROI } from '@/lib/financial-calculations'
+import { valueRange, VALUE_BASIS_LABEL } from '@/lib/value-credibility'
 import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { Calculator, TrendUp, WarningCircle, Target, CurrencyDollar } from '@phosphor-icons/react'
 import { InlineDisclaimer } from '@/components/Disclaimer'
@@ -334,6 +335,76 @@ export function FinancialImpactTab({
               </Card>
 
               <UseCaseCostBreakdown useCase={selected} onUpdate={onUpdateUseCase} />
+
+              {(() => {
+                const base = Math.max(
+                  selected.expectedValue?.totalAnnualValue || 0,
+                  selected.costOfInaction?.totalAnnualCOI || 0,
+                )
+                const confidence = selected.expectedValue?.confidence ?? selected.costOfInaction?.confidence
+                const basis = selected.expectedValue?.valueBasis ?? selected.costOfInaction?.valueBasis
+                const verify = selected.expectedValue?.verificationStep ?? selected.costOfInaction?.verificationStep
+                if (base <= 0) {
+                  return (
+                    <Card className="border bg-muted/20">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Target size={16} className="text-primary" /> Credible value range
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="text-sm text-muted-foreground">
+                        Value not yet quantified. This use case is still ranked on strategic merit — add COI or ROI below
+                        to estimate a credible, confidence-adjusted range.
+                      </CardContent>
+                    </Card>
+                  )
+                }
+                const range = valueRange(base, confidence)
+                const isValidated = basis === 'customer-validated'
+                return (
+                  <Card className="border bg-muted/20">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Target size={16} className="text-primary" /> Credible value range
+                      </CardTitle>
+                      <CardDescription>Risk-adjusted for confidence — defensible numbers to put in front of the customer.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-end justify-between gap-4">
+                        <div>
+                          <div className="text-[11px] text-muted-foreground uppercase tracking-wide">Conservative</div>
+                          <div className="text-sm font-semibold tabular-nums">{formatMoney(range.low)}/yr</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[11px] text-muted-foreground uppercase tracking-wide">Risk-adjusted</div>
+                          <div className="text-xl font-bold tabular-nums text-foreground">{formatMoney(range.base)}/yr</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[11px] text-muted-foreground uppercase tracking-wide">Optimistic</div>
+                          <div className="text-sm font-semibold tabular-nums">{formatMoney(range.high)}/yr</div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="capitalize">Confidence: {confidence ?? 'low'}</Badge>
+                        {basis && (
+                          <Badge
+                            variant={isValidated ? 'default' : 'outline'}
+                            className={isValidated ? '' : 'text-amber-600 border-amber-500/40'}
+                          >
+                            {VALUE_BASIS_LABEL[basis]}
+                          </Badge>
+                        )}
+                        <span className="text-[11px] text-muted-foreground">Headline {formatMoney(base)}/yr before risk adjustment</span>
+                      </div>
+                      {verify && (
+                        <div className="text-xs text-muted-foreground border-t border-border pt-2">
+                          <span className="font-medium text-foreground">To validate:</span> {verify}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })()}
 
               <QuickCOICalculator
                 variant="compact"

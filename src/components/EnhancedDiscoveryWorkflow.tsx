@@ -15,6 +15,7 @@ import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
+import { valueRange, VALUE_BASIS_LABEL } from '@/lib/value-credibility'
 import { ComplianceReviewStep } from '@/components/ComplianceReviewStep'
 import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, Info, ShieldCheck, Scales, FileArrowDown, TreeStructure } from '@phosphor-icons/react'
 import { ExportDialog } from '@/components/ExportDialog'
@@ -989,6 +990,44 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                         setUseCases((prev) => prev.map((u) => (u.id === financialTargetUseCase.id ? { ...u, manualExpectedValue: next } : u)))
                       }}
                     />
+
+                    {(() => {
+                      const ev = financialTargetUseCase?.manualExpectedValue
+                      const coi = financialTargetUseCase?.manualCOI
+                      const base = Math.max(ev?.totalAnnualValue || 0, coi?.totalAnnualCOI || 0)
+                      if (!financialTargetUseCase || base <= 0) return null
+                      const confidence = ev?.confidence ?? coi?.confidence
+                      const basis = ev?.valueBasis ?? coi?.valueBasis
+                      const range = valueRange(base, confidence)
+                      const fmt = (v: number) =>
+                        Math.abs(v) >= 1_000_000 ? `$${(v / 1_000_000).toFixed(1)}M`
+                        : Math.abs(v) >= 1_000 ? `$${(v / 1_000).toFixed(0)}K`
+                        : `$${Math.round(v).toLocaleString()}`
+                      return (
+                        <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
+                          <div className="text-sm font-medium text-foreground">Credible value range — {financialTargetUseCase.title}</div>
+                          <div className="flex items-end justify-between gap-4">
+                            <div>
+                              <div className="text-[11px] text-muted-foreground uppercase tracking-wide">Conservative</div>
+                              <div className="text-sm font-semibold tabular-nums">{fmt(range.low)}/yr</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-[11px] text-muted-foreground uppercase tracking-wide">Risk-adjusted</div>
+                              <div className="text-lg font-bold tabular-nums text-foreground">{fmt(range.base)}/yr</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-[11px] text-muted-foreground uppercase tracking-wide">Optimistic</div>
+                              <div className="text-sm font-semibold tabular-nums">{fmt(range.high)}/yr</div>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="capitalize">Confidence: {confidence ?? 'low'}</Badge>
+                            {basis && <Badge variant={basis === 'customer-validated' ? 'default' : 'outline'}>{VALUE_BASIS_LABEL[basis]}</Badge>}
+                            <span className="text-[11px] text-muted-foreground">Headline {fmt(base)}/yr before risk adjustment</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   <Separator />
