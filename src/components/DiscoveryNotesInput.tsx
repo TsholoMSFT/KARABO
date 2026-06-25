@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Industry, EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS } from '@/lib/types'
+import { Industry, EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, BusinessFunction } from '@/lib/types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { industryLabels } from '@/lib/discovery-questions'
+import { groupedBusinessFunctions } from '@/lib/business-functions'
 import { extractUseCasesFromNotes, ExtractedUseCase } from '@/lib/use-case-extraction'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,6 +26,7 @@ export interface DiscoveryDraft {
   customerName: string
   sessionName: string
   industry: Industry
+  businessFunctions?: BusinessFunction[]
   entityType?: EntityType
   location?: string
   stockTicker?: string
@@ -37,7 +39,7 @@ export interface DiscoveryDraft {
 
 interface DiscoveryNotesInputProps {
   sessionMetadata?: Partial<SessionMetadata>
-  onAnalyze: (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry, entityType?: EntityType) => void
+  onAnalyze: (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry, entityType?: EntityType, businessFunctions?: BusinessFunction[]) => void
   onCancel: () => void
   onBackToLanding?: () => void
   // Demo mode props
@@ -79,6 +81,14 @@ export function DiscoveryNotesInput({
   const [sessionName, setSessionName] = useState(initialDraft?.sessionName || '')
   const [customerName, setCustomerName] = useState(initialDraft?.customerName || sessionMetadata?.customerName || '')
   const [industry, setIndustry] = useState<Industry>(initialDraft?.industry || 'general')
+  const [businessFunctions, setBusinessFunctions] = useState<BusinessFunction[]>(initialDraft?.businessFunctions || [])
+  const toggleBusinessFunction = (id: BusinessFunction) => {
+    setBusinessFunctions((cur) => {
+      if (id === 'cross-functional') return cur.includes('cross-functional') ? [] : ['cross-functional']
+      const withoutCross = cur.filter((x) => x !== 'cross-functional')
+      return withoutCross.includes(id) ? withoutCross.filter((x) => x !== id) : [...withoutCross, id]
+    })
+  }
   const [entityType, setEntityType] = useState<EntityType>(initialDraft?.entityType || 'public-company')
   const [location, setLocation] = useState(initialDraft?.location || sessionMetadata?.innovationHubLocation || '')
   const [stockTicker, setStockTicker] = useState(initialDraft?.stockTicker || '')
@@ -170,6 +180,7 @@ export function DiscoveryNotesInput({
       const extractedUseCases = await extractUseCasesFromNotes(notes, {
         customerName: customerName.trim(),
         industry,
+        businessFunctions: businessFunctions.length ? businessFunctions : undefined,
         entityType,
         location: location.trim() || undefined,
         stockTicker: entityType === 'public-company' ? stockTicker.trim() : undefined,
@@ -190,7 +201,7 @@ export function DiscoveryNotesInput({
       // Clear draft on successful analysis
       onDraftClear?.()
       
-      onAnalyze(notes, metadata, extractedUseCases, sessionName.trim(), industry, entityType)
+      onAnalyze(notes, metadata, extractedUseCases, sessionName.trim(), industry, entityType, businessFunctions.length ? businessFunctions : undefined)
     } catch (error) {
       console.error('Analysis failed:', error)
       toast.error('Failed to analyze notes', {
@@ -300,6 +311,40 @@ export function DiscoveryNotesInput({
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>
+                    Business Function <span className="text-muted-foreground text-xs">(optional &mdash; leave blank for enterprise-wide)</span>
+                  </Label>
+                  <div className="max-h-44 overflow-y-auto rounded-md border p-3 space-y-3">
+                    {groupedBusinessFunctions().map((g) => (
+                      <div key={g.group} className="space-y-1.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{g.label}</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {g.functions.map((f) => {
+                            const active = businessFunctions.includes(f.id)
+                            return (
+                              <button
+                                key={f.id}
+                                type="button"
+                                disabled={isAnalyzing}
+                                onClick={() => toggleBusinessFunction(f.id)}
+                                title={f.description}
+                                className={`px-2.5 py-1 rounded-full border text-xs transition-colors ${
+                                  active
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'border-border bg-card hover:bg-muted/60'
+                                }`}
+                              >
+                                {f.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 

@@ -4,8 +4,9 @@
  */
 
 import { callAIForTask } from './openai-service'
-import { Industry } from './types'
+import { Industry, BusinessFunction } from './types'
 import { industryLabels } from './discovery-questions'
+import { buildBusinessFunctionContext, BUSINESS_FUNCTION_IDS } from './business-functions'
 import { CompanyInsight } from './company-research-service'
 import { parseJsonLenient } from './lenient-json'
 
@@ -20,6 +21,7 @@ export interface ExtractedUseCase {
   title: string
   description: string
   rationale: string
+  businessFunction?: BusinessFunction
   sourceTexts?: SourceTextHighlight[]
   
   // Innovation Hub Methodology fields
@@ -83,6 +85,8 @@ export interface ExtractedUseCase {
 interface ExtractionContext {
   customerName: string
   industry?: Industry
+  businessFunctions?: BusinessFunction[]
+  businessUnitLabel?: string
   entityType?: 'public-company' | 'private-company' | 'government' | 'non-profit'
   location?: string
   stockTicker?: string
@@ -103,6 +107,8 @@ export async function extractUseCasesFromNotes(
   const industryContext = context.industry && context.industry !== 'general'
     ? `\n\nINDUSTRY: ${industryLabels[context.industry]}`
     : ''
+
+  const departmentContext = buildBusinessFunctionContext(context.businessFunctions, context.businessUnitLabel)
 
   const locationContext = context.location
     ? `\nLOCATION: ${context.location}`
@@ -133,7 +139,7 @@ ${context.companyInsights.map(insight => `
   const prompt = `You are an expert innovation consultant at Microsoft using the Innovation Hub Methodology. Your task is to analyze unstructured discovery notes from a customer conversation and extract high-value use cases for Microsoft AI and cloud solutions.
 
 CUSTOMER CONTEXT:
-Customer: ${context.customerName}${industryContext}${locationContext}${entityTypeContext}${insightsContext}
+Customer: ${context.customerName}${industryContext}${departmentContext}${locationContext}${entityTypeContext}${insightsContext}
 
 DISCOVERY NOTES (UNSTRUCTURED):
 """
@@ -154,6 +160,7 @@ For each use case, provide:
 - **title**: Specific, compelling title (max 60 chars)
 - **description**: Clear problem statement (2-3 sentences)
 - **rationale**: Why this is valuable (reference data from notes)
+- **businessFunction**: The single business function/department this serves (from the Valid businessFunction values in the BUSINESS FUNCTION CONTEXT)
 - **sourceTexts**: Array of text excerpts from the original notes that informed this use case
   - Each sourceText should include: text (exact quote), startIndex (char position in notes), endIndex, confidence (1-10)
   - Extract 1-3 key excerpts per use case that show the pain point or opportunity
@@ -282,6 +289,9 @@ Generate 4-8 use cases. Return valid JSON only.`
       title: uc.title || 'Untitled Use Case',
       description: uc.description || '',
       rationale: uc.rationale || '',
+      businessFunction: (BUSINESS_FUNCTION_IDS as string[]).includes(uc.businessFunction)
+        ? (uc.businessFunction as BusinessFunction)
+        : context.businessFunctions?.[0],
       sourceTexts: uc.sourceTexts || [],
       strategicAlignment: uc.strategicAlignment,
       businessProcess: uc.businessProcess,

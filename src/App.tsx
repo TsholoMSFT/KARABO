@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { buildSolutionPathsAnnex } from '@/lib/solution-blueprint/annex-builder'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import '@/lib/openai-service' // Initialize OpenAI service
-import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType, AccountSegment } from '@/lib/types'
+import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType, AccountSegment, BusinessFunction } from '@/lib/types'
 import type { EnterpriseDiscoverySession, EnterpriseDiscoverySessionMVP } from '@/lib/types'
 
 // Union type: handlers accept both legacy and MVP sessions
@@ -773,7 +773,7 @@ function App() {
     resetPendingDiscoveryDraft()
   }
 
-  const handleNotesAnalyze = (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry, entityType?: EntityType) => {
+  const handleNotesAnalyze = (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry, entityType?: EntityType, businessFunctions?: BusinessFunction[]) => {
     // Create discovery session from notes
     const session: DiscoverySession = {
       id: `notes-${Date.now()}`,
@@ -788,6 +788,7 @@ function App() {
       accountSegment: metadata.accountSegment,
       name: sessionName,
       industry: industry,
+      businessFunctions: businessFunctions,
       entityType: entityType,
       responses: [
         {
@@ -1184,6 +1185,7 @@ function App() {
             title: uc.title,
             description: uc.description,
             rationale: uc.rationale,
+            businessFunction: uc.businessFunction,
             sourceTexts: uc.sourceTexts,
             dataSources: ['ai-generated', 'discovery'],
             strategicAlignment: uc.strategicAlignment,
