@@ -16,7 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
 import { ComplianceReviewStep } from '@/components/ComplianceReviewStep'
-import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, Info } from '@phosphor-icons/react'
+import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, Info, ShieldCheck, Scales, FileArrowDown } from '@phosphor-icons/react'
+import { ExportDialog } from '@/components/ExportDialog'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { InlineDisclaimer } from '@/components/Disclaimer'
@@ -175,6 +176,7 @@ export function EnhancedDiscoveryWorkflow({
   const [newUseCaseDescription, setNewUseCaseDescription] = useState('')
   const [_isGeneratingSummary, setIsGeneratingSummary] = useState(false)
   const [executiveSummary, setExecutiveSummary] = useState('')
+  const [showExport, setShowExport] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [annualRevenue, setAnnualRevenue] = useState<number | undefined>(undefined)
   const [financialTargetUseCaseId, setFinancialTargetUseCaseId] = useState<string | null>(null)
@@ -341,9 +343,10 @@ export function EnhancedDiscoveryWorkflow({
     if (currentUseCaseIndex < selectedUseCases.length - 1) {
       setCurrentUseCaseIndex(currentUseCaseIndex + 1)
     } else {
-      // Move to compliance review after all RICE scoring is complete
+      // Ranking complete -> summary + customer print-out.
+      // Compliance / Governance / Responsible AI are now optional next steps.
       setCurrentUseCaseIndex(0)
-      handleStepWithSave('compliance-review')
+      handleCompleteDiscovery()
     }
   }
 
@@ -355,7 +358,7 @@ export function EnhancedDiscoveryWorkflow({
         return assessment ? { ...uc, regulatoryAssessment: assessment } : uc
       })
     )
-    handleStepWithSave('governance-assessment')
+    handleStepWithSave('save-confirm')
   }
 
   // Handle governance assessment completion — attach RAIA to use cases and save governance data
@@ -372,7 +375,7 @@ export function EnhancedDiscoveryWorkflow({
     )
     // Save governance assessment to session
     updateSession(session.id, { aiGovernanceAssessment: govAssessment })
-    handleCompleteDiscovery()
+    handleStepWithSave('save-confirm')
   }
 
   const handleCompleteDiscovery = async () => {
@@ -714,10 +717,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
               }))}
               enforcement={(session.complianceEnforcement as ComplianceEnforcement) || 'advisory'}
               onComplete={handleComplianceComplete}
-              onBack={() => {
-                setCurrentUseCaseIndex(selectedUseCases.length - 1)
-                setStep('rice')
-              }}
+              onBack={() => setStep('save-confirm')}
             />
           )}
 
@@ -730,7 +730,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                 description: uc.description,
               }))}
               onComplete={handleGovernanceComplete}
-              onBack={() => setStep('compliance-review')}
+              onBack={() => setStep('save-confirm')}
             />
           )}
 
@@ -984,16 +984,77 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                       }}
                     />
                   </div>
+
+                  <Separator />
+
+                  {/* Recommended next steps (all optional) */}
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-foreground">
+                      Recommended next steps <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Your summary and customer print-out are ready. Go deeper now with any of these, or save and run them later from the dashboard.
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => setStep('compliance-review')}
+                        className="text-left rounded-lg border p-4 hover:border-primary hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 font-medium text-foreground">
+                          <ShieldCheck size={18} weight="duotone" className="text-primary" />
+                          Regulatory Compliance
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Assess regulatory risk and remediation per use case (GDPR, POPIA, EU AI Act, …).
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStep('governance-assessment')}
+                        className="text-left rounded-lg border p-4 hover:border-primary hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 font-medium text-foreground">
+                          <Scales size={18} weight="duotone" className="text-primary" />
+                          Governance & Responsible AI
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          AI governance maturity plus a Responsible AI impact assessment.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
                 </CardContent>
-                <CardFooter className="flex gap-3">
+                <CardFooter className="flex flex-wrap gap-3">
                   <Button variant="outline" onClick={onCancel} className="flex-1">
                     Cancel & Discard
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowExport(true)} className="flex-1 gap-2">
+                    <FileArrowDown size={20} weight="bold" />
+                    Export / Print
                   </Button>
                   <Button onClick={handleFinish} className="flex-1 gap-2">
                     <CheckCircle size={20} weight="bold" />
                     Save Session & View Dashboard
                   </Button>
                 </CardFooter>
+                <ExportDialog
+                  open={showExport}
+                  onOpenChange={setShowExport}
+                  onExportPDF={() => window.print()}
+                  sessionData={{
+                    customerName: session.customerName,
+                    industry: session.industry ? industryLabels[session.industry] : undefined,
+                    summary: executiveSummary,
+                    useCases: topRankedUseCases.map((uc) => ({
+                      title: uc.title,
+                      description: uc.description,
+                      rice: { score: calculateWorkflowRICEScore(uc) },
+                      coiEstimate: uc.coiEstimate ? { totalAnnualCOI: uc.coiEstimate.totalAnnualCOI } : undefined,
+                      effortPersonWeeks: uc.aiEffortEstimate?.effortWeeks,
+                    })),
+                  }}
+                />
               </Card>
             </motion.div>
           )}
