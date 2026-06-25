@@ -394,7 +394,7 @@ Return a JSON object:
   }
 }
 
-Be realistic but optimistic. Use industry benchmarks where applicable.`
+Be conservative and defensible — when uncertain, estimate LOW and name what would need to be verified with the customer. Prefer industry benchmarks over guesses. It is better to under-claim a credible number than over-state an unverifiable one.`
 
   try {
     const result = await callOpenAI(prompt, 'gpt-4o-mini', true)
@@ -558,10 +558,10 @@ TASK: Estimate the ROI for implementing this use case.
 
 CALCULATION APPROACH:
 1. **Implementation Cost**: Based on effort weeks × $2,500/week blended rate + 30% for infrastructure/licensing
-2. **Expected Annual Benefit**: Percentage of COI captured (typically 40-80% depending on solution maturity) + any new value creation
+2. **Expected Annual Benefit**: A CONSERVATIVE share of COI captured (20-40% in the first full year, ramping as adoption matures) plus any clearly-attributable new value. Do not assume full capture.
 3. **ROI Percentage**: ((Annual Benefit - (Implementation Cost ÷ 3)) / (Implementation Cost ÷ 3)) × 100
 4. **Payback Period**: Implementation Cost / Monthly Benefit
-5. **3-Year Value**: (Annual Benefit × 3) - Implementation Cost
+5. **3-Year Value**: a RAMPED benefit (~30% year 1, 60% year 2, 90% year 3 of the steady-state annual benefit) minus Implementation Cost — do not assume full benefit from year 1.
 
 Return a JSON object:
 {

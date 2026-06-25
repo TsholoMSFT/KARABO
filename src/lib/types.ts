@@ -388,7 +388,12 @@ export interface UseCaseCOI {
   directCosts: number           // Current spending on workarounds
   opportunityCosts: number      // Lost revenue/market share
   riskCosts: number             // Potential fines/compliance issues
-  totalAnnualCOI: number        // Sum of all costs
+  totalAnnualCOI: number        // Sum of all costs (risk-adjusted central estimate)
+  low?: number                  // Conservative annual COI (lead with this)
+  high?: number                 // Optimistic annual COI
+  confidence?: 'low' | 'medium' | 'high'
+  valueBasis?: 'estimated' | 'benchmarked' | 'customer-validated'
+  verificationStep?: string     // How to validate this estimate with the customer
   notes?: string                // Calculation assumptions
   calculatedAt?: number         // Timestamp
 }
@@ -397,7 +402,12 @@ export interface UseCaseExpectedValue {
   revenueImpact?: number        // Annual revenue improvement
   costSavings?: number          // Annual cost reduction
   riskMitigation?: number       // Risk-adjusted value avoided
-  totalAnnualValue: number      // Total expected value
+  totalAnnualValue: number      // Total expected value (risk-adjusted central estimate)
+  low?: number                  // Conservative annual value (lead with this)
+  high?: number                 // Optimistic annual value
+  confidence?: 'low' | 'medium' | 'high'
+  valueBasis?: 'estimated' | 'benchmarked' | 'customer-validated'
+  verificationStep?: string     // How to validate this estimate with the customer
   implementationCost?: number   // One-time implementation cost
   paybackMonths?: number        // Payback period in months
   threeYearROI?: number         // 3-year ROI percentage
