@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { DiscoveryResponse, DiscoverySession, Industry, DiscoveryQuestion } from '@/lib/types'
+import { DiscoveryResponse, DiscoverySession, Industry, DiscoveryQuestion, BusinessFunction } from '@/lib/types'
 import { SessionMetadata } from '@/components/SessionMetadataForm'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels, type DiscoveryTrack } from '@/lib/discovery-questions'
+import { groupedBusinessFunctions } from '@/lib/business-functions'
 import { DEMO_DISCOVERY_RESPONSES_BY_INDUSTRY, DEMO_SESSION_METADATA_BY_INDUSTRY, type DemoIndustry } from '@/lib/demo-data'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,7 +36,7 @@ interface DiscoveryWizardProps {
   demoIndustry?: DemoIndustry
 }
 
-type WizardStep = 'name' | 'industry' | 'track' | 'research' | 'questions'
+type WizardStep = 'name' | 'industry' | 'business-function' | 'track' | 'research' | 'questions'
 
 const industryIcons: Record<Industry, React.ReactNode> = {
   general: <Buildings size={32} weight="duotone" />,
@@ -70,6 +71,8 @@ export function DiscoveryWizard({
   )
   const [sessionName, setSessionName] = useState(initialSessionName || '')
   const [selectedIndustry, setSelectedIndustry] = useState<Industry | null>(initialIndustry || null)
+  const [selectedBusinessFunctions, setSelectedBusinessFunctions] = useState<BusinessFunction[]>([])
+  const [businessUnitLabel, setBusinessUnitLabel] = useState('')
   const [discoveryTrack, setDiscoveryTrack] = useState<DiscoveryTrack>(initialDiscoveryTrack || 'use-case')
   const [currentStep, setCurrentStep] = useState(0)
   const [responses, setResponses] = useState<DiscoveryResponse[]>(initialResponses || [])
@@ -313,7 +316,22 @@ Keep questions conversational, specific to their answer, and focused on discover
 
   const handleIndustrySelect = (industry: Industry) => {
     setSelectedIndustry(industry)
+    // Business function comes next (mirrors the industry step).
+    setWizardStep('business-function')
+  }
 
+  const toggleBusinessFunction = (id: BusinessFunction) => {
+    setSelectedBusinessFunctions((cur) => {
+      // 'cross-functional' is mutually exclusive with specific functions.
+      if (id === 'cross-functional') {
+        return cur.includes('cross-functional') ? [] : ['cross-functional']
+      }
+      const withoutCross = cur.filter((x) => x !== 'cross-functional')
+      return withoutCross.includes(id) ? withoutCross.filter((x) => x !== id) : [...withoutCross, id]
+    })
+  }
+
+  const handleBusinessFunctionNext = () => {
     // If the user already chose a track before entering the wizard (e.g., Landing Page),
     // don't ask them to select it again.
     if (initialDiscoveryTrack) {
@@ -321,7 +339,6 @@ Keep questions conversational, specific to their answer, and focused on discover
       setWizardStep('research')
       return
     }
-
     setWizardStep('track')
   }
 
@@ -376,6 +393,8 @@ Keep questions conversational, specific to their answer, and focused on discover
         innovationHubSPOC: sessionMetadata.innovationHubSPOC,
         name: sessionName,
         industry: selectedIndustry || 'general',
+        businessFunctions: selectedBusinessFunctions.length ? selectedBusinessFunctions : undefined,
+        businessUnitLabel: businessUnitLabel.trim() || undefined,
         innovationHubLocation: sessionMetadata.innovationHubLocation,
         solutionEngineer: sessionMetadata.solutionEngineer,
         accountTeamRep: sessionMetadata.accountTeamRep,
@@ -433,6 +452,8 @@ Keep questions conversational, specific to their answer, and focused on discover
         innovationHubSPOC: sessionMetadata.innovationHubSPOC,
         name: sessionName,
         industry: selectedIndustry || 'general',
+        businessFunctions: selectedBusinessFunctions.length ? selectedBusinessFunctions : undefined,
+        businessUnitLabel: businessUnitLabel.trim() || undefined,
         innovationHubLocation: sessionMetadata.innovationHubLocation,
         solutionEngineer: sessionMetadata.solutionEngineer,
         accountTeamRep: sessionMetadata.accountTeamRep,
@@ -460,8 +481,10 @@ Keep questions conversational, specific to their answer, and focused on discover
       setResponses([])
       setCurrentAnswer('')
     } else if (wizardStep === 'research') {
-      setWizardStep(initialDiscoveryTrack ? 'industry' : 'track')
+      setWizardStep(initialDiscoveryTrack ? 'business-function' : 'track')
     } else if (wizardStep === 'track') {
+      setWizardStep('business-function')
+    } else if (wizardStep === 'business-function') {
       setWizardStep('industry')
     } else if (wizardStep === 'industry') {
       setWizardStep('name')
@@ -623,6 +646,100 @@ Keep questions conversational, specific to their answer, and focused on discover
                   Switch to Live
                 </Button>
               )}
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (wizardStep === 'business-function') {
+    const groups = groupedBusinessFunctions()
+    const hasSelection = selectedBusinessFunctions.length > 0
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-5xl"
+        >
+          <Card className="border-2">
+            <CardHeader className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Buildings size={28} weight="bold" className="text-primary" />
+                <CardTitle className="text-2xl">Target Business Function</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Which department(s) is this discovery for? Pick one or more to focus use cases on their workflows,
+                stakeholders and KPIs &mdash; or skip for an enterprise-wide engagement.
+              </CardDescription>
+              <div className="flex flex-wrap gap-2">
+                {selectedIndustry && (
+                  <Badge variant="outline" className="w-fit">{industryLabels[selectedIndustry]}</Badge>
+                )}
+                {sessionName.trim() && (
+                  <Badge variant="secondary" className="w-fit">{sessionName}</Badge>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-5 max-h-[55vh] overflow-y-auto">
+              {groups.map((g) => (
+                <div key={g.group} className="space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.label}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {g.functions.map((f) => {
+                      const active = selectedBusinessFunctions.includes(f.id)
+                      return (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => toggleBusinessFunction(f.id)}
+                          title={f.description}
+                          className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                            active
+                              ? 'border-primary bg-primary text-primary-foreground'
+                              : 'border-border bg-card hover:bg-muted/60'
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="business-unit" className="text-sm">
+                  Business unit / division <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="business-unit"
+                  value={businessUnitLabel}
+                  onChange={(e) => setBusinessUnitLabel(e.target.value)}
+                  placeholder="e.g., Personal & Business Banking"
+                />
+              </div>
+            </CardContent>
+
+            <CardFooter className="border-t pt-6 flex items-center justify-between">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onCancel}>Cancel</Button>
+                <Button variant="ghost" onClick={handleBack}>
+                  <ArrowLeft size={18} className="mr-2" />
+                  Back
+                </Button>
+              </div>
+              <div className="flex items-center gap-3">
+                {!hasSelection && (
+                  <span className="text-xs text-muted-foreground">No function = enterprise-wide</span>
+                )}
+                <Button onClick={handleBusinessFunctionNext} className="gap-2">
+                  {hasSelection ? 'Continue' : 'Skip \u2014 enterprise-wide'}
+                  <ArrowRight size={18} />
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         </motion.div>
