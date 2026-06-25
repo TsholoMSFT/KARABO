@@ -15,6 +15,8 @@ import { useEngagements } from '@/hooks/use-engagements'
 import { ENGAGEMENT_TYPE_LABELS } from '@/lib/engagement/format'
 import { downloadMarkdown, downloadDocxFromMarkdown, artifactFilename } from '@/lib/engagement/exports'
 import { AgendaBuilderDialog, type EngagementToolContext } from '@/components/engagement/AgendaBuilderDialog'
+import { FollowupEmailDialog } from '@/components/engagement/FollowupEmailDialog'
+import { ArchitectureDiagramDialog } from '@/components/engagement/ArchitectureDiagramDialog'
 
 interface EngagementHubProps {
   customerName?: string
@@ -36,7 +38,7 @@ interface ToolDef {
 
 const TOOLS: ToolDef[] = [
   { kind: 'agenda', label: 'Agenda Builder', description: 'Time-boxed session agenda from notes / transcript', icon: <CalendarBlank size={22} weight="duotone" />, status: 'ready' },
-  { kind: 'email', label: 'Follow-up Email', description: 'Audience-calibrated recap email', icon: <EnvelopeSimple size={22} weight="duotone" />, status: 'soon' },
+  { kind: 'email', label: 'Follow-up Email', description: 'Audience-calibrated recap email', icon: <EnvelopeSimple size={22} weight="duotone" />, status: 'ready' },
   { kind: 'timeline', label: 'Task Timeline', description: 'T-28 → T+3 plan, Planner-ready CSV', icon: <ListChecks size={22} weight="duotone" />, status: 'soon' },
   { kind: 'closeout', label: 'Closeout / Debrief', description: 'Decisions, actions, risks, next steps', icon: <ClipboardText size={22} weight="duotone" />, status: 'soon' },
   { kind: 'diagram', label: 'Architecture Diagram', description: 'Mermaid diagram from notes', icon: <TreeStructure size={22} weight="duotone" />, status: 'soon' },
@@ -272,6 +274,22 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, onB
         <AgendaBuilderDialog
           open={activeTool === 'agenda'}
           onOpenChange={(o) => setActiveTool(o ? 'agenda' : null)}
+          context={toolContext}
+          onSaveArtifact={(artifact) => saveArtifact(selected.id, artifact)}
+        />
+      )}
+      {selected && (
+        <FollowupEmailDialog
+          open={activeTool === 'email'}
+          onOpenChange={(o) => setActiveTool(o ? 'email' : null)}
+          context={toolContext}
+          onSaveArtifact={(artifact) => saveArtifact(selected.id, artifact)}
+        />
+      )}
+      {selected && (
+        <ArchitectureDiagramDialog
+          open={activeTool === 'diagram'}
+          onOpenChange={(o) => setActiveTool(o ? 'diagram' : null)}
           context={toolContext}
           onSaveArtifact={(artifact) => saveArtifact(selected.id, artifact)}
         />
