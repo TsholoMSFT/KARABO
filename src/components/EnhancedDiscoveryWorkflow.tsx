@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue, CustomerJourney, type MicrosoftProductFamily, type EntityType, type RegulatoryAssessment, type ComplianceEnforcement, type AIGovernanceAssessment as AIGovernanceAssessmentType, type ResponsibleAIImpact } from '@/lib/types'
+import { UseCase, DiscoverySession, type UseCaseCOI, type UseCaseExpectedValue, CustomerJourney, type MicrosoftProductFamily, type EntityType, type RegulatoryAssessment, type ComplianceEnforcement, type AIGovernanceAssessment as AIGovernanceAssessmentType, type ResponsibleAIImpact, type BusinessFunction } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { industryLabels } from '@/lib/discovery-questions'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,7 @@ interface WorkflowUseCase {
   description: string
   rationale?: string
   selected: boolean
+  businessFunction?: BusinessFunction
   impact?: number
   feasibility?: number
   dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[]
@@ -121,6 +122,7 @@ interface EnhancedDiscoveryWorkflowProps {
     title: string
     description: string
     rationale: string
+    businessFunction?: BusinessFunction
     dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[]
     referenceArchitecture?: string
     businessProcesses?: Array<{
@@ -159,6 +161,7 @@ export function EnhancedDiscoveryWorkflow({
       description: uc.description,
       rationale: uc.rationale,
       selected: true,
+      businessFunction: uc.businessFunction,
       dataSources: uc.dataSources || ['discovery'],
       referenceArchitecture: uc.referenceArchitecture && REFERENCE_ARCHITECTURES[uc.referenceArchitecture as ReferenceArchitecturePattern]
         ? (uc.referenceArchitecture as ReferenceArchitecturePattern)
@@ -446,6 +449,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
     const finalUseCases: Partial<UseCase>[] = selectedUseCases.map(uc => ({
       title: uc.title,
       description: uc.description,
+      businessFunction: uc.businessFunction || session.businessFunctions?.[0],
       impact: uc.impact || 5,
       feasibility: uc.feasibility || 5,
       dataSources: uc.dataSources || ['discovery'], // Preserve data sources

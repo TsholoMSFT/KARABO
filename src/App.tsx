@@ -848,6 +848,7 @@ function App() {
         effort: 1,
       },
       kpis: data.kpis || [],
+      businessFunction: data.businessFunction ?? currentDiscoverySession.businessFunctions?.[0],
       dataSources: data.dataSources,
       aiEffortEstimate: data.aiEffortEstimate,
       costOfInaction: data.costOfInaction,

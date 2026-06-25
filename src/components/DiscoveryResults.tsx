@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, EarningsInsight, StrategicAlignmentInfo, UseCaseBusinessProcess, UseCaseMicrosoftSolution, UseCaseAgenticOpportunity, ImplementationComplexityInfo } from '@/lib/types'
+import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, EarningsInsight, StrategicAlignmentInfo, UseCaseBusinessProcess, UseCaseMicrosoftSolution, UseCaseAgenticOpportunity, ImplementationComplexityInfo, BusinessFunction } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
+import { buildBusinessFunctionContext, BUSINESS_FUNCTION_IDS } from '@/lib/business-functions'
 import { getRegulationsForIndustry, getSecurityRequirementsForIndustry, getRegulationsForJurisdiction, getFallbackUseCasesForIndustry } from '@/lib/demo-data'
 import { detectJurisdictions, getApplicableFrameworks, getRegulationDisplayInfo } from '@/lib/regulatory-engine'
 import { formatRegulatoryContext } from '@/lib/regulatory-news-service'
@@ -40,6 +41,7 @@ interface SuggestedUseCase {
   title: string
   description: string
   rationale: string
+  businessFunction?: BusinessFunction
   selected: boolean
   aiRegulations?: AIRegulationsInfo
   cybersecurity?: CybersecurityInfo
@@ -147,6 +149,9 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
       const industryContext = session.industry && session.industry !== 'general'
         ? `\n\nINDUSTRY CONTEXT: The organization operates in the ${industryLabels[session.industry]} sector. Tailor your suggestions to be relevant to this industry's specific challenges and opportunities.`
         : ''
+
+      // Business-function / department context (Discovery department dimension).
+      const departmentContext = buildBusinessFunctionContext(session.businessFunctions, session.businessUnitLabel)
 
       // Determine jurisdiction from location (enhanced with regulatory engine)
       const detectedJurisdictions = detectJurisdictions(session.innovationHubLocation || '')
@@ -363,7 +368,7 @@ Entity Type: ${session.entityType || 'public-company'}
 ${session.stockTicker ? `Stock Ticker: ${sanitizePromptInput(session.stockTicker)} (Public Company)` : 'No stock ticker (non-public entity)'}
 
 DISCOVERY RESPONSES:
-${safeResponsesText}${industryContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}${companyResearchContext}${regulatoryFrameworkContext}${regulatoryNewsContext}
+${safeResponsesText}${industryContext}${departmentContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}${companyResearchContext}${regulatoryFrameworkContext}${regulatoryNewsContext}
 
 TASK: Using the Microsoft Innovation Hub Methodology, analyze ALL available data sources to suggest 5-8 high-value use cases. For each use case, apply both Business Envisioning (the WHY and HOW) and Solution Envisioning (the WHAT and WITH WHAT).
 
@@ -438,6 +443,7 @@ Return a valid JSON object with structure:
       "title": "string (max 60 chars, specific and compelling)",
       "description": "string (2-3 sentences explaining the opportunity)",
       "rationale": "string (1-2 sentences referencing specific data sources)",
+      "businessFunction": "string (the single business function/department this primarily serves, from the Valid businessFunction values listed in the BUSINESS FUNCTION CONTEXT)",
       "strategicAlignment": {
         "primaryPriority": "string",
         "linkedPriorities": ["string"],
@@ -563,6 +569,9 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
           title: uc.title,
           description: uc.description,
           rationale: uc.rationale,
+          businessFunction: (BUSINESS_FUNCTION_IDS as string[]).includes(uc.businessFunction)
+            ? (uc.businessFunction as BusinessFunction)
+            : session.businessFunctions?.[0],
           selected: true,
           aiRegulations: uc.aiRegulations || {
             applicableFrameworks: [...new Set([...defaultRegulations, ...jurisdictionRegs])],
