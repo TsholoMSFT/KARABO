@@ -2436,6 +2436,8 @@ export interface DiscoverySession {
   industry?: Industry
   businessFunctions?: BusinessFunction[] // Target departments/functions (empty = enterprise-wide)
   businessUnitLabel?: string             // Optional free-text division/BU (e.g. "Personal & Business Banking")
+  targetKpis?: string[]                  // Desired business KPI outcomes (KPI ids) captured in Discovery
+  desiredOutcomes?: string               // Freeform desired outcomes / target improvements
   isDemo?: boolean  // Flag to identify demo sessions
   innovationHubLocation: string
   solutionEngineer: string

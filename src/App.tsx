@@ -848,7 +848,7 @@ function App() {
         confidence: 50,
         effort: 1,
       },
-      kpis: data.kpis || [],
+      kpis: data.kpis?.length ? data.kpis : (currentDiscoverySession.targetKpis ?? []),
       businessFunction: data.businessFunction ?? currentDiscoverySession.businessFunctions?.[0],
       dataSources: data.dataSources,
       aiEffortEstimate: data.aiEffortEstimate,

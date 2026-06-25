@@ -15,11 +15,12 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileMagnifyingGlass, SkipForward, Mountains } from '@phosphor-icons/react'
+import { ArrowLeft, ArrowRight, Sparkle, MagnifyingGlass, Buildings, Hospital, Bank, Factory, ShoppingCart, Bank as GovIcon, GraduationCap, Lightning, Broadcast, Microphone, Lightbulb, FileMagnifyingGlass, SkipForward, Mountains, Target } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { InlineDisclaimer } from '@/components/Disclaimer'
 import { CompanyResearch } from '@/components/CompanyResearch'
+import { KPISelector } from '@/components/KPISelector'
 import { CompanyInsight } from '@/lib/company-research-service'
 
 interface DiscoveryWizardProps {
@@ -36,7 +37,7 @@ interface DiscoveryWizardProps {
   demoIndustry?: DemoIndustry
 }
 
-type WizardStep = 'name' | 'industry' | 'business-function' | 'track' | 'research' | 'questions'
+type WizardStep = 'name' | 'industry' | 'business-function' | 'track' | 'research' | 'outcomes' | 'questions'
 
 const industryIcons: Record<Industry, React.ReactNode> = {
   general: <Buildings size={32} weight="duotone" />,
@@ -73,6 +74,8 @@ export function DiscoveryWizard({
   const [selectedIndustry, setSelectedIndustry] = useState<Industry | null>(initialIndustry || null)
   const [selectedBusinessFunctions, setSelectedBusinessFunctions] = useState<BusinessFunction[]>([])
   const [businessUnitLabel, setBusinessUnitLabel] = useState('')
+  const [targetKpis, setTargetKpis] = useState<string[]>([])
+  const [desiredOutcomes, setDesiredOutcomes] = useState('')
   const [discoveryTrack, setDiscoveryTrack] = useState<DiscoveryTrack>(initialDiscoveryTrack || 'use-case')
   const [currentStep, setCurrentStep] = useState(0)
   const [responses, setResponses] = useState<DiscoveryResponse[]>(initialResponses || [])
@@ -348,10 +351,14 @@ Keep questions conversational, specific to their answer, and focused on discover
   }
 
   const handleResearchNext = () => {
-    setWizardStep('questions')
+    setWizardStep('outcomes')
   }
 
   const handleResearchSkip = () => {
+    setWizardStep('outcomes')
+  }
+
+  const handleOutcomesNext = () => {
     setWizardStep('questions')
   }
 
@@ -395,6 +402,8 @@ Keep questions conversational, specific to their answer, and focused on discover
         industry: selectedIndustry || 'general',
         businessFunctions: selectedBusinessFunctions.length ? selectedBusinessFunctions : undefined,
         businessUnitLabel: businessUnitLabel.trim() || undefined,
+        targetKpis: targetKpis.length ? targetKpis : undefined,
+        desiredOutcomes: desiredOutcomes.trim() || undefined,
         innovationHubLocation: sessionMetadata.innovationHubLocation,
         solutionEngineer: sessionMetadata.solutionEngineer,
         accountTeamRep: sessionMetadata.accountTeamRep,
@@ -454,6 +463,8 @@ Keep questions conversational, specific to their answer, and focused on discover
         industry: selectedIndustry || 'general',
         businessFunctions: selectedBusinessFunctions.length ? selectedBusinessFunctions : undefined,
         businessUnitLabel: businessUnitLabel.trim() || undefined,
+        targetKpis: targetKpis.length ? targetKpis : undefined,
+        desiredOutcomes: desiredOutcomes.trim() || undefined,
         innovationHubLocation: sessionMetadata.innovationHubLocation,
         solutionEngineer: sessionMetadata.solutionEngineer,
         accountTeamRep: sessionMetadata.accountTeamRep,
@@ -476,10 +487,12 @@ Keep questions conversational, specific to their answer, and focused on discover
       const prevResponse = responses.find((r) => r.questionId === prevQuestion.id)
       setCurrentAnswer(prevResponse?.answer || '')
     } else if (wizardStep === 'questions') {
-      setWizardStep('research')
+      setWizardStep('outcomes')
       setCurrentStep(0)
       setResponses([])
       setCurrentAnswer('')
+    } else if (wizardStep === 'outcomes') {
+      setWizardStep('research')
     } else if (wizardStep === 'research') {
       setWizardStep(initialDiscoveryTrack ? 'business-function' : 'track')
     } else if (wizardStep === 'track') {
@@ -856,6 +869,72 @@ Keep questions conversational, specific to their answer, and focused on discover
                 className="gap-2"
               >
                 Continue
+                <ArrowRight size={18} />
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (wizardStep === 'outcomes') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-3xl"
+        >
+          <Card className="border-2">
+            <CardHeader className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Target size={28} weight="bold" className="text-primary" />
+                <CardTitle className="text-2xl">Desired Business Outcomes</CardTitle>
+              </div>
+              <CardDescription className="text-base">
+                Which business KPIs should these use cases move, and what does success look like? This focuses the AI on
+                outcomes you care about &mdash; or skip and let it infer them.
+              </CardDescription>
+              <div className="flex flex-wrap gap-2">
+                {selectedIndustry && (
+                  <Badge variant="outline" className="w-fit">{industryLabels[selectedIndustry]}</Badge>
+                )}
+                {sessionName.trim() && (
+                  <Badge variant="secondary" className="w-fit">{sessionName}</Badge>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <Label>Target KPIs</Label>
+                <KPISelector selectedKPIs={targetKpis} onChange={setTargetKpis} maxSelection={8} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="desired-outcomes">
+                  Desired outcomes / targets <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Textarea
+                  id="desired-outcomes"
+                  value={desiredOutcomes}
+                  onChange={(e) => setDesiredOutcomes(e.target.value)}
+                  placeholder="e.g., Reduce month-end close from 8 to 3 days; cut contact-centre handle time 30%; improve forecast accuracy to 90%."
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+
+            <CardFooter className="border-t pt-6 flex justify-between">
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onCancel}>Cancel</Button>
+                <Button variant="ghost" onClick={handleBack}>
+                  <ArrowLeft size={18} className="mr-2" />
+                  Back
+                </Button>
+              </div>
+              <Button onClick={handleOutcomesNext} className="gap-2">
+                {targetKpis.length ? `Continue with ${targetKpis.length} KPI${targetKpis.length > 1 ? 's' : ''}` : 'Skip \u2014 let AI infer'}
                 <ArrowRight size={18} />
               </Button>
             </CardFooter>

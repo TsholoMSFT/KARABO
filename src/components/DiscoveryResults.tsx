@@ -3,6 +3,7 @@ import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, Earnin
 import { useDiscovery } from '@/hooks/use-discovery'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
 import { buildBusinessFunctionContext, BUSINESS_FUNCTION_IDS } from '@/lib/business-functions'
+import { AVAILABLE_KPIS } from '@/lib/kpis'
 import { getRegulationsForIndustry, getSecurityRequirementsForIndustry, getRegulationsForJurisdiction, getFallbackUseCasesForIndustry } from '@/lib/demo-data'
 import { detectJurisdictions, getApplicableFrameworks, getRegulationDisplayInfo } from '@/lib/regulatory-engine'
 import { formatRegulatoryContext } from '@/lib/regulatory-news-service'
@@ -152,6 +153,12 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
 
       // Business-function / department context (Discovery department dimension).
       const departmentContext = buildBusinessFunctionContext(session.businessFunctions, session.businessUnitLabel)
+
+      // Desired business KPI outcomes captured in Discovery.
+      const targetKpiNames = (session.targetKpis ?? []).map((id) => AVAILABLE_KPIS.find((k) => k.id === id)?.name ?? id)
+      const desiredOutcomesContext = (targetKpiNames.length || session.desiredOutcomes)
+        ? `\n\nDESIRED BUSINESS OUTCOMES & TARGET KPIs: ${targetKpiNames.length ? `Prioritise use cases that measurably move these KPIs: ${targetKpiNames.join(', ')}. ` : ''}${session.desiredOutcomes ? `Stated targets: ${sanitizePromptInput(session.desiredOutcomes)}. ` : ''}Tie each use case's expected impact to these outcomes where relevant.`
+        : ''
 
       // Determine jurisdiction from location (enhanced with regulatory engine)
       const detectedJurisdictions = detectJurisdictions(session.innovationHubLocation || '')
@@ -368,7 +375,7 @@ Entity Type: ${session.entityType || 'public-company'}
 ${session.stockTicker ? `Stock Ticker: ${sanitizePromptInput(session.stockTicker)} (Public Company)` : 'No stock ticker (non-public entity)'}
 
 DISCOVERY RESPONSES:
-${safeResponsesText}${industryContext}${departmentContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}${companyResearchContext}${regulatoryFrameworkContext}${regulatoryNewsContext}
+${safeResponsesText}${industryContext}${departmentContext}${desiredOutcomesContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}${companyResearchContext}${regulatoryFrameworkContext}${regulatoryNewsContext}
 
 TASK: Using the Microsoft Innovation Hub Methodology, analyze ALL available data sources to suggest 5-8 high-value use cases. For each use case, apply both Business Envisioning (the WHY and HOW) and Solution Envisioning (the WHAT and WITH WHAT).
 
