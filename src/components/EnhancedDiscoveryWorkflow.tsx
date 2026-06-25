@@ -497,6 +497,8 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                   : '',
               ].filter(Boolean).join('\n'),
               calculatedAt: uc.coiEstimate.estimatedAt,
+              confidence: uc.coiEstimate.confidence,
+              valueBasis: 'estimated',
             }
           : undefined),
       expectedValue: uc.manualExpectedValue ? { ...uc.manualExpectedValue } : undefined,
@@ -917,6 +919,8 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                           opportunityCosts: values.opportunityCosts,
                           riskCosts: values.riskCosts,
                           totalAnnualCOI: values.totalCOI,
+                          confidence: 'high',
+                          valueBasis: 'customer-validated',
                           notes: values.notes,
                           calculatedAt: Date.now(),
                         }
@@ -976,6 +980,8 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                           costSavings: inputs.costSavings,
                           riskMitigation: inputs.riskMitigation,
                           totalAnnualValue: result.totalAnnualValue,
+                          confidence: 'high',
+                          valueBasis: 'customer-validated',
                           implementationCost: inputs.implementationCost,
                           paybackMonths: Number.isFinite(result.paybackMonths) ? result.paybackMonths : undefined,
                           threeYearROI: Number.isFinite(result.roi3YearPercent) ? result.roi3YearPercent : undefined,

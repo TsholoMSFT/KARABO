@@ -33,6 +33,7 @@ import {
 } from '@/lib/portfolio-analytics'
 import { formatCurrency, formatPercentage } from '@/lib/financial-calculations'
 import { businessFunctionLabel } from '@/lib/business-functions'
+import { CONFIDENCE_FACTORS } from '@/lib/value-credibility'
 
 interface ValuePortfolioProps {
   /** Use cases to value as an investment portfolio (typically the current session's). */
@@ -97,7 +98,8 @@ export function ValuePortfolio({ useCases, customerName }: ValuePortfolioProps) 
         vintage: fiscalYear(uc.createdAt),
         investedCapital: impl,
         annualReturn: annualValue - annualRun,
-        returnBasis: 'projected',
+        returnBasis: uc.expectedValue?.valueBasis === 'customer-validated' ? 'measured' : 'projected',
+        returnConfidence: uc.expectedValue?.confidence ? CONFIDENCE_FACTORS[uc.expectedValue.confidence] : undefined,
         successProbability: Math.max(0.1, Math.min(1, (uc.feasibility ?? 5) / 10)),
       })
     }

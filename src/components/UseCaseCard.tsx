@@ -95,6 +95,7 @@ export function UseCaseCard({
 
   const hasComplianceInfo = useCase.aiRegulations || useCase.cybersecurity
   const hasCOIInfo = useCase.costOfInaction || useCase.expectedValue
+  const valueBasis = useCase.expectedValue?.valueBasis ?? useCase.costOfInaction?.valueBasis
   
   // Check for Innovation Hub Methodology data
   const hasInnovationHubData = useCase.strategicAlignment || 
@@ -224,6 +225,15 @@ export function UseCaseCard({
               {useCase.businessFunction && (
                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                   {businessFunctionLabel(useCase.businessFunction)}
+                </Badge>
+              )}
+              {hasCOIInfo && (
+                <Badge
+                  variant={valueBasis === 'customer-validated' ? 'default' : 'outline'}
+                  className={`text-[10px] px-1.5 py-0 ${valueBasis === 'customer-validated' ? '' : 'border-amber-400 text-amber-700 dark:text-amber-300'}`}
+                  title="Provenance of the financial estimate"
+                >
+                  {valueBasis === 'customer-validated' ? 'Validated' : valueBasis === 'benchmarked' ? 'Benchmarked' : 'Indicative'}
                 </Badge>
               )}
               {useCase.dataSources && useCase.dataSources.length > 0 && (
