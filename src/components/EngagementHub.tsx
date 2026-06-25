@@ -19,6 +19,9 @@ import { FollowupEmailDialog } from '@/components/engagement/FollowupEmailDialog
 import { ArchitectureDiagramDialog } from '@/components/engagement/ArchitectureDiagramDialog'
 import { TimelineGeneratorDialog } from '@/components/engagement/TimelineGeneratorDialog'
 import { CloseoutDialog } from '@/components/engagement/CloseoutDialog'
+import { JourneyDialog } from '@/components/engagement/JourneyDialog'
+import { EngagementInitiatorDialog } from '@/components/engagement/EngagementInitiatorDialog'
+import { HubInsightsPanel } from '@/components/HubInsightsPanel'
 
 interface EngagementHubProps {
   customerName?: string
@@ -44,12 +47,15 @@ const TOOLS: ToolDef[] = [
   { kind: 'timeline', label: 'Task Timeline', description: 'T-28 → T+3 plan, Planner-ready CSV', icon: <ListChecks size={22} weight="duotone" />, status: 'ready' },
   { kind: 'closeout', label: 'Closeout / Debrief', description: 'Decisions, actions, risks, next steps', icon: <ClipboardText size={22} weight="duotone" />, status: 'ready' },
   { kind: 'diagram', label: 'Architecture Diagram', description: 'Mermaid diagram from notes', icon: <TreeStructure size={22} weight="duotone" />, status: 'soon' },
-  { kind: 'journey', label: 'Customer Journey', description: 'Promote to an engagement journey', icon: <Path size={22} weight="duotone" />, status: 'soon' },
-  { kind: 'initiator', label: 'Engagement Initiator', description: 'Scaffold engagement metadata + tasks', icon: <FolderPlus size={22} weight="duotone" />, status: 'soon' },
-  { kind: 'insights', label: 'Hub Insights', description: 'Portfolio rollup across accounts', icon: <ChartBar size={22} weight="duotone" />, status: 'soon' },
+  { kind: 'journey', label: 'Customer Journey', description: 'Promote to an engagement journey', icon: <Path size={22} weight="duotone" />, status: 'ready' },
+  { kind: 'initiator', label: 'Engagement Initiator', description: 'Scaffold engagement metadata + tasks', icon: <FolderPlus size={22} weight="duotone" />, status: 'ready' },
+  { kind: 'insights', label: 'Hub Insights', description: 'Portfolio rollup across accounts', icon: <ChartBar size={22} weight="duotone" />, status: 'ready' },
 ]
 
 const ENGAGEMENT_TYPES = Object.keys(ENGAGEMENT_TYPE_LABELS) as EngagementType[]
+
+/** Tools that don't operate on an already-selected engagement. */
+const NO_SELECTION_TOOLS: ToolKind[] = ['initiator', 'insights']
 
 const KIND_LABEL: Record<EngagementArtifactKind, string> = {
   agenda: 'Agenda', email: 'Email', timeline: 'Timeline', closeout: 'Closeout', diagram: 'Diagram', journey: 'Journey',
@@ -105,8 +111,8 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, onB
   }
 
   const openTool = (tool: ToolDef) => {
-    if (!selected) { toast.info('Create or select an engagement first'); return }
     if (tool.status === 'soon') { toast.info(`${tool.label} is coming soon`); return }
+    if (!NO_SELECTION_TOOLS.includes(tool.kind) && !selected) { toast.info('Create or select an engagement first'); return }
     setActiveTool(tool.kind)
   }
 
@@ -200,7 +206,7 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, onB
               key={tool.kind}
               type="button"
               onClick={() => openTool(tool)}
-              disabled={!selected && tool.status === 'ready'}
+              disabled={tool.status === 'ready' && !selected && !NO_SELECTION_TOOLS.includes(tool.kind)}
               className="text-left rounded-lg border p-4 transition-colors hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed bg-card"
             >
               <div className="flex items-start justify-between">
@@ -313,6 +319,27 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, onB
           onSaveArtifact={(artifact) => saveArtifact(selected.id, artifact)}
         />
       )}
+      {selected && (
+        <JourneyDialog
+          open={activeTool === 'journey'}
+          onOpenChange={(o) => setActiveTool(o ? 'journey' : null)}
+          context={toolContext}
+          onSaveArtifact={(artifact) => saveArtifact(selected.id, artifact)}
+        />
+      )}
+      <EngagementInitiatorDialog
+        open={activeTool === 'initiator'}
+        onOpenChange={(o) => setActiveTool(o ? 'initiator' : null)}
+        defaultCustomerName={customerName}
+        sessionId={sessionId}
+        industry={industry}
+        onCreate={(e) => addEngagement(e)}
+        onCreated={(id) => setSelectedId(id)}
+      />
+      <HubInsightsPanel
+        open={activeTool === 'insights'}
+        onOpenChange={(o) => setActiveTool(o ? 'insights' : null)}
+      />
     </div>
   )
 }

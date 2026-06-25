@@ -8,6 +8,7 @@ import type {
   EngagementTimeline,
   EngagementCloseout,
   ArchitectureDiagram,
+  GeneratedJourney,
 } from '@/lib/openai-service'
 import type { EngagementType } from '@/lib/types'
 
@@ -115,5 +116,29 @@ export function diagramToMarkdown(d: ArchitectureDiagram): string {
   const lines: string[] = [`# ${d.title}`, '']
   if (d.explanation) lines.push(d.explanation, '')
   lines.push('```mermaid', d.mermaid, '```')
+  return lines.join('\n')
+}
+
+export function journeyToMarkdown(j: GeneratedJourney, customerName?: string): string {
+  const lines: string[] = [`# ${j.title}`]
+  if (customerName) lines.push(`**Customer:** ${customerName}`)
+  if (j.totalDuration) lines.push(`**Total duration:** ${j.totalDuration}`)
+  if (j.journeyNotes) lines.push('', j.journeyNotes)
+  lines.push('', '## Milestones')
+  j.milestones.forEach((m, i) => {
+    lines.push('', `### ${i + 1}. ${m.title}`)
+    const meta = [m.engagement, m.duration].filter(Boolean).join(' · ')
+    if (meta) lines.push(`_${meta}_`)
+    if (m.description) lines.push(m.description)
+    if (m.deliverables?.length) lines.push(`- **Deliverables:** ${m.deliverables.join(', ')}`)
+    if (m.dependencies?.length) lines.push(`- **Dependencies:** ${m.dependencies.join(', ')}`)
+  })
+  if (j.nextSteps?.length) {
+    lines.push('', '## Next steps')
+    j.nextSteps.forEach((s) => {
+      const meta = [s.owner, s.targetDate].filter(Boolean).join(', ')
+      lines.push(`- ${s.action}${meta ? ` (${meta})` : ''}`)
+    })
+  }
   return lines.join('\n')
 }
