@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
 import { ComplianceReviewStep } from '@/components/ComplianceReviewStep'
-import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, Info, ShieldCheck, Scales, FileArrowDown } from '@phosphor-icons/react'
+import { Plus, ArrowRight, ArrowLeft, CheckCircle, Sparkle, ChartScatter, ListNumbers, X, Info, ShieldCheck, Scales, FileArrowDown, TreeStructure } from '@phosphor-icons/react'
 import { ExportDialog } from '@/components/ExportDialog'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -141,7 +141,7 @@ interface EnhancedDiscoveryWorkflowProps {
       justification?: string
     }>
   }>
-  onComplete: (useCases: Partial<UseCase>[], executiveSummary: string) => void
+  onComplete: (useCases: Partial<UseCase>[], executiveSummary: string, nextAction?: 'dashboard' | 'solution-design') => void
   onCancel: () => void
 }
 
@@ -448,7 +448,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
     }
   }
 
-  const handleFinish = () => {
+  const handleFinish = (nextAction: 'dashboard' | 'solution-design' = 'dashboard') => {
     const finalUseCases: Partial<UseCase>[] = selectedUseCases.map(uc => ({
       title: uc.title,
       description: uc.description,
@@ -502,7 +502,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
       expectedValue: uc.manualExpectedValue ? { ...uc.manualExpectedValue } : undefined,
     }))
 
-    onComplete(finalUseCases, executiveSummary)
+    onComplete(finalUseCases, executiveSummary, nextAction)
   }
 
   return (
@@ -995,7 +995,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                     <p className="text-sm text-muted-foreground">
                       Your summary and customer print-out are ready. Go deeper now with any of these, or save and run them later from the dashboard.
                     </p>
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-3">
                       <button
                         type="button"
                         onClick={() => setStep('compliance-review')}
@@ -1022,6 +1022,19 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                           AI governance maturity plus a Responsible AI impact assessment.
                         </p>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => handleFinish('solution-design')}
+                        className="text-left rounded-lg border p-4 hover:border-primary hover:bg-muted/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 font-medium text-foreground">
+                          <TreeStructure size={18} weight="duotone" className="text-primary" />
+                          Solution Design
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Save, then design best-fit vs estate-optimized blueprints.
+                        </p>
+                      </button>
                     </div>
                   </div>
                 </CardContent>
@@ -1033,7 +1046,7 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
                     <FileArrowDown size={20} weight="bold" />
                     Export / Print
                   </Button>
-                  <Button onClick={handleFinish} className="flex-1 gap-2">
+                  <Button onClick={() => handleFinish()} className="flex-1 gap-2">
                     <CheckCircle size={20} weight="bold" />
                     Save Session & View Dashboard
                   </Button>

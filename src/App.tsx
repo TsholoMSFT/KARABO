@@ -830,7 +830,7 @@ function App() {
     setCurrentView('notes-input')
   }
 
-  const handleCreateUseCasesFromDiscovery = (newUseCases: Partial<UseCase>[], executiveSummary: string) => {
+  const handleCreateUseCasesFromDiscovery = (newUseCases: Partial<UseCase>[], executiveSummary: string, nextAction: 'dashboard' | 'solution-design' = 'dashboard') => {
     if (!currentDiscoverySession) return
     
     const createdUseCases: UseCase[] = newUseCases.map((data) => ({
@@ -874,14 +874,18 @@ function App() {
     
     setSelectedCustomerId(currentDiscoverySession.customerId)
     setSelectedSessionId(currentDiscoverySession.id)
-    setCurrentView('dashboard')
     setCurrentDiscoverySession(null)
     setSessionState(null)
     toast.success(`Session saved! Added ${createdUseCases.length} use case${createdUseCases.length !== 1 ? 's' : ''} successfully!`)
 
-    // Explicit end-of-mode decision gate (Quick Discovery -> Proceed or Conclude)
-    // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to Sovereign Cloud Assessment.
-    setPostQuickDiscoveryGateOpen(true)
+    if (nextAction === 'solution-design') {
+      // Jump straight into Solution Envisioning (best-fit vs estate-optimized blueprint).
+      handleStartSolutionBlueprint()
+    } else {
+      setCurrentView('dashboard')
+      // Explicit end-of-mode decision gate (Quick Discovery -> Proceed or Conclude).
+      setPostQuickDiscoveryGateOpen(true)
+    }
   }
 
   const handleViewSession = (session: DiscoverySession) => {

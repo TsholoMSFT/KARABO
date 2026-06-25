@@ -34,7 +34,7 @@ import { toast } from 'sonner'
 
 interface DiscoveryResultsProps {
   session: DiscoverySession
-  onCreateUseCases: (useCases: Partial<UseCase>[], executiveSummary: string) => void
+  onCreateUseCases: (useCases: Partial<UseCase>[], executiveSummary: string, nextAction?: 'dashboard' | 'solution-design') => void
   onBack: () => void
 }
 
@@ -693,12 +693,12 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
     setShowWorkflow(true)
   }
 
-  const handleWorkflowComplete = (useCases: Partial<UseCase>[], executiveSummary: string) => {
+  const handleWorkflowComplete = (useCases: Partial<UseCase>[], executiveSummary: string, nextAction?: 'dashboard' | 'solution-design') => {
     updateSession(session.id, {
       executiveSummary,
       completedAt: Date.now(),
     })
-    onCreateUseCases(useCases, executiveSummary)
+    onCreateUseCases(useCases, executiveSummary, nextAction)
   }
 
   if (showWorkflow) {
