@@ -74,6 +74,7 @@ const DUCEWizard = lazy(() => import('@/components/duce').then(m => ({ default: 
 const PipelineBoard = lazy(() => import('@/components/PipelineBoard').then(m => ({ default: m.PipelineBoard })))
 const UnitEconomicsEngine = lazy(() => import('@/components/UnitEconomicsEngine').then(m => ({ default: m.UnitEconomicsEngine })))
 const ValuePortfolio = lazy(() => import('@/components/ValuePortfolio').then(m => ({ default: m.ValuePortfolio })))
+const EngagementHub = lazy(() => import('@/components/EngagementHub').then(m => ({ default: m.EngagementHub })))
 
 /** Fallback spinner for lazy-loaded components */
 function LazyFallback() {
@@ -84,7 +85,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics' | 'value-portfolio'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics' | 'value-portfolio' | 'engagement-hub'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -568,6 +569,10 @@ function App() {
     setCurrentView('duce-wizard')
   }
 
+  const handleStartEngagementHub = () => {
+    setCurrentView('engagement-hub')
+  }
+
   const handleResumeEnterpriseDiscovery = (session: AnyEnterpriseSession) => {
     setCurrentEnterpriseSession(session)
     setCurrentView('enterprise-discovery')
@@ -1014,6 +1019,18 @@ function App() {
         </Suspense>
       )}
 
+      {currentView === 'engagement-hub' && (
+        <Suspense fallback={<LazyFallback />}>
+          <EngagementHub
+            customerName={selectedSession?.customerName}
+            industry={selectedSession?.industry}
+            sessionId={selectedSessionId ?? undefined}
+            useCases={filteredUseCases}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        </Suspense>
+      )}
+
       {currentView === 'duce-wizard' && selectedSessionId && (
         <Suspense fallback={<LazyFallback />}>
           <SectionErrorBoundary>
@@ -1411,6 +1428,7 @@ function App() {
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
                   onStartDemo={handleStartDemo}
                   onStartEnterpriseDemo={handleStartEnterpriseDemo}
+                  onOpenEngagementHub={handleStartEngagementHub}
                   accountSegment={selectedSession?.accountSegment}
                 />
                 <EmptyState onAddFirst={handleOpenAddDialog} onImport={() => setImportDialogOpen(true)} />
@@ -1484,6 +1502,7 @@ function App() {
                   customerName={customerMetadata?.customerName}
                   onOpenSessionComparison={() => setSessionManagerOpen(true)}
                   onOpenExport={() => handleOpenTableExport()}
+                  onOpenEngagementHub={handleStartEngagementHub}
                   accountSegment={selectedSession?.accountSegment}
                 />
 

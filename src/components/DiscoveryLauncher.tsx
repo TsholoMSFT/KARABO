@@ -27,12 +27,13 @@ interface DiscoveryLauncherProps {
   customerName?: string
   onOpenSessionComparison?: () => void
   onOpenExport?: () => void
+  onOpenEngagementHub?: () => void
   currentSession?: DiscoverySession | null
   onJourneyUpdate?: (useCaseId: string, journey: CustomerJourney) => void
   accountSegment?: AccountSegment
 }
 
-export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport, currentSession, onJourneyUpdate, accountSegment = 'enterprise' }: DiscoveryLauncherProps) {
+export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport, onOpenEngagementHub, currentSession, onJourneyUpdate, accountSegment = 'enterprise' }: DiscoveryLauncherProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const visibleTabs = getVisibleTabs(accountSegment)
   const features = getSegmentFeatures(accountSegment)
@@ -327,6 +328,26 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onS
         {/* Tools Tab */}
         {mode === 'tools' && (
           <div className="space-y-6">
+            {/* Engagement Tools launcher */}
+            <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-secondary/5">
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                  <div className="space-y-1">
+                    <CardTitle className="flex items-center gap-2">
+                      <Toolbox size={22} weight="duotone" className="text-primary" />
+                      Engagement Tools
+                    </CardTitle>
+                    <CardDescription>
+                      Generate session agendas, follow-up emails, task timelines, closeouts, and architecture diagrams — and roll up portfolio insights.
+                    </CardDescription>
+                  </div>
+                  <Button onClick={onOpenEngagementHub} className="gap-2 shrink-0">
+                    <Rocket size={16} /> Open Engagement Tools
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
+
             {/* Quick COI Calculator */}
             <QuickCOICalculator 
               variant="inline"
