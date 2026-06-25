@@ -128,6 +128,11 @@ export type AITask =
   | 'business-case'   // Per-use-case business case markdown → GPT-4o-mini
   | 'cost-optimization' // SKU swap suggestions → GPT-4o-mini
   | 'executive'       // Executive summaries → GPT-4o (premium)
+  | 'engagement-agenda'   // Session agenda from transcript → GPT-4o-mini
+  | 'engagement-email'    // Follow-up email → Phi-4-mini-instruct
+  | 'engagement-timeline' // Engagement task timeline → GPT-4o-mini
+  | 'engagement-closeout' // Closeout / debrief summary → GPT-4o-mini
+  | 'engagement-diagram'  // Mermaid architecture diagram → GPT-4o-mini
   | 'general'         // Default → Phi-4-mini-instruct
 
 /**
@@ -150,6 +155,11 @@ export function getModelForTask(task: AITask): ModelType {
     'business-case': 'gpt-4o-mini',
     'cost-optimization': 'gpt-4o-mini',
     executive: 'gpt-4o',
+    'engagement-agenda': 'gpt-4o-mini',
+    'engagement-email': 'phi-4-mini-instruct',
+    'engagement-timeline': 'gpt-4o-mini',
+    'engagement-closeout': 'gpt-4o-mini',
+    'engagement-diagram': 'gpt-4o-mini',
   }
   return taskModelMap[task] || 'phi-4-mini-instruct'
 }
@@ -890,6 +900,312 @@ function getDefaultJourney(complexity: 'low' | 'medium' | 'high' | 'very-high', 
     nextSteps,
     totalDuration: minWeeks === maxWeeks ? `${minWeeks} weeks` : `${minWeeks}-${maxWeeks} weeks`,
     reasoning: 'Default journey based on use case complexity assessment.'
+  }
+}
+
+// ============================================================================
+// ENGAGEMENT ARTIFACT GENERATORS (HubWorks-inspired)
+// Agenda / follow-up email / task timeline / closeout / architecture diagram.
+// Each follows the estimateCOI pattern: build prompt -> callAIForTask(expectJson)
+// -> JSON.parse -> type-guard -> safe fallback so the UI never crashes.
+// ============================================================================
+
+/** Shared context for the engagement generators. */
+export interface EngagementGenContext {
+  customerName?: string
+  industry?: string
+  engagementType?: string
+  stakeholders?: string[]
+  /** Paste-in transcript / planning notes the artifact is built from. */
+  transcript?: string
+  useCases?: Array<{ title: string; description?: string }>
+}
+
+function buildEngagementContextBlock(ctx?: EngagementGenContext): string {
+  if (!ctx) return ''
+  const lines: string[] = []
+  if (ctx.customerName) lines.push(`Customer: ${ctx.customerName}`)
+  if (ctx.industry) lines.push(`Industry: ${ctx.industry}`)
+  if (ctx.engagementType) lines.push(`Engagement type: ${ctx.engagementType}`)
+  if (ctx.stakeholders?.length) lines.push(`Stakeholders: ${ctx.stakeholders.join(', ')}`)
+  if (ctx.useCases?.length) {
+    lines.push('Use cases in scope:')
+    ctx.useCases.slice(0, 12).forEach((u, i) =>
+      lines.push(`  ${i + 1}. ${u.title}${u.description ? ` — ${u.description}` : ''}`))
+  }
+  if (ctx.transcript?.trim()) lines.push(`\nPlanning transcript / notes:\n${ctx.transcript.trim().slice(0, 6000)}`)
+  return lines.join('\n')
+}
+
+const asStringArray = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string') : []
+
+export interface EngagementAgendaItem {
+  time?: string
+  topic: string
+  owner?: string
+  description?: string
+}
+
+export interface EngagementAgenda {
+  title: string
+  durationMinutes: number
+  objectives: string[]
+  items: EngagementAgendaItem[]
+  nextSteps: string[]
+  reasoning?: string
+}
+
+export async function generateEngagementAgenda(
+  ctx: EngagementGenContext & { durationMinutes?: number }
+): Promise<EngagementAgenda> {
+  const duration = ctx.durationMinutes ?? 90
+  const prompt = `You are an experienced Microsoft Innovation Hub session lead. Build a focused, realistic agenda for a customer engagement.
+
+ENGAGEMENT CONTEXT:
+${buildEngagementContextBlock(ctx)}
+Target duration: ${duration} minutes.
+
+RULES:
+- "customer" = the external organization (never "Microsoft").
+- Time-box every item; item durations should sum to roughly the target duration.
+- Standard opener (intros + objectives) and closer (next steps), plus content blocks grounded in the context.
+- Owners are "Microsoft", "Customer", or "Microsoft & Customer".
+
+Return JSON:
+{
+  "title": "<short agenda title>",
+  "durationMinutes": ${duration},
+  "objectives": ["..."],
+  "items": [{ "time": "9:00–9:15", "topic": "...", "owner": "Microsoft", "description": "..." }],
+  "nextSteps": ["..."],
+  "reasoning": "<1-2 sentences>"
+}`
+  try {
+    const result = await callAIForTask('engagement-agenda', prompt, { expectJson: true })
+    const p = JSON.parse(result)
+    const items: EngagementAgendaItem[] = Array.isArray(p.items)
+      ? (p.items as unknown[]).map((raw) => {
+          const it = (raw ?? {}) as Record<string, unknown>
+          return {
+            time: typeof it.time === 'string' ? it.time : undefined,
+            topic: typeof it.topic === 'string' ? it.topic : 'Discussion',
+            owner: typeof it.owner === 'string' ? it.owner : undefined,
+            description: typeof it.description === 'string' ? it.description : undefined,
+          }
+        })
+      : []
+    return {
+      title: typeof p.title === 'string' ? p.title : 'Engagement Agenda',
+      durationMinutes: typeof p.durationMinutes === 'number' ? p.durationMinutes : duration,
+      objectives: asStringArray(p.objectives),
+      items,
+      nextSteps: asStringArray(p.nextSteps),
+      reasoning: typeof p.reasoning === 'string' ? p.reasoning : undefined,
+    }
+  } catch (error) {
+    console.error('Agenda generation failed:', error)
+    return {
+      title: 'Engagement Agenda (draft)',
+      durationMinutes: duration,
+      objectives: ['Confirm objectives with the customer'],
+      items: [
+        { time: '0:00–0:15', topic: 'Introductions & objectives', owner: 'Microsoft & Customer' },
+        { time: '0:15–1:15', topic: 'Discovery & discussion', owner: 'Microsoft & Customer' },
+        { time: '1:15–1:30', topic: 'Next steps & close', owner: 'Microsoft' },
+      ],
+      nextSteps: ['AI generation unavailable — edit this draft manually.'],
+    }
+  }
+}
+
+export interface FollowupEmail {
+  subject: string
+  bodyHtml: string
+  bodyText: string
+  bullets: string[]
+  callToAction?: string
+}
+
+export async function generateFollowupEmail(
+  ctx: EngagementGenContext & { audience?: string; senderName?: string; tone?: string; highlights?: string[] }
+): Promise<FollowupEmail> {
+  const prompt = `You are a Microsoft solution engineer writing a concise, professional follow-up email after a customer engagement.
+
+CONTEXT:
+${buildEngagementContextBlock(ctx)}
+${ctx.audience ? `Audience: ${ctx.audience}` : ''}
+${ctx.highlights?.length ? `Highlights to include: ${ctx.highlights.join('; ')}` : ''}
+Tone: ${ctx.tone ?? 'warm, professional, concise'}.
+${ctx.senderName ? `Sender: ${ctx.senderName}` : ''}
+
+RULES:
+- Calibrate to the audience (executive = outcomes/value; technical = next technical steps).
+- Keep it short: one opening paragraph, a few bullets, one clear call to action.
+- "customer" = external org (never "Microsoft").
+
+Return JSON:
+{
+  "subject": "...",
+  "bodyHtml": "<p>...</p><ul><li>...</li></ul><p>...</p>",
+  "bodyText": "plain-text version with line breaks",
+  "bullets": ["..."],
+  "callToAction": "..."
+}`
+  try {
+    const result = await callAIForTask('engagement-email', prompt, { expectJson: true })
+    const p = JSON.parse(result)
+    return {
+      subject: typeof p.subject === 'string' ? p.subject : `Follow-up — ${ctx.customerName ?? 'our session'}`,
+      bodyHtml: typeof p.bodyHtml === 'string' ? p.bodyHtml : '',
+      bodyText: typeof p.bodyText === 'string' ? p.bodyText : '',
+      bullets: asStringArray(p.bullets),
+      callToAction: typeof p.callToAction === 'string' ? p.callToAction : undefined,
+    }
+  } catch (error) {
+    console.error('Follow-up email generation failed:', error)
+    const text = 'Thank you for your time today. AI generation is unavailable — please edit this draft.'
+    return { subject: `Follow-up — ${ctx.customerName ?? 'our session'}`, bodyHtml: `<p>${text}</p>`, bodyText: text, bullets: [] }
+  }
+}
+
+export interface EngagementTimelineItem {
+  title: string
+  offsetDays: number
+  bucket?: string
+  owner?: string
+  notes?: string
+}
+
+export interface EngagementTimeline {
+  items: EngagementTimelineItem[]
+  reasoning?: string
+}
+
+export async function generateEngagementTimeline(
+  ctx: EngagementGenContext & { scopeNotes?: string }
+): Promise<EngagementTimeline> {
+  const prompt = `You are planning the task timeline for a Microsoft customer engagement, expressed as BUSINESS-DAY offsets from the engagement date (day 0). Negative = before, positive = after.
+
+CONTEXT:
+${buildEngagementContextBlock(ctx)}
+${ctx.scopeNotes ? `Scope notes: ${ctx.scopeNotes}` : ''}
+
+RULES:
+- Cover preparation (about T-28 to T-1), delivery day (0), and follow-up (T+1 to T+3).
+- Use buckets: "Preparation", "Delivery", "Follow-up".
+- Produce ~10-16 concrete, owner-assigned tasks.
+
+Return JSON:
+{ "items": [{ "title": "...", "offsetDays": -28, "bucket": "Preparation", "owner": "Microsoft", "notes": "..." }], "reasoning": "..." }`
+  try {
+    const result = await callAIForTask('engagement-timeline', prompt, { expectJson: true })
+    const p = JSON.parse(result)
+    const items: EngagementTimelineItem[] = Array.isArray(p.items)
+      ? (p.items as unknown[]).map((raw) => {
+          const it = (raw ?? {}) as Record<string, unknown>
+          return {
+            title: typeof it.title === 'string' ? it.title : 'Task',
+            offsetDays: typeof it.offsetDays === 'number' ? Math.round(it.offsetDays) : 0,
+            bucket: typeof it.bucket === 'string' ? it.bucket : undefined,
+            owner: typeof it.owner === 'string' ? it.owner : undefined,
+            notes: typeof it.notes === 'string' ? it.notes : undefined,
+          }
+        })
+      : []
+    return { items, reasoning: typeof p.reasoning === 'string' ? p.reasoning : undefined }
+  } catch (error) {
+    console.error('Timeline generation failed:', error)
+    return { items: [] }
+  }
+}
+
+export interface EngagementCloseout {
+  summary: string
+  decisions: string[]
+  actionItems: Array<{ action: string; owner?: string; due?: string }>
+  risks: string[]
+  nextSteps: string[]
+  sentiment?: 'positive' | 'neutral' | 'mixed' | 'negative'
+}
+
+export async function generateEngagementCloseout(ctx: EngagementGenContext): Promise<EngagementCloseout> {
+  const prompt = `You are writing a concise engagement closeout / debrief from the session notes below.
+
+CONTEXT:
+${buildEngagementContextBlock(ctx)}
+
+RULES:
+- Be factual and grounded ONLY in the provided context; do not invent commitments or numbers.
+- Capture decisions, action items (with owners), risks, and next steps.
+
+Return JSON:
+{ "summary": "2-4 sentences", "decisions": ["..."], "actionItems": [{"action":"...","owner":"...","due":"..."}], "risks": ["..."], "nextSteps": ["..."], "sentiment": "positive|neutral|mixed|negative" }`
+  try {
+    const result = await callAIForTask('engagement-closeout', prompt, { expectJson: true })
+    const p = JSON.parse(result)
+    const actionItems = Array.isArray(p.actionItems)
+      ? (p.actionItems as unknown[]).map((raw) => {
+          const it = (raw ?? {}) as Record<string, unknown>
+          return {
+            action: typeof it.action === 'string' ? it.action : '',
+            owner: typeof it.owner === 'string' ? it.owner : undefined,
+            due: typeof it.due === 'string' ? it.due : undefined,
+          }
+        }).filter((a) => a.action)
+      : []
+    const sentiment = ['positive', 'neutral', 'mixed', 'negative'].includes(p.sentiment) ? p.sentiment : undefined
+    return {
+      summary: typeof p.summary === 'string' ? p.summary : '',
+      decisions: asStringArray(p.decisions),
+      actionItems,
+      risks: asStringArray(p.risks),
+      nextSteps: asStringArray(p.nextSteps),
+      sentiment,
+    }
+  } catch (error) {
+    console.error('Closeout generation failed:', error)
+    return { summary: '', decisions: [], actionItems: [], risks: [], nextSteps: [] }
+  }
+}
+
+export interface ArchitectureDiagram {
+  title: string
+  /** Raw Mermaid source (no code fences). */
+  mermaid: string
+  explanation?: string
+}
+
+export async function generateArchitectureDiagram(
+  ctx: EngagementGenContext & { style?: 'flowchart' | 'sequence' | 'c4' }
+): Promise<ArchitectureDiagram> {
+  const style = ctx.style ?? 'flowchart'
+  const header = style === 'sequence' ? 'sequenceDiagram' : style === 'c4' ? 'C4Context' : 'flowchart TD'
+  const prompt = `You are a Microsoft cloud solution architect. Produce a ${style} architecture diagram in Mermaid syntax grounded in the context.
+
+CONTEXT:
+${buildEngagementContextBlock(ctx)}
+
+RULES:
+- Output VALID Mermaid ${header} syntax.
+- Prefer Azure / Microsoft services where implied. Keep node labels short.
+- Do NOT wrap the mermaid in markdown code fences.
+
+Return JSON:
+{ "title": "...", "mermaid": "<raw mermaid source>", "explanation": "1-2 sentences" }`
+  try {
+    const result = await callAIForTask('engagement-diagram', prompt, { expectJson: true })
+    const p = JSON.parse(result)
+    let mermaid = typeof p.mermaid === 'string' ? p.mermaid : ''
+    mermaid = mermaid.replace(/^```(?:mermaid)?\s*/i, '').replace(/```\s*$/i, '').trim()
+    return {
+      title: typeof p.title === 'string' ? p.title : 'Architecture Diagram',
+      mermaid: mermaid || `${header}\n  A[Customer] --> B[Microsoft Azure]`,
+      explanation: typeof p.explanation === 'string' ? p.explanation : undefined,
+    }
+  } catch (error) {
+    console.error('Diagram generation failed:', error)
+    return { title: 'Architecture Diagram', mermaid: 'flowchart TD\n  A[Customer] --> B[Microsoft Azure]\n  B --> C[Solution]' }
   }
 }
 

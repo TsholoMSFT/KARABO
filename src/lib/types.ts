@@ -2320,6 +2320,80 @@ export interface CustomerMetadata {
   userRole?: UserRole              // Persona using KARABO
 }
 
+// ============================================================================
+// ENGAGEMENT TOOLKIT — in-app engagement artifacts (HubWorks-inspired)
+// Agenda, follow-up email, task timeline, closeout, architecture diagram,
+// journey. Self-contained (AI + localStorage + file exports); see
+// src/lib/engagement/* and src/components/engagement/*.
+// ============================================================================
+
+export type EngagementType =
+  | 'discovery'
+  | 'architecture-review'
+  | 'executive-briefing'
+  | 'proof-of-concept'
+  | 'deep-dive'
+  | 'workshop'
+  | 'other'
+
+export type EngagementStatus = 'planned' | 'in-progress' | 'completed' | 'archived'
+
+export type EngagementArtifactKind =
+  | 'agenda'
+  | 'email'
+  | 'timeline'
+  | 'closeout'
+  | 'diagram'
+  | 'journey'
+
+/** A generated (or hand-authored) engagement artifact saved on an Engagement. */
+export interface EngagementArtifact {
+  id: string
+  kind: EngagementArtifactKind
+  title: string
+  /** Human-editable markdown rendering of the artifact. */
+  markdown: string
+  /** Optional structured payload (agenda items, timeline tasks, mermaid source, …). */
+  data?: unknown
+  generatedAt: number
+  updatedAt?: number
+  /** 'ai' when produced by a generator, 'manual' when hand-authored/edited. */
+  source?: 'ai' | 'manual'
+}
+
+/** A single task on an engagement timeline (business-day offset from the date). */
+export interface EngagementTask {
+  id: string
+  title: string
+  /** Business-day offset from the engagement date, e.g. -28, -14, 0, 3. */
+  offsetDays: number
+  /** Absolute due date (timestamp) once anchored to an engagement date. */
+  dueDate?: number
+  bucket?: string          // Planner bucket (e.g. "Preparation", "Delivery", "Follow-up")
+  owner?: string
+  notes?: string
+  done?: boolean
+}
+
+/** A customer engagement (session/meeting) and its generated artifacts. */
+export interface Engagement {
+  id: string
+  customerName: string
+  customerId?: string             // links to an Account / customer
+  sessionId?: string              // links to a DiscoverySession
+  type: EngagementType
+  status: EngagementStatus
+  /** Primary engagement date (timestamp) — anchors the task timeline. */
+  engagementDate?: number
+  stakeholders?: string[]
+  industry?: Industry
+  notes?: string
+  tasks?: EngagementTask[]
+  artifacts?: EngagementArtifact[]
+  createdAt: number
+  updatedAt?: number
+}
+
 export type Industry = 
   | 'general'
   | 'healthcare'

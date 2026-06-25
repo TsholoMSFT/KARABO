@@ -1,0 +1,73 @@
+/**
+ * Engagement artifact exports.
+ * ----------------------------------------------------------------------------
+ * Browser-side file generation for the engagement tools: Markdown, HTML, CSV,
+ * and real .docx (via the `docx` package + `Packer.toBlob`). Plus a thin
+ * wrapper over the existing share-helpers to open an Outlook compose window.
+ */
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx'
+import { openOutlookCompose } from '@/lib/share-helpers'
+
+function triggerDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+export function downloadText(content: string, filename: string, mime = 'text/plain'): void {
+  triggerDownload(new Blob([content], { type: `${mime};charset=utf-8` }), filename)
+}
+
+export const downloadMarkdown = (md: string, filename: string) => downloadText(md, filename, 'text/markdown')
+export const downloadHtml = (html: string, filename: string) => downloadText(html, filename, 'text/html')
+export const downloadCsv = (csv: string, filename: string) => downloadText(csv, filename, 'text/csv')
+
+/** Split a line into docx runs, honouring **bold** spans. */
+function inlineRuns(text: string): TextRun[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0)
+  if (parts.length === 0) return [new TextRun('')]
+  return parts.map((p) =>
+    p.startsWith('**') && p.endsWith('**')
+      ? new TextRun({ text: p.slice(2, -2), bold: true })
+      : new TextRun(p))
+}
+
+/** Lightweight Markdown -> docx paragraphs (headings, bullets, bold, plain). */
+function markdownToParagraphs(markdown: string, title?: string): Paragraph[] {
+  const out: Paragraph[] = []
+  if (title) out.push(new Paragraph({ text: title, heading: HeadingLevel.TITLE }))
+  for (const rawLine of markdown.split(/\r?\n/)) {
+    const line = rawLine.replace(/\s+$/, '')
+    if (!line.trim()) { out.push(new Paragraph('')); continue }
+    if (line.startsWith('### ')) out.push(new Paragraph({ text: line.slice(4), heading: HeadingLevel.HEADING_3 }))
+    else if (line.startsWith('## ')) out.push(new Paragraph({ text: line.slice(3), heading: HeadingLevel.HEADING_2 }))
+    else if (line.startsWith('# ')) out.push(new Paragraph({ text: line.slice(2), heading: HeadingLevel.HEADING_1 }))
+    else if (/^\s*[-*]\s+/.test(line)) out.push(new Paragraph({ children: inlineRuns(line.replace(/^\s*[-*]\s+/, '')), bullet: { level: 0 } }))
+    else out.push(new Paragraph({ children: inlineRuns(line) }))
+  }
+  return out
+}
+
+/** Render Markdown to a real .docx file and download it. */
+export async function downloadDocxFromMarkdown(markdown: string, filename: string, title?: string): Promise<void> {
+  const doc = new Document({ sections: [{ children: markdownToParagraphs(markdown, title) }] })
+  const blob = await Packer.toBlob(doc)
+  triggerDownload(blob, filename)
+}
+
+/** Open an Outlook compose window (OWA deep link, mailto fallback). */
+export function emailToOutlook(opts: { to?: string[]; subject: string; body: string; isHtml?: boolean }): void {
+  openOutlookCompose({ to: opts.to, subject: opts.subject, body: opts.body, isHtml: opts.isHtml })
+}
+
+/** Build a slugged, dated filename, e.g. "contoso-agenda-2026-06-25.docx". */
+export function artifactFilename(customer: string, kind: string, ext: string): string {
+  const slug = (customer || 'engagement').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'engagement'
+  const date = new Date().toISOString().slice(0, 10)
+  return `${slug}-${kind}-${date}.${ext}`
+}
