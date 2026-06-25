@@ -32,6 +32,7 @@ import {
   type PortfolioAsset,
 } from '@/lib/portfolio-analytics'
 import { formatCurrency, formatPercentage } from '@/lib/financial-calculations'
+import { businessFunctionLabel } from '@/lib/business-functions'
 
 interface ValuePortfolioProps {
   /** Use cases to value as an investment portfolio (typically the current session's). */
@@ -90,7 +91,9 @@ export function ValuePortfolio({ useCases, customerName }: ValuePortfolioProps) 
       priced.push({
         id: uc.id,
         name: uc.title,
-        category: uc.microsoftSolutions?.[0]?.productFamily,
+        category: uc.businessFunction
+          ? businessFunctionLabel(uc.businessFunction)
+          : uc.microsoftSolutions?.[0]?.productFamily,
         vintage: fiscalYear(uc.createdAt),
         investedCapital: impl,
         annualReturn: annualValue - annualRun,
@@ -107,6 +110,22 @@ export function ValuePortfolio({ useCases, customerName }: ValuePortfolioProps) 
     () => [...metrics.perAsset].sort((a, b) => b.profitabilityIndex - a.profitabilityIndex),
     [metrics],
   )
+
+  // Risk-adjusted value grouped by business function / department.
+  const departments = useMemo(() => {
+    const byCat = new Map<string, { invested: number; annualReturn: number; count: number }>()
+    for (const a of priced) {
+      const key = a.category ?? 'Unassigned'
+      const cur = byCat.get(key) ?? { invested: 0, annualReturn: 0, count: 0 }
+      cur.invested += a.investedCapital
+      cur.annualReturn += a.annualReturn * (a.successProbability ?? 1)
+      cur.count += 1
+      byCat.set(key, cur)
+    }
+    return [...byCat.entries()]
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.annualReturn - a.annualReturn)
+  }, [priced])
 
   // ── Capital allocation under a budget ─────────────────────────────────────
   const [budget, setBudget] = useState<number>(() => Math.round(metrics.totalInvested))
@@ -391,6 +410,42 @@ export function ValuePortfolio({ useCases, customerName }: ValuePortfolioProps) 
               </div>
             </CardContent>
           </Card>
+
+          {/* Value by department */}
+          {departments.length > 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Scales size={18} weight="duotone" className="text-primary" />
+                  Value by department
+                </CardTitle>
+                <CardDescription>
+                  Risk-adjusted annual return and invested capital grouped by business function.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {departments.map((d) => {
+                  const share = metrics.totalAnnualReturn > 0 ? d.annualReturn / metrics.totalAnnualReturn : 0
+                  return (
+                    <div key={d.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm gap-2">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <Badge variant="outline" className="shrink-0">{d.name}</Badge>
+                          <span className="text-muted-foreground truncate">
+                            {d.count} use case{d.count === 1 ? '' : 's'} &middot; {usd(d.invested)} invested
+                          </span>
+                        </span>
+                        <span className="tabular-nums text-muted-foreground shrink-0">
+                          {usd(d.annualReturn)}/yr &middot; {Math.round(share * 100)}%
+                        </span>
+                      </div>
+                      <Progress value={share * 100} className="h-1.5" />
+                    </div>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Vintage + attribution */}
           <div className="grid lg:grid-cols-2 gap-6">

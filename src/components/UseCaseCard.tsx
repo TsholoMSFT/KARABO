@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { UseCase, ScoringMethod } from '@/lib/types'
+import { businessFunctionLabel } from '@/lib/business-functions'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -220,6 +221,11 @@ export function UseCaseCard({
             )}
             {/* Data Source Badges */}
             <div className="mt-2 flex flex-wrap items-center gap-2">
+              {useCase.businessFunction && (
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {businessFunctionLabel(useCase.businessFunction)}
+                </Badge>
+              )}
               {useCase.dataSources && useCase.dataSources.length > 0 && (
                 <UseCaseSourceBadges dataSources={useCase.dataSources as any} />
               )}
