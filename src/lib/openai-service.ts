@@ -326,6 +326,11 @@ export interface COIEstimate {
   opportunityCosts: number
   riskCosts: number
   totalAnnualCOI: number
+  /** Conservative / optimistic annual COI bounds (optional; UI derives a range if absent). */
+  low?: number
+  high?: number
+  /** One concrete thing to verify with the customer to firm up the estimate. */
+  verificationStep?: string
   assumptions: string[]
   reasoning: string
   confidence: 'high' | 'medium' | 'low'
@@ -383,6 +388,9 @@ Return a JSON object:
   "opportunityCosts": <annual USD>,
   "riskCosts": <annual USD, probability-weighted>,
   "totalAnnualCOI": <sum of all costs>,
+  "low": <conservative/defensible lower-bound annual COI, USD>,
+  "high": <optimistic upper-bound annual COI, USD>,
+  "verificationStep": "<one concrete data point to confirm with the customer to firm up this estimate>",
   "assumptions": ["assumption 1", "assumption 2", "assumption 3"],
   "reasoning": "<2-3 sentences explaining the estimate>",
   "confidence": "high" | "medium" | "low",
@@ -411,6 +419,9 @@ Be conservative and defensible — when uncertain, estimate LOW and name what wo
       opportunityCosts: Math.max(0, parsed.opportunityCosts || 0),
       riskCosts: Math.max(0, parsed.riskCosts || 0),
       totalAnnualCOI: Math.max(0, parsed.totalAnnualCOI || 0),
+      low: typeof parsed.low === 'number' ? Math.max(0, parsed.low) : undefined,
+      high: typeof parsed.high === 'number' ? Math.max(0, parsed.high) : undefined,
+      verificationStep: typeof parsed.verificationStep === 'string' ? parsed.verificationStep : undefined,
       assumptions: parsed.assumptions || ['Based on industry averages'],
       reasoning: parsed.reasoning || 'Estimated based on typical business impact.',
       confidence: parsed.confidence || 'medium',
@@ -517,6 +528,11 @@ export interface ROIEstimate {
   roiPercentage: number
   paybackMonths: number
   threeYearValue: number
+  /** Conservative / optimistic annual benefit bounds (optional; UI derives a range if absent). */
+  low?: number
+  high?: number
+  /** One concrete thing to verify with the customer to firm up the estimate. */
+  verificationStep?: string
   assumptions: string[]
   reasoning: string
   confidence: 'high' | 'medium' | 'low'
@@ -570,6 +586,9 @@ Return a JSON object:
   "roiPercentage": <percentage, can exceed 100>,
   "paybackMonths": <months to break even>,
   "threeYearValue": <net value over 3 years>,
+  "low": <conservative lower-bound annual benefit, USD>,
+  "high": <optimistic upper-bound annual benefit, USD>,
+  "verificationStep": "<one concrete data point to confirm with the customer to firm up this estimate>",
   "assumptions": ["assumption 1", "assumption 2", "assumption 3"],
   "reasoning": "<2-3 sentences explaining the ROI calculation>",
   "confidence": "high" | "medium" | "low"
@@ -587,6 +606,9 @@ Be realistic. If COI data is provided, use it as the primary benefit driver.`
       roiPercentage: parsed.roiPercentage || 0,
       paybackMonths: Math.max(0, parsed.paybackMonths || 12),
       threeYearValue: parsed.threeYearValue || 0,
+      low: typeof parsed.low === 'number' ? Math.max(0, parsed.low) : undefined,
+      high: typeof parsed.high === 'number' ? Math.max(0, parsed.high) : undefined,
+      verificationStep: typeof parsed.verificationStep === 'string' ? parsed.verificationStep : undefined,
       assumptions: parsed.assumptions || ['Based on industry benchmarks'],
       reasoning: parsed.reasoning || 'Estimated based on typical ROI patterns.',
       confidence: parsed.confidence || 'medium',

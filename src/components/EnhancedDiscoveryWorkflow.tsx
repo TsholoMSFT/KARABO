@@ -47,6 +47,9 @@ interface WorkflowUseCase {
     opportunityCosts: number
     riskCosts: number
     totalAnnualCOI: number
+    low?: number
+    high?: number
+    verificationStep?: string
     assumptions: string[]
     reasoning: string
     confidence: 'high' | 'medium' | 'low'
@@ -64,6 +67,9 @@ interface WorkflowUseCase {
     roiPercentage: number
     paybackMonths: number
     threeYearValue: number
+    low?: number
+    high?: number
+    verificationStep?: string
     assumptions: string[]
     reasoning: string
     confidence: 'high' | 'medium' | 'low'
@@ -491,6 +497,9 @@ Next steps include detailed technical assessment, stakeholder alignment workshop
               opportunityCosts: uc.coiEstimate.opportunityCosts,
               riskCosts: uc.coiEstimate.riskCosts,
               totalAnnualCOI: uc.coiEstimate.totalAnnualCOI,
+              low: uc.coiEstimate.low,
+              high: uc.coiEstimate.high,
+              verificationStep: uc.coiEstimate.verificationStep,
               notes: [
                 uc.coiEstimate.reasoning ? `Reasoning: ${uc.coiEstimate.reasoning}` : '',
                 Array.isArray(uc.coiEstimate.assumptions) && uc.coiEstimate.assumptions.length > 0
