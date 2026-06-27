@@ -86,7 +86,7 @@ export function YellowLightsDashboard({ yellowLights, onResolve, compact = false
         <Card>
           <CardHeader>
             <CardTitle>Active Concerns</CardTitle>
-            <CardDescription>Issues requiring attention before proceeding</CardDescription>
+            <CardDescription>Advisory items to review — they don&apos;t block progression</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {unresolvedLights.map((light) => {

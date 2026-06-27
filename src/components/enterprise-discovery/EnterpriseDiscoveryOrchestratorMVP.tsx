@@ -392,13 +392,13 @@ export function EnterpriseDiscoveryOrchestratorMVP({
         }}
       />
 
-      {/* Critical Yellow Lights Alert */}
+      {/* Yellow Lights advisory (non-blocking — never gates progression or completion) */}
       {criticalYellowLights.length > 0 && (
-        <Alert variant="destructive">
+        <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            {criticalYellowLights.length} critical concern{criticalYellowLights.length > 1 ? 's' : ''} requiring
-            attention before proceeding
+            {criticalYellowLights.length} open concern{criticalYellowLights.length > 1 ? 's' : ''} flagged for review.
+            These are advisory only and do not block completing the assessment.
           </AlertDescription>
         </Alert>
       )}
