@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { VoiceInputField } from '@/components/VoiceInputField'
 import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
 import { Sparkle, FileText, FloppyDisk, ArrowClockwise } from '@phosphor-icons/react'
 import { generateEngagementAgenda, type EngagementAgenda } from '@/lib/openai-service'
@@ -112,12 +113,11 @@ export function AgendaBuilderDialog({ open, onOpenChange, context, onSaveArtifac
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="agenda-transcript">Planning notes / transcript (optional)</Label>
-              <Textarea
-                id="agenda-transcript"
+              <VoiceInputField
+                label="Planning notes / transcript (optional)"
                 value={transcript}
-                onChange={(e) => setTranscript(e.target.value)}
-                placeholder="Paste planning-call notes, qualification details, or a transcript. The agenda is grounded in this text plus the use cases in scope."
+                onChange={setTranscript}
+                placeholder="Paste planning-call notes, qualification details, or a transcript — or dictate with the mic. The agenda is grounded in this text plus the use cases in scope."
                 rows={8}
               />
             </div>

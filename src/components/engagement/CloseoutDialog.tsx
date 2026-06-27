@@ -6,6 +6,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { VoiceInputField } from '@/components/VoiceInputField'
 import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
 import { Sparkle, FileText, FloppyDisk, ArrowClockwise, ClipboardText } from '@phosphor-icons/react'
 import { generateEngagementCloseout, type EngagementCloseout } from '@/lib/openai-service'
@@ -81,12 +82,11 @@ export function CloseoutDialog({ open, onOpenChange, context, onSaveArtifact }: 
         {!closeout ? (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="closeout-transcript">Session notes / transcript</Label>
-              <Textarea
-                id="closeout-transcript"
+              <VoiceInputField
+                label="Session notes / transcript"
                 value={transcript}
-                onChange={(e) => setTranscript(e.target.value)}
-                placeholder="Paste the session notes or transcript. The closeout is grounded ONLY in this text plus the use cases in scope — it won't invent commitments."
+                onChange={setTranscript}
+                placeholder="Paste the session notes or transcript — or dictate with the mic. The closeout is grounded ONLY in this text plus the use cases in scope — it won't invent commitments."
                 rows={8}
               />
             </div>

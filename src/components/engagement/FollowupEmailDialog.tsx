@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { VoiceInputField } from '@/components/VoiceInputField'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
 import { Sparkle, FileText, FloppyDisk, ArrowClockwise, EnvelopeSimple, Code } from '@phosphor-icons/react'
@@ -99,12 +100,11 @@ export function FollowupEmailDialog({ open, onOpenChange, context, onSaveArtifac
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email-transcript">Session notes / highlights (optional)</Label>
-              <Textarea
-                id="email-transcript"
+              <VoiceInputField
+                label="Session notes / highlights (optional)"
                 value={transcript}
-                onChange={(e) => setTranscript(e.target.value)}
-                placeholder="Paste session notes or key outcomes. The email is grounded in this text plus the use cases in scope."
+                onChange={setTranscript}
+                placeholder="Paste session notes or key outcomes — or dictate with the mic. The email is grounded in this text plus the use cases in scope."
                 rows={7}
               />
             </div>
