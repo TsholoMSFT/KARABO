@@ -24,7 +24,9 @@ import {
   CaretUp,
   Buildings,
   Compass,
-  ChartLineUp
+  ChartLineUp,
+  Heartbeat,
+  ClipboardText
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AboutSection } from '@/components/AboutSection'
@@ -42,6 +44,8 @@ interface LandingPageProps {
   onViewExisting: () => void
   onOpenPortfolio?: () => void
   onOpenValuePortfolio?: () => void
+  onOpenCsamCockpit?: () => void
+  onOpenCustomerQuestionnaire?: () => void
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onSelectTemplate?: (template: SessionTemplate) => void
@@ -62,6 +66,8 @@ export function LandingPage({
   onViewExisting,
   onOpenPortfolio,
   onOpenValuePortfolio,
+  onOpenCsamCockpit,
+  onOpenCustomerQuestionnaire,
   onStartDemo,
   onStartEnterpriseDemo,
   onSelectTemplate,
@@ -537,6 +543,18 @@ export function LandingPage({
                 <Button onClick={onOpenValuePortfolio} variant="outline" className="gap-2">
                   <ChartLineUp size={18} weight="duotone" />
                   Value Portfolio
+                </Button>
+              )}
+              {onOpenCsamCockpit && (
+                <Button onClick={onOpenCsamCockpit} variant="outline" className="gap-2">
+                  <Heartbeat size={18} weight="duotone" />
+                  Client Health Dashboard
+                </Button>
+              )}
+              {onOpenCustomerQuestionnaire && (
+                <Button onClick={onOpenCustomerQuestionnaire} variant="outline" className="gap-2">
+                  <ClipboardText size={18} weight="duotone" />
+                  Send Customer Questionnaire
                 </Button>
               )}
             </div>

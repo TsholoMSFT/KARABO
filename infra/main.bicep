@@ -148,6 +148,7 @@ resource func 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'AZURE_SEARCH_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=azure-search-admin-key)' }
         { name: 'ALPHA_VANTAGE_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=alpha-vantage-key)' }
         { name: 'ALLOWED_ORIGIN', value: allowedOrigin }
+        { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storage.name }
       ]
     }
   }
@@ -176,6 +177,19 @@ resource storageAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' 
     principalId: func.identity.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: storageBlobOwnerRoleId
+  }
+}
+
+// ---------- RBAC: Function App MI → Storage Table Data Contributor (questionnaire store) ----------
+var storageTableContributorRoleId = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+
+resource storageTableAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: storage
+  name: guid(storage.id, func.id, storageTableContributorRoleId)
+  properties: {
+    principalId: func.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: storageTableContributorRoleId
   }
 }
 

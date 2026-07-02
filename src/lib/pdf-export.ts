@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf'
-import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData, ENGAGEMENT_DEFAULTS, AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG, RESPONSIBLE_AI_PRINCIPLE_LABELS } from './types'
+import { UseCase, ScoringMethod, CustomerMetadata, SuggestedUseCaseData, AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG } from './types'
 import type { AIGovernanceAssessment, SovereignCloudAssessment } from './types'
 import { calculateBlendedScore, calculateRICEScore, calculateRiskAdjustedFinancial, getQuadrant } from './scoring'
 import { getKPIById } from './kpis'
@@ -495,7 +495,7 @@ export async function exportToPDF(
 
     // Reference architecture text note (diagrams handled in Threadlight)
     if (useCase.referenceArchitecture) {
-      const arch = REFERENCE_ARCHITECTURES[useCase.referenceArchitecture]
+      const arch = REFERENCE_ARCHITECTURES[useCase.referenceArchitecture as keyof typeof REFERENCE_ARCHITECTURES]
       if (arch) {
         addPageIfNeeded(10)
         doc.setFont('helvetica', 'bold')
@@ -521,7 +521,7 @@ export async function exportToPDF(
       y += 5
 
       // Total duration
-      const totalDuration = useCase.customerJourney.milestones.reduce((sum, m) => sum + m.durationWeeks, 0)
+      const totalDuration = useCase.customerJourney.milestones.reduce((sum, m) => sum + (parseInt(m.duration, 10) || 0), 0)
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
       doc.setTextColor(80, 80, 80)
@@ -539,7 +539,7 @@ export async function exportToPDF(
       useCase.customerJourney.milestones.forEach((milestone, idx) => {
         addPageIfNeeded(18)
         
-        const color = engagementColors[milestone.engagementType] || { r: 100, g: 100, b: 100 }
+        const color = engagementColors[milestone.engagement] || { r: 100, g: 100, b: 100 }
         
         // Timeline connector line
         if (idx < useCase.customerJourney!.milestones.length - 1) {
@@ -556,12 +556,12 @@ export async function exportToPDF(
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(7)
         doc.setTextColor(color.r, color.g, color.b)
-        doc.text(`${idx + 1}. ${milestone.engagementType}`, margin + 12, y + 1.5)
+        doc.text(`${idx + 1}. ${milestone.engagement}`, margin + 12, y + 1.5)
         
         // Duration
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(120, 120, 120)
-        doc.text(`(${milestone.durationWeeks} weeks)`, margin + 55, y + 1.5)
+        doc.text(`(${milestone.duration})`, margin + 55, y + 1.5)
         y += 5
 
         // Deliverables (compact list)
@@ -1220,7 +1220,7 @@ export async function exportToPDF(
     doc.setFont('helvetica', 'italic')
     doc.setFontSize(9)
     doc.setTextColor(80, 80, 80)
-    y = drawWrappedText(doc, sov.dataResidency.justification, margin, y, pageWidth - 2 * margin, 4)
+    drawWrappedText(sov.dataResidency.justification, margin, pageWidth - 2 * margin, 4)
     y += 6
 
     // Recommended regions
@@ -1251,7 +1251,7 @@ export async function exportToPDF(
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(8)
     for (const svc of sov.serviceAvailability) {
-      y = addPageIfNeeded(doc, y, 5, margin)
+      addPageIfNeeded(5)
       doc.setTextColor(60, 60, 60)
       doc.text(svc.service, margin, y)
       doc.setTextColor(svc.availableInCloud ? 0 : 180, svc.availableInCloud ? 120 : 0, 0)
@@ -1267,7 +1267,7 @@ export async function exportToPDF(
 
     // Gaps
     if (sov.gaps.length > 0) {
-      y = addPageIfNeeded(doc, y, 15, margin)
+      addPageIfNeeded(15)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.setTextColor(180, 130, 30)
@@ -1277,16 +1277,16 @@ export async function exportToPDF(
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
       for (const gap of sov.gaps) {
-        y = addPageIfNeeded(doc, y, 8, margin)
+        addPageIfNeeded(8)
         const impactIcon = gap.impact === 'high' ? '[HIGH]' : gap.impact === 'medium' ? '[MED]' : '[LOW]'
         doc.setTextColor(gap.impact === 'high' ? 180 : 120, gap.impact === 'high' ? 50 : 100, 30)
         doc.text(`${impactIcon} ${gap.dimension}`, margin, y)
         doc.setTextColor(60, 60, 60)
         y += 4
-        y = drawWrappedText(doc, gap.description, margin + 5, y, pageWidth - 2 * margin - 10, 3.5)
+        drawWrappedText(gap.description, margin + 5, pageWidth - 2 * margin - 10, 3.5)
         y += 2
         doc.setTextColor(100, 100, 100)
-        y = drawWrappedText(doc, `→ ${gap.recommendation}`, margin + 5, y, pageWidth - 2 * margin - 10, 3.5)
+        drawWrappedText(`→ ${gap.recommendation}`, margin + 5, pageWidth - 2 * margin - 10, 3.5)
         y += 4
       }
     }
@@ -1294,7 +1294,7 @@ export async function exportToPDF(
     // Cross-border data flows
     const riskyFlows = sov.crossBorderFlows.filter(f => f.risk !== 'minimal')
     if (riskyFlows.length > 0) {
-      y = addPageIfNeeded(doc, y, 15, margin)
+      addPageIfNeeded(15)
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.setTextColor(100, 100, 100)
@@ -1304,7 +1304,7 @@ export async function exportToPDF(
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
       for (const flow of riskyFlows) {
-        y = addPageIfNeeded(doc, y, 6, margin)
+        addPageIfNeeded(6)
         doc.setTextColor(flow.permitted ? 80 : 180, flow.permitted ? 80 : 50, 60)
         doc.text(`${flow.permitted ? '⚠' : '✗'} ${flow.dataTypes[0]}: ${flow.mechanism || 'No mechanism'}`, margin + 5, y)
         y += 5
@@ -1471,7 +1471,7 @@ export async function exportToPDF(
 // ============================================================================
 
 import type { Account, Workload, DiscoverySession as DiscSession } from './types'
-import { SOLUTION_AREA_LABELS, WORKLOAD_TYPE_LABELS, ENGAGEMENT_TYPE_LABELS, ACCOUNT_TEAM_ROLE_LABELS } from './types'
+import { SOLUTION_AREA_LABELS, WORKLOAD_TYPE_LABELS, ACCOUNT_TEAM_ROLE_LABELS } from './types'
 
 export interface AccountTechPlanExportOptions {
   account: Account

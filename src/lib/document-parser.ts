@@ -328,16 +328,7 @@ function parseTextAsTable(text: string): Omit<DocumentParseResult, 'documentType
   const useCases: ParsedUseCase[] = []
   const warnings: string[] = []
   
-  // Look for numbered or bulleted use cases
-  const useCasePatterns = [
-    // "1. Use Case Name: ..." or "1) Use Case Name: ..."
-    /(?:^|\n)(?:\d+[.)\s]+)(.+?)(?:\n|$)/gi,
-    // "Use Case: Name" pattern
-    /(?:use\s*case\s*[:]\s*)([^\n]+)/gi,
-    // "• Title" bullet points
-    /(?:^|\n)[•\-\*]\s*(.+?)(?:\n|$)/gi,
-  ]
-  
+
   // Try to find structured sections
   const sections = text.split(/(?:use\s*case\s*\d*\s*[:.\-]?|#{1,3}\s*|\*{2,})/i)
   

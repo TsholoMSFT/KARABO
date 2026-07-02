@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CalendarIcon, Loader2, Sparkles, CheckCircle2, XCircle, Plus, Trash2 } from 'lucide-react'
+import { CalendarIcon, Loader2, Sparkles, CheckCircle2, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
@@ -28,7 +28,7 @@ interface Stage2ResourcesProps {
   isLiveMode?: boolean
 }
 
-export function Stage2Resources({ initialData, onComplete, onBack, isLiveMode = false }: Stage2ResourcesProps) {
+export function Stage2Resources({ initialData, onComplete, onBack }: Stage2ResourcesProps) {
   const { isAIFeatureEnabled } = useDiscoverySettings()
   
   // Financial
@@ -46,7 +46,7 @@ export function Stage2Resources({ initialData, onComplete, onBack, isLiveMode = 
   // Technical
   const [existingPlatforms, setExistingPlatforms] = useState<string[]>(initialData?.existingPlatforms || [''])
   const [dataAvailability, setDataAvailability] = useState<DataAvailability>(initialData?.dataAvailability || 'unknown')
-  const [integrationRequirements, setIntegrationRequirements] = useState<string[]>(
+  const [integrationRequirements] = useState<string[]>(
     initialData?.integrationRequirements || ['']
   )
   const [technicalDebtConcerns, setTechnicalDebtConcerns] = useState(initialData?.technicalDebtConcerns || '')
@@ -58,10 +58,10 @@ export function Stage2Resources({ initialData, onComplete, onBack, isLiveMode = 
   const [targetCompletion, setTargetCompletion] = useState<Date | null>(
     initialData?.targetCompletion ? new Date(initialData.targetCompletion) : null
   )
-  const [competingPriorities, setCompetingPriorities] = useState<string[]>(
+  const [competingPriorities] = useState<string[]>(
     initialData?.competingPriorities || ['']
   )
-  const [hardDependencies, setHardDependencies] = useState<string[]>(initialData?.hardDependencies || [''])
+  const [hardDependencies] = useState<string[]>(initialData?.hardDependencies || [''])
 
   // SCQ
   const [scq, setScq] = useState(
@@ -319,7 +319,7 @@ Return JSON: {situation, complication, question}`
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={targetStart || undefined} onSelect={setTargetStart} />
+                      <Calendar mode="single" selected={targetStart || undefined} onSelect={(d) => setTargetStart(d ?? null)} />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -336,7 +336,7 @@ Return JSON: {situation, complication, question}`
                       <Calendar
                         mode="single"
                         selected={targetCompletion || undefined}
-                        onSelect={setTargetCompletion}
+                        onSelect={(d) => setTargetCompletion(d ?? null)}
                       />
                     </PopoverContent>
                   </Popover>

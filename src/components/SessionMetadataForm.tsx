@@ -8,10 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { NavigationHeader } from '@/components/NavigationHeader'
-import { useCustomers } from '@/hooks/use-customers'
 import { lookupTickerSymbol, TickerLookupResult, TickerDiagnostics, TickerLookupResponse } from '@/lib/earnings-service'
 import { fetchCompanyFinancials } from '@/lib/economic-context-service'
-import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext, AccountSegment, ACCOUNT_SEGMENT_LABELS, ACCOUNT_SEGMENT_DESCRIPTIONS, ACCOUNT_SEGMENT_META, UserRole, USER_ROLE_LABELS, USER_ROLE_DESCRIPTIONS, USER_ROLE_ICONS } from '@/lib/types'
+import { EntityType, ENTITY_TYPE_LABELS, ENTITY_TYPE_DESCRIPTIONS, ComplianceEnforcement, ManualFinancialContext, AccountSegment, ACCOUNT_SEGMENT_META, UserRole, USER_ROLE_LABELS, USER_ROLE_DESCRIPTIONS, USER_ROLE_ICONS } from '@/lib/types'
 import { Building, User, UserCircle, MapPin, Wrench, GearSix, ChartLine, MagnifyingGlass, Check, Info, ShieldCheck, CurrencyDollar, Buildings, UsersThree } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -83,7 +82,6 @@ const INNOVATION_HUB_LOCATIONS = [
 ]
 
 export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initialMetadata, isDemoMode, demoIndustry }: SessionMetadataFormProps) {
-  const { customers, getCustomerById } = useCustomers()
   const [metadata, setMetadata] = useState<SessionMetadata>({
     customerName: initialMetadata?.customerName || '',
     innovationHubSPOC: initialMetadata?.innovationHubSPOC || '',

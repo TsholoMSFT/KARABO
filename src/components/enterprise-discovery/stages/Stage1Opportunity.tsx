@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -93,7 +93,7 @@ export function Stage1Opportunity({ initialData, businessEnvisioning, onComplete
     
     // From current state assessment
     if (businessEnvisioning.currentState?.aiMaturity) {
-      parts.push(`AI Readiness: Currently at ${businessEnvisioning.currentState.aiMaturity.currentLevel} maturity, targeting ${businessEnvisioning.currentState.aiMaturity.targetLevel || 'higher'} level`)
+      parts.push(`AI Readiness: Currently at ${businessEnvisioning.currentState.aiMaturity.currentUsage} AI usage`)
     }
     
     return parts.join('\n\n')

@@ -3,14 +3,15 @@ import type { EnterpriseDiscoverySession } from '@/lib/types'
 import { calculateTotalCOI } from '@/lib/financial-calculations'
 
 type ExcelCell = {
-  value: string | number | boolean | Date | null | undefined
+  value: string | number | boolean | Date | undefined
   type?: StringConstructor | NumberConstructor | BooleanConstructor | DateConstructor | 'Formula'
   fontWeight?: 'bold'
 }
 
-function cell(value: ExcelCell['value'], type?: ExcelCell['type'], extra?: Omit<ExcelCell, 'value' | 'type'>): ExcelCell {
-  if (extra) return { value, type, ...extra }
-  return { value, type }
+function cell(value: string | number | boolean | Date | null | undefined, type?: ExcelCell['type'], extra?: Omit<ExcelCell, 'value' | 'type'>): ExcelCell {
+  const v = value ?? undefined
+  if (extra) return { value: v, type, ...extra }
+  return { value: v, type }
 }
 
 function header(value: string): ExcelCell {

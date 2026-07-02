@@ -99,12 +99,12 @@ export function estimateRunCost(useCase: UseCase, inputs: CostEngineInputs = {})
     const cost = execMillions * pricing.compute.functionsConsumption.perMillionExecutionsUSD + 25
     lines.push({ label: `Azure Functions (Consumption + GB-s)`, monthlyUSD: cost, bucket: 'compute' })
   } else if (services.has('container-apps') || services.has('azure-container-apps')) {
-    lines.push({ label: 'Azure Container Apps (base)', monthlyUSD: pricing.compute.containerAppsBase, bucket: 'compute' })
+    lines.push({ label: 'Azure Container Apps (base)', monthlyUSD: pricing.compute.containerAppsBase.monthlyUSD, bucket: 'compute' })
   } else if (services.has('app-service') || services.has('azure-app-service')) {
-    lines.push({ label: 'Azure App Service (P1v3)', monthlyUSD: pricing.compute.appServiceP1v3, bucket: 'compute' })
+    lines.push({ label: 'Azure App Service (P1v3)', monthlyUSD: pricing.compute.appServiceP1v3.monthlyUSD, bucket: 'compute' })
   } else if (services.has('aks') || services.has('azure-kubernetes-service')) {
     const nodes = merged.activeUsers > 500 ? 4 : 2
-    lines.push({ label: `AKS (${nodes} × Standard_D4s_v5)`, monthlyUSD: nodes * pricing.compute.aksNodeStandardD4sV5, bucket: 'compute' })
+    lines.push({ label: `AKS (${nodes} × Standard_D4s_v5)`, monthlyUSD: nodes * pricing.compute.aksNodeStandardD4sV5.monthlyUSD, bucket: 'compute' })
   }
 
   // ---------- Storage / data plane ----------

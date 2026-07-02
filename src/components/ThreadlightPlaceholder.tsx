@@ -11,7 +11,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { TreeStructure, FlowArrow, Lightning, Sparkle, ArrowRight, ArrowLeft, ArrowSquareOut } from '@phosphor-icons/react'
+import { TreeStructure, FlowArrow, Lightning, Sparkle, ArrowRight, ArrowLeft } from '@phosphor-icons/react'
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { ThreadlightPasteCard } from '@/components/ThreadlightPasteCard'

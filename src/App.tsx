@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { buildSolutionPathsAnnex } from '@/lib/solution-blueprint/annex-builder'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import '@/lib/openai-service' // Initialize OpenAI service
-import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType, AccountSegment, BusinessFunction } from '@/lib/types'
+import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType, BusinessFunction } from '@/lib/types'
 import type { EnterpriseDiscoverySession, EnterpriseDiscoverySessionMVP } from '@/lib/types'
 
 // Union type: handlers accept both legacy and MVP sessions
@@ -65,6 +65,7 @@ const LiveDiscoverySetup = lazy(() => import('@/components/LiveDiscoverySetup').
 const SessionManager = lazy(() => import('@/components/SessionManager').then(m => ({ default: m.SessionManager })))
 const SessionComparison = lazy(() => import('@/components/SessionComparison').then(m => ({ default: m.SessionComparison })))
 const SessionMetadataForm = lazy(() => import('@/components/SessionMetadataForm').then(m => ({ default: m.SessionMetadataForm })))
+const CsamCockpit = lazy(() => import('@/components/csam/CsamCockpit').then(m => ({ default: m.CsamCockpit })))
 const PortfolioIntelligenceView = lazy(() => import('@/components/PortfolioIntelligenceView').then(m => ({ default: m.PortfolioIntelligenceView })))
 const CustomerSelector = lazy(() => import('@/components/CustomerSelector').then(m => ({ default: m.CustomerSelector })))
 const EnterpriseDiscoveryOrchestrator = lazy(() => import('@/components/enterprise-discovery/EnterpriseDiscoveryOrchestratorMVP').then(m => ({ default: m.EnterpriseDiscoveryOrchestratorMVP })))
@@ -75,6 +76,7 @@ const PipelineBoard = lazy(() => import('@/components/PipelineBoard').then(m => 
 const UnitEconomicsEngine = lazy(() => import('@/components/UnitEconomicsEngine').then(m => ({ default: m.UnitEconomicsEngine })))
 const ValuePortfolio = lazy(() => import('@/components/ValuePortfolio').then(m => ({ default: m.ValuePortfolio })))
 const EngagementHub = lazy(() => import('@/components/EngagementHub').then(m => ({ default: m.EngagementHub })))
+const QuestionnaireBuilder = lazy(() => import('@/components/QuestionnaireBuilder').then(m => ({ default: m.QuestionnaireBuilder })))
 
 /** Fallback spinner for lazy-loaded components */
 function LazyFallback() {
@@ -85,7 +87,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics' | 'value-portfolio' | 'engagement-hub'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics' | 'value-portfolio' | 'engagement-hub' | 'csam-cockpit' | 'questionnaire-builder'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -218,7 +220,7 @@ function App() {
         name: uc.title,
         description: uc.description,
         archetypeId: uc.solutionBlueprint!.archetypeId,
-        extraCapabilities: uc.solutionBlueprint!.extraCapabilities ?? [],
+        extraCapabilities: (uc.solutionBlueprint!.extraCapabilities ?? []) as import('@/lib/solution-blueprint/types').CapabilityId[],
         sovereigntyRequired: uc.solutionBlueprint!.sovereigntyRequired,
       }))
     if (!estate || linked.length === 0) { setBlueprintSignals(new Map()); return }
@@ -255,7 +257,7 @@ function App() {
         name: uc.title,
         description: uc.description,
         archetypeId: uc.solutionBlueprint!.archetypeId,
-        extraCapabilities: uc.solutionBlueprint!.extraCapabilities ?? [],
+        extraCapabilities: (uc.solutionBlueprint!.extraCapabilities ?? []) as import('@/lib/solution-blueprint/types').CapabilityId[],
         sovereigntyRequired: uc.solutionBlueprint!.sovereigntyRequired,
       }))
     if (!estate || drafts.length === 0 || filteredUseCases.length === 0) return ''
@@ -558,6 +560,10 @@ function App() {
         customerName: 'New DUCE Engagement',
         name: 'DUCE Session',
         industry: 'general',
+        innovationHubLocation: '',
+        solutionEngineer: '',
+        accountTeamRep: '',
+        primaryStakeholder: '',
         responses: [],
         suggestedUseCases: [],
         createdAt: Date.now(),
@@ -934,6 +940,8 @@ function App() {
           onViewExisting={() => setCurrentView('dashboard')}
           onOpenPortfolio={() => setCurrentView('portfolio')}
           onOpenValuePortfolio={() => setCurrentView('value-portfolio')}
+          onOpenCsamCockpit={() => setCurrentView('csam-cockpit')}
+          onOpenCustomerQuestionnaire={() => setCurrentView('questionnaire-builder')}
           onSelectTemplate={handleSelectTemplate}
           isDemoMode={isDemoMode}
           demoIndustry={demoIndustry}
@@ -1029,6 +1037,36 @@ function App() {
             onBack={() => setCurrentView('dashboard')}
           />
         </Suspense>
+      )}
+
+      {currentView === 'questionnaire-builder' && (
+        <Suspense fallback={<LazyFallback />}>
+          <QuestionnaireBuilder
+            initialCustomerName={selectedSession?.customerName}
+            initialIndustry={selectedSession?.industry}
+            onBack={() => setCurrentView(selectedSessionId ? 'dashboard' : 'landing')}
+            onBackToLanding={handleBackToLanding}
+          />
+        </Suspense>
+      )}
+
+      {currentView === 'csam-cockpit' && (
+        <>
+          <NavigationHeader
+            onBackToLanding={handleBackToLanding}
+            onBack={handleBackToLanding}
+            backLabel="Back"
+            title="Customer Value Realisation & Health Cockpit"
+            subtitle="CSAM lens — value realisation, health, adoption, and CSDR guidance"
+          />
+          <div className="container mx-auto px-4 md:px-6 py-8 max-w-[1400px]">
+            <SectionErrorBoundary>
+              <Suspense fallback={<LazyFallback />}>
+                <CsamCockpit isDemoMode={isDemoMode} />
+              </Suspense>
+            </SectionErrorBoundary>
+          </div>
+        </>
       )}
 
       {currentView === 'duce-wizard' && selectedSessionId && (
@@ -1429,7 +1467,7 @@ function App() {
                   onStartDemo={handleStartDemo}
                   onStartEnterpriseDemo={handleStartEnterpriseDemo}
                   onOpenEngagementHub={handleStartEngagementHub}
-                  accountSegment={selectedSession?.accountSegment}
+                  accountSegment={undefined}
                 />
                 <EmptyState onAddFirst={handleOpenAddDialog} onImport={() => setImportDialogOpen(true)} />
               </>

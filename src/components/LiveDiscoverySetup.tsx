@@ -27,7 +27,7 @@ export function LiveDiscoverySetup({ onStart, onCancel, onBackToLanding }: LiveD
   const [capabilities, setCapabilities] = useState<BrowserCapabilities | null>(null)
   const [isCheckingCapabilities, setIsCheckingCapabilities] = useState(true)
   const [isRequestingMicrophone, setIsRequestingMicrophone] = useState(false)
-  const [microphoneGranted, setMicrophoneGranted] = useState<boolean | null>(null)
+  const [, setMicrophoneGranted] = useState<boolean | null>(null)
   const [showFallback, setShowFallback] = useState(false)
 
   useEffect(() => {
@@ -84,7 +84,7 @@ export function LiveDiscoverySetup({ onStart, onCancel, onBackToLanding }: LiveD
     }
     
     // Load and apply saved settings
-    const settings = loadLiveDiscoverySettings()
+    loadLiveDiscoverySettings()
     onStart(sessionName, industry)
   }
 
@@ -206,7 +206,7 @@ export function LiveDiscoverySetup({ onStart, onCancel, onBackToLanding }: LiveD
                 !sessionName.trim() || 
                 isCheckingCapabilities || 
                 isRequestingMicrophone ||
-                (showFallback && capabilities && !canUseLiveDiscovery(capabilities))
+                !!(showFallback && capabilities && !canUseLiveDiscovery(capabilities))
               }
               className="flex-1 gap-2"
             >

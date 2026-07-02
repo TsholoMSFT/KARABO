@@ -10,6 +10,7 @@ import {
   Industry,
   AIRegulationFramework,
   SecurityRequirement,
+  DataClassification,
   EnterpriseDiscoverySession,
   OpportunityStageData,
   ResourcesStageData
@@ -1409,7 +1410,7 @@ export interface FallbackUseCase {
   }
   cybersecurity: {
     securityRequirements: SecurityRequirement[]
-    dataClassification: string
+    dataClassification: DataClassification
   }
 }
 

@@ -1,4 +1,4 @@
-import { UseCase, ScoringMethod, CustomerMetadata, AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG, RESPONSIBLE_AI_PRINCIPLE_LABELS } from '@/lib/types'
+import { UseCase, ScoringMethod, CustomerMetadata, AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG } from '@/lib/types'
 import type { AIGovernanceAssessment, SovereignCloudAssessment } from '@/lib/types'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -523,6 +523,11 @@ export function PrintView({
                     'azure-government-dod': 'Azure Government DoD',
                     'azure-china-21vianet': 'Azure China (21Vianet)',
                     'azure-eu-boundary': 'Azure EU Data Boundary',
+                    'azure-local': 'Azure Local (On-Premises)',
+                    'azure-arc': 'Azure Arc (Hybrid)',
+                    'disconnected': 'Disconnected / Air-Gapped',
+                    'private-cloud': 'Private Cloud (Non-Azure)',
+                    'foundry-local': 'Foundry Local (On-Premises AI)',
                   }[sovereignCloudAssessment.cloudEnvironment] || sovereignCloudAssessment.cloudEnvironment}
                   <Badge variant="outline" className={`ml-2 text-[9px] ${
                     sovereignCloudAssessment.mandateLevel === 'required' ? 'text-red-600 border-red-300' : 'text-blue-600 border-blue-300'

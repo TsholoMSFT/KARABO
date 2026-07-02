@@ -10,9 +10,9 @@ import type {
   ArchitectureDiagram,
   GeneratedJourney,
 } from '@/lib/openai-service'
-import type { EngagementType } from '@/lib/types'
+import type { EngagementToolkitType } from '@/lib/types'
 
-export const ENGAGEMENT_TYPE_LABELS: Record<EngagementType, string> = {
+export const ENGAGEMENT_TYPE_LABELS: Record<EngagementToolkitType, string> = {
   discovery: 'Discovery',
   'architecture-review': 'Architecture Review',
   'executive-briefing': 'Executive Briefing',

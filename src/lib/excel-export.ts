@@ -19,11 +19,11 @@ import { summarisePipelineRow, themesForEntity, type EntityIntel } from './pipel
 
 export type IntelMap = Record<string, EntityIntel>
 
-type Cell = { value: string | number | null; fontWeight?: 'bold' }
+type Cell = { value: string | number | undefined; fontWeight?: 'bold' }
 type Sheet = Cell[][]
 
 const bold = (labels: string[]): Cell[] => labels.map((value) => ({ value, fontWeight: 'bold' as const }))
-const cell = (v?: string | number | null): Cell => ({ value: v ?? null })
+const cell = (v?: string | number | null): Cell => ({ value: v ?? undefined })
 const join = (xs: string[]): string => xs.join('; ')
 
 function mappingForEntity(entity: PortfolioSeedEntity, intel?: EntityIntel): ThemeUseCaseMapping[] {

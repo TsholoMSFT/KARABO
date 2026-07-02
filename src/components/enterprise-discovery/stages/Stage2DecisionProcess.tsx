@@ -7,11 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Slider } from '@/components/ui/slider'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, CalendarIcon, Plus, Trash2, Check, Sparkles } from 'lucide-react'
+import { CalendarIcon, Plus, Trash2, Check, Sparkles } from 'lucide-react'
 import { format } from 'date-fns'
 import { StakeholderGrid } from '../StakeholderGrid'
 import { TabCompletionIndicator } from '../TabCompletionIndicator'
@@ -27,7 +26,6 @@ import type {
   TabCompletionStatus,
   OpportunityResourcesStageData,
 } from '@/lib/types'
-import { cn } from '@/lib/utils'
 
 interface Stage2DecisionProcessProps {
   initialData?: DecisionProcessStageData

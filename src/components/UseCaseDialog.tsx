@@ -19,7 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { KPISelector } from '@/components/KPISelector'
 import { REGULATION_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS, RISK_LEVEL_LABELS } from '@/lib/demo-data'
 import { assessUseCaseRisk, RISK_LEVEL_CONFIG, detectJurisdictions } from '@/lib/regulatory-engine'
-import { Scales, ShieldCheck, CaretDown, X, Warning, ShieldWarning } from '@phosphor-icons/react'
+import { Scales, ShieldCheck, CaretDown, X, ShieldWarning } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
 interface UseCaseDialogProps {

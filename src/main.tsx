@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from "react-error-boundary";
 
@@ -5,6 +6,17 @@ import App from './App.tsx'
 import { ErrorFallback } from './ErrorFallback.tsx'
 
 import "./main.css"
+
+// Customer self-serve questionnaire surface (loaded only at /q/<token>) — a
+// separate chunk that never mounts the consultant app tree.
+const CustomerQuestionnaireApp = lazy(() => import('./components/customer/CustomerQuestionnaireApp.tsx'))
+
+/** Extract the questionnaire link token from a /q/<token> URL, if present. */
+function getQuestionnaireToken(): string | null {
+  const match = window.location.pathname.match(/^\/q\/([^/?#]+)/)
+  return match ? decodeURIComponent(match[1]) : null
+}
+
 
 // ── Self-heal stale chunk references after a new deployment ───────────────────
 // Vite fires `vite:preloadError` when a dynamically-imported chunk fails to load
@@ -23,8 +35,16 @@ window.addEventListener('load', () => {
   setTimeout(() => sessionStorage.removeItem(CHUNK_RELOAD_KEY), 10000)
 })
 
+const questionnaireToken = getQuestionnaireToken()
+
 createRoot(document.getElementById('root')!).render(
   <ErrorBoundary FallbackComponent={ErrorFallback}>
-    <App />
+    {questionnaireToken ? (
+      <Suspense fallback={null}>
+        <CustomerQuestionnaireApp token={questionnaireToken} />
+      </Suspense>
+    ) : (
+      <App />
+    )}
    </ErrorBoundary>
 )

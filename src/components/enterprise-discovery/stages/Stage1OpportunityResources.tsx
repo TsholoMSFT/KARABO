@@ -12,7 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { 
-  Loader2, Sparkles, CheckCircle2, XCircle, CalendarIcon, Plus, Mic, Check, Clock, SkipForward 
+  Loader2, Sparkles, CheckCircle2, XCircle, CalendarIcon, Plus, Check, SkipForward 
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { VoiceInputField } from '../VoiceInputField'
@@ -27,14 +27,12 @@ import type {
   ProblemCategory, 
   AffectedArea, 
   TimelineExpectation, 
-  SCQStatus,
   BudgetStatus,
   BudgetRange,
   CapacityLevel,
   DataAvailability,
   DiscoveryType,
   TabCompletionStatus,
-  PROGRESSIVE_DISCLOSURE,
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -60,27 +58,6 @@ const defaultOpportunityData: OpportunityStageData = {
     riskCosts: { oneTime: 0, oneTimeProbability: 50, recurring: 0, recurringProbability: 50 },
     totalAnnual: 0,
   },
-  scq: { situation: '', complication: '', question: '', status: 'pending' },
-}
-
-// Default empty resources data
-const defaultResourcesData: ResourcesStageData = {
-  budgetStatus: 'unknown',
-  budgetRange: 'unknown',
-  roiExpectation: '',
-  budgetOwner: '',
-  executiveSponsor: '',
-  projectLead: '',
-  teamCapacity: 'unknown',
-  changeReadiness: 'unknown',
-  existingPlatforms: [''],
-  dataAvailability: 'unknown',
-  integrationRequirements: [''],
-  technicalDebtConcerns: '',
-  targetStart: null,
-  targetCompletion: null,
-  competingPriorities: [''],
-  hardDependencies: [''],
   scq: { situation: '', complication: '', question: '', status: 'pending' },
 }
 
@@ -197,7 +174,7 @@ export function Stage1OpportunityResources({
   const [dataAvailability, setDataAvailability] = useState<DataAvailability>(
     initialData?.resources?.dataAvailability || 'unknown'
   )
-  const [integrationRequirements, setIntegrationRequirements] = useState<string[]>(
+  const [integrationRequirements] = useState<string[]>(
     initialData?.resources?.integrationRequirements || ['']
   )
   const [technicalDebtConcerns, setTechnicalDebtConcerns] = useState(
@@ -209,10 +186,10 @@ export function Stage1OpportunityResources({
   const [targetCompletion, setTargetCompletion] = useState<Date | null>(
     initialData?.resources?.targetCompletion ? new Date(initialData.resources.targetCompletion) : null
   )
-  const [competingPriorities, setCompetingPriorities] = useState<string[]>(
+  const [competingPriorities] = useState<string[]>(
     initialData?.resources?.competingPriorities || ['']
   )
-  const [hardDependencies, setHardDependencies] = useState<string[]>(
+  const [hardDependencies] = useState<string[]>(
     initialData?.resources?.hardDependencies || ['']
   )
 

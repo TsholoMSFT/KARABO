@@ -103,7 +103,6 @@ export function LiveDiscoveryMode({
     onError: handleSpeechError,
   })
 
-  const questions = getQuestionsForIndustry(selectedIndustry)
   const baseQuestions = getQuestionsForIndustry(selectedIndustry)
   const allQuestions = [...baseQuestions, ...followUpQuestions]
   const questionsToUse = allQuestions

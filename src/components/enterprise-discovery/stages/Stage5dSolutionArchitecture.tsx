@@ -7,13 +7,12 @@
  */
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import {
   REFERENCE_ARCHITECTURES,
@@ -25,10 +24,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Graph,
-  Sparkle,
   Warning,
   CheckCircle,
-  Lightning,
   Info,
   ListBullets,
 } from '@phosphor-icons/react'
@@ -393,6 +390,77 @@ Select the BEST matching pattern and respond with ONLY a valid JSON object (no m
                   </div>
                 </>
               )}
+
+              {/* Architecture Selection */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm">Reference Architecture</h4>
+
+                {currentMapping.referenceArchitecture ? (
+                  <div className="p-4 border-2 border-primary/40 rounded-lg bg-primary/5 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle size={18} weight="duotone" className="text-green-600" />
+                      <span className="font-semibold text-sm">
+                        {REFERENCE_ARCHITECTURES[currentMapping.referenceArchitecture]?.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {REFERENCE_ARCHITECTURES[currentMapping.referenceArchitecture]?.description}
+                    </p>
+                    {currentMapping.microsoftSolutions.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {currentMapping.microsoftSolutions.map((sol, i) => (
+                          <Badge key={i} variant="outline" className="text-[10px]">
+                            {sol.productFamily}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <Button variant="ghost" size="sm" className="mt-1" onClick={() => setShowManualSelector(true)}>
+                      Change architecture
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {currentMapping.aiGenerationFailed && (
+                      <Alert>
+                        <Warning size={16} />
+                        <AlertDescription className="text-xs">
+                          AI suggestion was unavailable. Please select an architecture manually.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={generateArchitecture} disabled={isGenerating || !aiAvailable} className="gap-2">
+                        <Graph size={16} weight="duotone" />
+                        {isGenerating ? 'Generating…' : 'Generate with AI'}
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowManualSelector((v) => !v)} className="gap-2">
+                        <ListBullets size={16} />
+                        Select manually
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual architecture picker */}
+                {showManualSelector && (
+                  <div className="grid sm:grid-cols-2 gap-2 pt-2">
+                    {Object.entries(REFERENCE_ARCHITECTURES).map(([key, arch]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => handleManualSelect(key as ReferenceArchitecturePattern, [])}
+                        className={`text-left p-3 rounded-lg border-2 transition-colors hover:border-primary hover:bg-accent/30 ${
+                          currentMapping.referenceArchitecture === key ? 'border-primary bg-primary/5' : 'border-border'
+                        }`}
+                      >
+                        <p className="font-medium text-xs">{arch.label}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{arch.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
           </CardContent>
 
           <CardFooter className="flex justify-between border-t pt-6">

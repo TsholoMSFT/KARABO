@@ -94,6 +94,7 @@ const newUseCase = (): UseCase => ({
   impact: 5,
   feasibility: 5,
   rice: { reach: 100, impact: 2, confidence: 0.7, effort: 4 },
+  createdAt: Date.now(),
 })
 
 const defaultBreakdown: FeasibilityBreakdown = {

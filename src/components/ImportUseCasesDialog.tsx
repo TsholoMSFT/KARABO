@@ -19,7 +19,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
@@ -31,7 +30,6 @@ import {
   CheckCircle, 
   Warning, 
   X,
-  MagnifyingGlass,
   CurrencyDollar,
   Note,
   ArrowRight,
@@ -42,7 +40,7 @@ import {
 import { parseDocument, type ParsedUseCase, type DocumentParseResult } from '@/lib/document-parser'
 import { matchKPI, type KPIMatchResult } from '@/lib/kpi-matcher'
 import { suggestKPIIdsForUseCase } from '@/lib/kpi-suggestions'
-import type { UseCase, UseCaseCOI, KPI, Industry, ComplianceEnforcement } from '@/lib/types'
+import type { UseCase, UseCaseCOI, Industry, ComplianceEnforcement } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { assessUseCaseRisk, detectJurisdictions, RISK_LEVEL_CONFIG } from '@/lib/regulatory-engine'
 
@@ -83,7 +81,6 @@ export function ImportUseCasesDialog({
   open,
   onOpenChange,
   onImport,
-  discoverySessionId,
   sessionLocation,
   sessionIndustry,
   complianceEnforcement = 'advisory',
@@ -488,7 +485,7 @@ export function ImportUseCasesDialog({
                   Review and adjust KPI mappings. We've attempted to match your KPIs to our library.
                 </p>
                 
-                {enrichedUseCases.filter(uc => uc.selected).map((uc, index) => {
+                {enrichedUseCases.filter(uc => uc.selected).map((uc) => {
                   const realIndex = enrichedUseCases.findIndex(u => u.name === uc.name)
                   const isExpanded = expandedUseCase === uc.name
                   
@@ -625,7 +622,7 @@ export function ImportUseCasesDialog({
                   Convert expected benefits to financial metrics for analysis, or keep as qualitative notes.
                 </p>
                 
-                {enrichedUseCases.filter(uc => uc.selected).map((uc, index) => {
+                {enrichedUseCases.filter(uc => uc.selected).map((uc) => {
                   const realIndex = enrichedUseCases.findIndex(u => u.name === uc.name)
                   const isExpanded = expandedUseCase === uc.name
                   

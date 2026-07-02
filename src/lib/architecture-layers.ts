@@ -9,11 +9,24 @@
 import type {
   ArchitectureLayer,
   ArchitecturePrinciple,
-  CAFCapability,
-  CAFLifecycleStage,
   DeploymentChannel,
   InteropProtocol,
 } from './types'
+
+/**
+ * Cloud capability pillars + lifecycle phases. This is a DISTINCT taxonomy from
+ * the CAF *methodology* types (CAFCapability/CAFLifecycleStage in types.ts,
+ * which the CAFReadinessPanel uses). Kept local to avoid conflating the two.
+ */
+export type CloudCapability =
+  | 'strategy-governance'
+  | 'architecture'
+  | 'data-handling'
+  | 'technology-engineering'
+  | 'security'
+  | 'operations'
+  | 'risk-management'
+export type CloudCapabilityPhase = 'plan' | 'design' | 'develop-implement' | 'operate' | 'govern-assure'
 
 // ============================================================================
 // 5-LAYER CONCEPTUAL REFERENCE ARCHITECTURE
@@ -224,14 +237,14 @@ export const ARCHITECTURE_PRINCIPLES: Record<ArchitecturePrinciple, Architecture
 // ============================================================================
 
 export interface CAFCapabilityInfo {
-  id: CAFCapability
+  id: CloudCapability
   label: string
   subCapabilities: string[]
-  lifecyclePhases: CAFLifecycleStage[]
+  lifecyclePhases: CloudCapabilityPhase[]
   icon: string
 }
 
-export const CAF_CAPABILITIES: Record<CAFCapability, CAFCapabilityInfo> = {
+export const CAF_CAPABILITIES: Record<CloudCapability, CAFCapabilityInfo> = {
   'strategy-governance': {
     id: 'strategy-governance',
     label: 'Cloud Strategy & Governance',
@@ -326,7 +339,7 @@ export const CAF_CAPABILITIES: Record<CAFCapability, CAFCapabilityInfo> = {
   },
 }
 
-export const CAF_LIFECYCLE_LABELS: Record<CAFLifecycleStage, string> = {
+export const CAF_LIFECYCLE_LABELS: Record<CloudCapabilityPhase, string> = {
   'plan': 'Plan',
   'design': 'Design',
   'develop-implement': 'Develop & Implement',

@@ -17,7 +17,6 @@ import {
   CubeTransparent,
   Users,
   Cpu,
-  ArrowUp,
   ArrowDown,
   Info,
 } from '@phosphor-icons/react'

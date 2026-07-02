@@ -34,3 +34,4 @@ import "./functions/fabric-iq";
 import "./functions/work-iq";
 import "./functions/agent-provision";
 import "./functions/agent-run";
+import "./functions/questionnaire";

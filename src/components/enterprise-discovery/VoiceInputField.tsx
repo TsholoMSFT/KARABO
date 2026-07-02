@@ -26,7 +26,7 @@ export function VoiceInputField({
   disabled = false,
   className,
 }: VoiceInputFieldProps) {
-  const [isVoiceMode, setIsVoiceMode] = useState(false)
+  const [, setIsVoiceMode] = useState(false)
   
   const {
     isListening,

@@ -16,10 +16,8 @@ import {
   ATMComponentScore,
   ATM_TIER_CONFIG,
   ATM_DIMENSION_LABELS,
-  ATM_DIMENSION_DESCRIPTIONS,
 } from '@/lib/types'
 import type { AccountSegment } from '@/lib/types'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   CaretDown,
@@ -206,7 +204,7 @@ export function ATMScoreCard({ atmScore, className = '', accountSegment = 'enter
                       >
                         <PriorityIndicator priority={rec.priority} />
                         <div>
-                          <span className="text-foreground">{rec.recommendation}</span>
+                          <span className="text-foreground">{rec.action}</span>
                           <span className="text-muted-foreground/70 ml-1">
                             — {ATM_DIMENSION_LABELS[rec.dimension]}
                             {rec.potentialPointsGain > 0 && (
@@ -296,13 +294,13 @@ function DimensionRow({ dimension }: { dimension: ATMDimensionScore }) {
           <div
             className="h-full rounded-full transition-all"
             style={{
-              width: `${dimension.normalizedScore}%`,
-              backgroundColor: getScoreColor(dimension.normalizedScore),
+              width: `${dimension.rawScore}%`,
+              backgroundColor: getScoreColor(dimension.rawScore),
             }}
           />
         </div>
         <span className="text-xs text-muted-foreground w-8 text-right">
-          {Math.round(dimension.normalizedScore)}
+          {Math.round(dimension.rawScore)}
         </span>
         {showComponents ? <CaretUp size={12} /> : <CaretDown size={12} />}
       </button>
@@ -429,7 +427,7 @@ function RadarChart({ dimensions }: { dimensions: ATMDimensionScore[] }) {
     'repeatability',
   ]
   const dims = ordered.map(
-    (d) => dimensions.find((dim) => dim.dimension === d) ?? { dimension: d, normalizedScore: 0, label: d }
+    (d) => dimensions.find((dim) => dim.dimension === d) ?? { dimension: d, rawScore: 0, label: d }
   )
   const n = dims.length
   const angleStep = (Math.PI * 2) / n
@@ -453,7 +451,7 @@ function RadarChart({ dimensions }: { dimensions: ATMDimensionScore[] }) {
   })
 
   // Data polygon
-  const dataPoints = dims.map((d, i) => getPoint(i, d.normalizedScore))
+  const dataPoints = dims.map((d, i) => getPoint(i, d.rawScore))
   const dataPolygon = dataPoints.map(([x, y]) => `${x},${y}`).join(' ')
 
   // Axis lines
@@ -509,7 +507,7 @@ function RadarChart({ dimensions }: { dimensions: ATMDimensionScore[] }) {
       {/* Labels */}
       {dims.map((d, i) => {
         const [x, y] = getPoint(i, 120) // slightly outside the chart
-        const label = 'label' in d ? (d as ATMDimensionScore).label : d.dimension
+        const label = d.label
         return (
           <text
             key={i}

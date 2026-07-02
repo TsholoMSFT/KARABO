@@ -1,7 +1,6 @@
 import { UseCase } from '@/lib/types'
 import { getQuadrant, getScoreColor } from '@/lib/scoring'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Card } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'

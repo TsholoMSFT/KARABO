@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
@@ -33,14 +32,12 @@ import {
   Loader2,
   Plus,
   Trash2,
-  Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TabCompletionIndicator } from '../TabCompletionIndicator'
 import { SkipForNowButton } from '../SkipForNowButton'
 import { VoiceInputField } from '../VoiceInputField'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
-import { formatCurrency } from '@/lib/financial-calculations'
 import type {
   CommitCommunicateStageData,
   CommitStageData,

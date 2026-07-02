@@ -31,7 +31,7 @@ export function estateFromLandingZone(lz: LandingZoneReadiness): Partial<Technol
 
 export function estateFromSovereign(s: SovereignCloudTrackAssessment): Partial<TechnologyEstate> {
   const patch: Partial<TechnologyEstate> = {
-    sovereigntyRequired: s.mandateLevel !== 'none',
+    sovereigntyRequired: s.mandateLevel !== 'optional',
     sovereignProfile: s.cloudEnvironment ?? undefined,
     primaryCloud: 'azure',
     hasAzure: true,
@@ -42,7 +42,7 @@ export function estateFromSovereign(s: SovereignCloudTrackAssessment): Partial<T
   if (s.landingZoneReadiness) {
     Object.assign(patch, estateFromLandingZone(s.landingZoneReadiness))
     // Re-apply sovereign-specific signal so it isn't clobbered.
-    patch.sovereigntyRequired = s.mandateLevel !== 'none'
+    patch.sovereigntyRequired = s.mandateLevel !== 'optional'
   }
   return patch
 }
@@ -64,7 +64,7 @@ export function sovereignSeedFromEstate(e: TechnologyEstate): Partial<SovereignC
   return {
     cloudEnvironment: (e.sovereignProfile as SovereignCloudTrackAssessment['cloudEnvironment']) ?? undefined,
     recommendedRegions: (e.azureRegions ?? []) as SovereignCloudTrackAssessment['recommendedRegions'],
-    mandateLevel: e.sovereigntyRequired ? 'preferred' : 'none',
+    mandateLevel: e.sovereigntyRequired ? 'required' : 'optional',
   }
 }
 

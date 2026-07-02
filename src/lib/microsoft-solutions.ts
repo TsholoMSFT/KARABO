@@ -9,7 +9,6 @@ import type {
   ArchitecturePrinciple,
   ArchitectureComponent,
   DeploymentChannel,
-  DeploymentModelInfo,
   InteropProtocol,
 } from './types'
 
@@ -561,6 +560,13 @@ export type ReferenceArchitecturePattern =
   | 'code-assistant'
   | 'agentic-ai'
 
+export interface ArchitectureDeploymentModel {
+  primary: string
+  fallback?: string
+  regions: string[]
+  haModel: string
+}
+
 export interface ReferenceArchitectureInfo {
   pattern: ReferenceArchitecturePattern
   label: string
@@ -577,7 +583,7 @@ export interface ReferenceArchitectureInfo {
   channels: DeploymentChannel[]
   componentTopology?: ArchitectureComponent[]
   interopProtocols?: InteropProtocol[]
-  deploymentModel?: DeploymentModelInfo
+  deploymentModel?: ArchitectureDeploymentModel
 }
 
 export const REFERENCE_ARCHITECTURES: Record<ReferenceArchitecturePattern, ReferenceArchitectureInfo> = {

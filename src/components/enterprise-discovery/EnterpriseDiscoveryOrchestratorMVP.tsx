@@ -16,7 +16,6 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertTriangle, Settings, Sparkles } from 'lucide-react'
@@ -33,7 +32,6 @@ import { exportEnterpriseDiscoveryToPDF } from '@/lib/enterprise-pdf-export'
 import type { 
   EnterpriseDiscoverySession, 
   EnterpriseDiscoverySessionMVP, 
-  YellowLight, 
   StageStatus,
 } from '@/lib/types'
 import { migrateToMVPSession, isMVPSession } from '@/lib/types'

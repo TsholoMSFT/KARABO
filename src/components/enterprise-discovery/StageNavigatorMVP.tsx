@@ -4,7 +4,7 @@
  * A streamlined stage navigator for the consolidated 5-stage workflow.
  */
 
-import { Check, Circle, Lock, Sparkles } from 'lucide-react'
+import { Check, Lock, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Progress } from '@/components/ui/progress'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'

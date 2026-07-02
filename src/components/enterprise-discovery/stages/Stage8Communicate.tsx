@@ -38,12 +38,10 @@ import {
 } from 'lucide-react'
 import { FinancialStatementView } from '../FinancialStatementView'
 import { MetricHierarchyView } from '../MetricHierarchyView'
-import { cn } from '@/lib/utils'
 import type {
   CommunicateStageData,
   SolutionScopeStageData,
   ResourcesStageData,
-  MetricHierarchy,
   CostOfInaction,
 } from '@/lib/types'
 import {
@@ -58,11 +56,9 @@ import {
 import {
   DEFAULT_ASSUMPTIONS,
   ASSUMPTION_LABELS,
-  ASSUMPTION_DESCRIPTIONS,
-  formatAssumptionValue,
 } from '@/lib/financial-assumptions'
 import { Disclaimer } from '@/components/Disclaimer'
-import { mapToIncomeStatement, createEmptyMetricHierarchy } from '@/lib/financial-mapping'
+import { createEmptyMetricHierarchy } from '@/lib/financial-mapping'
 
 interface Stage8CommunicateProps {
   initialData: CommunicateStageData | null
@@ -138,13 +134,11 @@ function getValueDriversByPLLine(solutionData: SolutionScopeStageData | null) {
 }
 
 export function Stage8Communicate({
-  initialData,
   solutionScopeData,
   resourcesData,
   coiData,
   onComplete,
   onBack,
-  isLiveMode = false,
 }: Stage8CommunicateProps) {
   // Investment amount (can be edited by user)
   const [investment, setInvestment] = useState(() => {
@@ -205,7 +199,6 @@ export function Stage8Communicate({
       ?.filter(d => d.enabled && d.plLine === 'opex')
       ?.reduce((sum, d) => sum + d.calculatedAnnualValue, 0) || 0
     const workingCapitalImpact = solutionScopeData?.balanceSheetCashFlow?.totalWorkingCapitalImpact || 0
-    const cashFlowImpact = solutionScopeData?.balanceSheetCashFlow?.totalCashFlowImpact || 0
     
     const threeStatementModel = {
       incomeStatement: {

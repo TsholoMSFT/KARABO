@@ -18,12 +18,12 @@ import type { UseCase } from '@/lib/types'
 type LinkedDraft = UseCaseInput & { id: string; sourceUseCaseId?: string }
 
 const LAYER_ORDER: BlueprintLayer[] = [
-  'experience',
   'app-ai',
   'data',
-  'integration',
-  'platform',
-  'governance',
+  'infrastructure',
+  'identity',
+  'security',
+  'operations',
 ]
 
 export function buildSolutionPathsAnnex(

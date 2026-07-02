@@ -1132,13 +1132,14 @@ export interface SovereignCloudTrackAssessment {
  * User persona — controls feature visibility, discovery track defaults,
  * and label styling. Not a security boundary; purely UX adaptation.
  */
-export type UserRole = 'innovation-hub' | 'ats' | 'csa' | 'sales'
+export type UserRole = 'innovation-hub' | 'ats' | 'csa' | 'sales' | 'csam'
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   'innovation-hub': 'Innovation Hub',
   'ats': 'Account Technology Strategist',
   'csa': 'Cloud Solution Architect',
   'sales': 'Account Executive / Sales',
+  'csam': 'Customer Success Account Manager',
 }
 
 export const USER_ROLE_DESCRIPTIONS: Record<UserRole, string> = {
@@ -1146,6 +1147,7 @@ export const USER_ROLE_DESCRIPTIONS: Record<UserRole, string> = {
   'ats': 'Account-level technology strategy with full portfolio, MACC tracking, and workload planning',
   'csa': 'Azure solution architecture, Well-Architected Review, and technical assessments',
   'sales': 'Opportunity qualification, stakeholder mapping, and executive business cases',
+  'csam': 'Post-sale value realisation: customer health, adoption, financial impact, and Customer Success Plan / CSDR guidance',
 }
 
 export const USER_ROLE_ICONS: Record<UserRole, string> = {
@@ -1153,6 +1155,7 @@ export const USER_ROLE_ICONS: Record<UserRole, string> = {
   'ats': '🗺️',
   'csa': '🏗️',
   'sales': '📊',
+  'csam': '🤝',
 }
 
 /** Feature visibility matrix per user role */
@@ -1228,6 +1231,21 @@ export const USER_ROLE_FEATURES: Record<UserRole, {
     showAccountTechPlan: false,
     showATMScoring: true,
     showGovernanceAssessment: false,
+    showSovereignCloudTrack: true,
+    defaultDiscoveryTrack: 'use-case',
+  },
+  'csam': {
+    showAccountDashboard: true,
+    showMACCTracking: true,
+    showWorkloads: true,
+    showFullPortfolioDiscovery: false,
+    showInfraDiscovery: false,
+    showModernWorkDiscovery: false,
+    showAIDiscovery: true,
+    showEnterpriseDiscovery: false,
+    showAccountTechPlan: false,
+    showATMScoring: false,
+    showGovernanceAssessment: true,
     showSovereignCloudTrack: true,
     defaultDiscoveryTrack: 'use-case',
   },
@@ -2083,17 +2101,17 @@ export type ArchitecturePrinciple =
  * 7 structured capability areas for secure and efficient cloud adoption.
  */
 export type CAFCapability =
-  | 'strategy-governance'
-  | 'architecture'
-  | 'data-handling'
-  | 'technology-engineering'
-  | 'security'
-  | 'operations'
-  | 'risk-management'
+  | 'strategy'
+  | 'plan'
+  | 'ready'
+  | 'adopt'
+  | 'govern'
+  | 'manage'
+  | 'secure'
 
-export type CAFLifecycleStage = 'plan' | 'design' | 'develop-implement' | 'operate' | 'govern-assure'
+export type CAFLifecycleStage = 'define' | 'plan' | 'ready' | 'adopt' | 'govern-manage'
 
-export type CAFMaturityLevel = 'none' | 'emerging' | 'defined' | 'managed' | 'optimized'
+export type CAFMaturityLevel = 'initial' | 'developing' | 'defined' | 'managed' | 'optimizing'
 
 /**
  * Well-Architected / Principle assessment score (1-5 per principle).
@@ -2115,7 +2133,7 @@ export interface LandingZoneReadiness {
   eslzCompliant: boolean
   subscriptionTopology?: string          // e.g., "Dedicated AI subscription under Corp MG"
   managementGroups: boolean
-  policyBaseline: boolean
+  policyBaseline?: 'none' | 'basic' | 'caf-baseline' | 'custom-strict'
   environmentSeparation?: boolean        // dev/test/staging/prod isolation
   drStrategy?: 'none' | 'backup' | 'active-passive' | 'active-active'
   sovereignCloudRequired?: boolean
@@ -2211,6 +2229,7 @@ export interface StrategicAlignmentInfo {
   linkedPriorities?: string[]           // Additional linked priorities
   alignmentScore?: number               // 1-10 how well it aligns
   alignmentRationale?: string           // Why this use case supports strategy
+  source?: string                       // Origin of the alignment (e.g., discovery, workshop)
 }
 
 // Business process info attached to use cases
@@ -2325,9 +2344,13 @@ export interface CustomerMetadata {
 // Agenda, follow-up email, task timeline, closeout, architecture diagram,
 // journey. Self-contained (AI + localStorage + file exports); see
 // src/lib/engagement/* and src/components/engagement/*.
+//
+// NOTE: distinct from the ATS `EngagementType` (account engagement motions:
+// innovation-hub | ads | war | …) defined earlier in this file. This toolkit
+// union classifies an in-app `Engagement` record.
 // ============================================================================
 
-export type EngagementType =
+export type EngagementToolkitType =
   | 'discovery'
   | 'architecture-review'
   | 'executive-briefing'
@@ -2381,7 +2404,7 @@ export interface Engagement {
   customerName: string
   customerId?: string             // links to an Account / customer
   sessionId?: string              // links to a DiscoverySession
-  type: EngagementType
+  type: EngagementToolkitType
   status: EngagementStatus
   /** Primary engagement date (timestamp) — anchors the task timeline. */
   engagementDate?: number
@@ -2568,7 +2591,13 @@ export interface DiscoverySession {
   fiscalYear?: string               // E.g., "FY26"
   fiscalQuarter?: FiscalQuarter
   engagementType?: EngagementType   // Type of engagement this session supports
-  
+
+  // Customer self-serve questionnaire linkage
+  awaitingCustomerResponses?: boolean        // Gate auto use-case generation until responses imported
+  customerEmail?: string                     // Captured from a linked questionnaire submission
+  linkedQuestionnaireToken?: string          // adminToken of the linked questionnaire link
+  importedQuestionnaireQuestions?: DiscoveryQuestion[] // Snapshot so imported responses resolve their question text
+
   createdAt: number
   completedAt?: number
   sessionDate?: number
@@ -3144,7 +3173,7 @@ export interface SolutionScopeStageData {
         role: 'primary' | 'supporting' | 'integration'
         justification?: string
       }>
-      businessProcesses: BusinessProcess[]
+      businessProcesses: UseCaseBusinessProcess[]
       isManuallySelected: boolean
       aiGenerationFailed?: boolean
     }>

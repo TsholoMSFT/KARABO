@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { CAF_CAPABILITIES } from '@/lib/architecture-layers'
 import type {
   CAFCapability,
   CAFLifecycleStage,
@@ -73,6 +72,16 @@ const PILLAR_COLORS: Record<CAFCapability, string> = {
   'govern': '#ef4444',
   'manage': '#6366f1',
   'secure': '#ec4899',
+}
+
+const PILLAR_LABELS: Record<CAFCapability, string> = {
+  strategy: 'Strategy',
+  plan: 'Plan',
+  ready: 'Ready',
+  adopt: 'Adopt',
+  govern: 'Govern',
+  manage: 'Manage',
+  secure: 'Secure',
 }
 
 function getMaturityNumeric(level?: CAFMaturityLevel): number {
@@ -178,7 +187,6 @@ function RadarChart({
 
       {/* Labels */}
       {points.map(p => {
-        const pillarConfig = CAF_CAPABILITIES[p.pillar]
         return (
           <text
             key={p.pillar}
@@ -188,7 +196,7 @@ function RadarChart({
             dominantBaseline="middle"
             className="text-[9px] fill-muted-foreground font-medium"
           >
-            {pillarConfig?.label ?? p.pillar}
+            {PILLAR_LABELS[p.pillar] ?? p.pillar}
           </text>
         )
       })}
@@ -313,12 +321,12 @@ export default function CAFReadinessPanel({
       {/* Pillar maturity selectors */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {CAF_PILLARS.map(pillar => {
-          const config = CAF_CAPABILITIES[pillar]
+          const pillarLabel = PILLAR_LABELS[pillar] ?? pillar
           return (
             <div key={pillar} className="flex items-center gap-2 p-1.5 rounded border border-muted">
               <ChartPolar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <Label className="text-xs font-medium flex-1 min-w-0 truncate" title={config?.label}>
-                {config?.label ?? pillar}
+              <Label className="text-xs font-medium flex-1 min-w-0 truncate" title={pillarLabel}>
+                {pillarLabel}
               </Label>
               <Select
                 value={cafCapabilityMaturity[pillar] ?? ''}

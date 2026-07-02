@@ -47,7 +47,7 @@ function summarizeUseCase(useCase: UseCase, ctx: BusinessCaseContext): string {
     || '—'
 
   const raiRisks = useCase.responsibleAIImpact?.principleAssessments
-    ?.filter(p => p.risk === 'high' || p.risk === 'critical')
+    ?.filter(p => p.risk === 'high')
     .slice(0, 3)
     .map(p => `${p.principle}: ${p.reason}`)
     .join('; ') || '—'

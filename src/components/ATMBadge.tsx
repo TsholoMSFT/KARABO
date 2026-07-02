@@ -60,7 +60,7 @@ export function ATMBadge({ atmScore, size = 'sm', showScore = true, className = 
               {/* Dimension mini-bars */}
               <div className="space-y-1 pt-1">
                 {atmScore.dimensions.map((dim) => (
-                  <DimensionBar key={dim.dimension} label={dim.label} normalizedScore={dim.normalizedScore} />
+                  <DimensionBar key={dim.dimension} label={dim.label} normalizedScore={dim.rawScore} />
                 ))}
               </div>
 

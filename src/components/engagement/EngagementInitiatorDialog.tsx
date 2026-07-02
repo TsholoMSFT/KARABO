@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FolderPlus, FileText } from '@phosphor-icons/react'
-import type { Engagement, EngagementType, Industry } from '@/lib/types'
+import type { Engagement, EngagementToolkitType, Industry } from '@/lib/types'
 import { ENGAGEMENT_TYPE_LABELS } from '@/lib/engagement/format'
 import { DEFAULT_TIMELINE_TEMPLATE, anchorTimeline, anchoredTimelineToMarkdown } from '@/lib/engagement/timeline'
 import { downloadMarkdown, artifactFilename } from '@/lib/engagement/exports'
@@ -25,7 +25,7 @@ interface EngagementInitiatorDialogProps {
   onCreated: (id: string) => void
 }
 
-const ENGAGEMENT_TYPES = Object.keys(ENGAGEMENT_TYPE_LABELS) as EngagementType[]
+const ENGAGEMENT_TYPES = Object.keys(ENGAGEMENT_TYPE_LABELS) as EngagementToolkitType[]
 
 function toLocalDate(dateStr: string): Date {
   return new Date(`${dateStr}T00:00:00`)
@@ -35,7 +35,7 @@ export function EngagementInitiatorDialog({
   open, onOpenChange, defaultCustomerName, sessionId, industry, onCreate, onCreated,
 }: EngagementInitiatorDialogProps) {
   const [customerName, setCustomerName] = useState(defaultCustomerName ?? '')
-  const [type, setType] = useState<EngagementType>('discovery')
+  const [type, setType] = useState<EngagementToolkitType>('discovery')
   const [date, setDate] = useState('')
   const [stakeholders, setStakeholders] = useState('')
   const [objective, setObjective] = useState('')
@@ -102,7 +102,7 @@ export function EngagementInitiatorDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Type</Label>
-              <Select value={type} onValueChange={(v) => setType(v as EngagementType)}>
+              <Select value={type} onValueChange={(v) => setType(v as EngagementToolkitType)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ENGAGEMENT_TYPES.map((t) => <SelectItem key={t} value={t}>{ENGAGEMENT_TYPE_LABELS[t]}</SelectItem>)}

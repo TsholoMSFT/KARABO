@@ -10,16 +10,17 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { UseCaseSourceBadges } from '@/components/ui/use-case-source-badge'
-import { REFERENCE_ARCHITECTURES } from '@/lib/microsoft-solutions'
+import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { calculateATMScore } from '@/lib/atm-scoring'
 import { ATMBadge } from '@/components/ATMBadge'
-import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, ChartLine, Newspaper, MagnifyingGlass, ChatCircleText, Briefcase, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight, CheckCircle, Question, Pause, Prohibit, X, FileText } from '@phosphor-icons/react'
+import ArchitectureLayerDiagram from '@/components/ArchitectureLayerDiagram'
+import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight, CheckCircle, Question, Pause, Prohibit, X, FileText } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
 import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
 import { RISK_LEVEL_CONFIG } from '@/lib/regulatory-engine'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getServiceLabel, COMPLEXITY_INDICATORS } from '@/lib/microsoft-solutions'
+import { getServiceLabel } from '@/lib/microsoft-solutions'
 import { BusinessCase } from '@/components/BusinessCase'
 import { UseCaseCostBreakdown } from '@/components/UseCaseCostBreakdown'
 
@@ -855,7 +856,7 @@ export function UseCaseCard({
                                     <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">
                                       {step}
                                     </Badge>
-                                    {stepIdx < bp.affectedSteps.length - 1 && (
+                                    {stepIdx < (bp.affectedSteps?.length ?? 0) - 1 && (
                                       <ArrowRight size={8} className="mx-0.5 text-muted-foreground" />
                                     )}
                                   </span>

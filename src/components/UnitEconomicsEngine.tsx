@@ -32,7 +32,6 @@ import {
   buildCfoNarrative,
   buildMacroMicroUnitNarrative,
   formatUSD,
-  formatNumber,
   type TransactionUnit,
   type FirmFinancials,
   type CloudRepricing,

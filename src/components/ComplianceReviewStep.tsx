@@ -19,7 +19,6 @@ import type {
 } from '@/lib/types'
 import {
   SOVEREIGN_CLOUD_LABELS,
-  SOVEREIGN_CLOUD_CONFIG,
   SOVEREIGN_REGION_LABELS,
 } from '@/lib/types'
 import {

@@ -705,7 +705,6 @@ function scoreEnterpriseGrade(useCase: UseCase, session?: DiscoverySession | nul
       if (lz.eslzCompliant) points += 4
       if (lz.privateEndpoints) points += 3
       if (lz.networkModel === 'hub-spoke' || lz.networkModel === 'vwan') points += 3
-      else if (lz.networkModel === 'hybrid') points += 2
       else if (lz.networkModel) points += 1
       if (lz.environmentSeparation) points += 3
       if (lz.managementGroups) points += 2

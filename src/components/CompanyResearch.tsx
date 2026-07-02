@@ -67,7 +67,7 @@ export function CompanyResearch({
   initialSummary = ''
 }: CompanyResearchProps) {
   const [insights, setInsights] = useState<CompanyInsight[]>(initialInsights)
-  const [sources, setSources] = useState<CompanySource[]>([])
+  const [, setSources] = useState<CompanySource[]>([])
   const [pastedText, setPastedText] = useState('')
   const [sourceTitle, setSourceTitle] = useState('')
   const [isExtracting, setIsExtracting] = useState(false)

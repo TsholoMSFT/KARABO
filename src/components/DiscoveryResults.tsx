@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, EarningsInsight, StrategicAlignmentInfo, UseCaseBusinessProcess, UseCaseMicrosoftSolution, UseCaseAgenticOpportunity, ImplementationComplexityInfo, BusinessFunction } from '@/lib/types'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, EarningsInsight, StrategicAlignmentInfo, UseCaseBusinessProcess, UseCaseMicrosoftSolution, UseCaseAgenticOpportunity, ImplementationComplexityInfo, BusinessFunction, DiscoveryResponse, DiscoveryQuestion } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
 import { buildBusinessFunctionContext, BUSINESS_FUNCTION_IDS } from '@/lib/business-functions'
@@ -13,7 +13,6 @@ import {
   searchEarningsTranscripts, 
   analyzeTranscriptsWithAI, 
   CompanyInsight, 
-  getSourceInfo, 
   EarningsSearchResult,
   fetchFinancialStatements,
   fetchCompanyNews,
@@ -23,12 +22,14 @@ import {
   IndustryResearchResult
 } from '@/lib/earnings-service'
 import { EnhancedDiscoveryWorkflow } from '@/components/EnhancedDiscoveryWorkflow'
+import { QuestionnaireImportPanel, type ImportedQuestionnaire } from '@/components/QuestionnaireImportPanel'
+import { EngagementPrepCard } from '@/components/EngagementPrepCard'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Sparkle, ArrowClockwise, Warning, ChartLineUp, Database, CheckCircle, CurrencyDollar, Newspaper, Books, CaretDown, CaretUp, Quotes } from '@phosphor-icons/react'
+import { Sparkle, ArrowClockwise, Warning, ChartLineUp, Database, CheckCircle, CaretDown, CaretUp, Quotes, DownloadSimple } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 
@@ -71,12 +72,21 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
   const [usedEarningsData, setUsedEarningsData] = useState(false)
   const [showAllInsights, setShowAllInsights] = useState(false)
   const generationAttemptedRef = useRef(false)
+  const importedRef = useRef<{ responses: DiscoveryResponse[]; questions: DiscoveryQuestion[] } | null>(null)
+  const [importedSummary, setImportedSummary] = useState<{ email?: string; count: number } | null>(null)
+  const [showImportPanel, setShowImportPanel] = useState(false)
 
   useEffect(() => {
     // Prevent duplicate generation attempts
     if (!generationAttemptedRef.current) {
       generationAttemptedRef.current = true
-      generateUseCases()
+      if (session.awaitingCustomerResponses) {
+        // Defer generation until the consultant imports the customer's answers.
+        setIsGenerating(false)
+        setShowImportPanel(true)
+      } else {
+        generateUseCases()
+      }
     }
   }, [])
 
@@ -121,11 +131,20 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
     setFallbackReason(null)
     
     try {
-      const allQuestions = session.industry 
+      const baseQuestions = session.industry 
         ? getQuestionsForIndustry(session.industry) 
         : discoveryQuestions.filter((q) => !q.industries)
+      // Include imported customer-questionnaire questions so their responses resolve their text.
+      const importedQuestions = importedRef.current?.questions ?? session.importedQuestionnaireQuestions ?? []
+      const allQuestions = importedQuestions.length ? [...baseQuestions, ...importedQuestions] : baseQuestions
 
-      const responsesText = session.responses
+      // Merge consultant responses with any imported customer responses (deduped by questionId).
+      const importedResponses = importedRef.current?.responses ?? []
+      const effectiveResponses = importedResponses.length
+        ? [...session.responses.filter((sr) => !importedResponses.some((ir) => ir.questionId === sr.questionId)), ...importedResponses]
+        : session.responses
+
+      const responsesText = effectiveResponses
         .map((r) => {
           const question = allQuestions.find((q) => q.id === r.questionId)
           return `Q: ${question?.question}\nA: ${r.answer}`
@@ -133,8 +152,8 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
         .join('\n\n')
 
       // Check if we have any meaningful responses
-      const hasResponses = session.responses.length > 0 && 
-        session.responses.some(r => r.answer && r.answer.trim().length > 0)
+      const hasResponses = effectiveResponses.length > 0 && 
+        effectiveResponses.some(r => r.answer && r.answer.trim().length > 0)
       const hasCompanyInsights = session.companyInsights && session.companyInsights.length > 0
       const hasStockTicker = !!session.stockTicker
 
@@ -701,6 +720,60 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
     onCreateUseCases(useCases, executiveSummary, nextAction)
   }
 
+  const engagementTranscript = useMemo(() => {
+    const base = session.industry
+      ? getQuestionsForIndustry(session.industry)
+      : discoveryQuestions.filter((q) => !q.industries)
+    const imported = importedRef.current?.questions ?? session.importedQuestionnaireQuestions ?? []
+    const qs = [...base, ...imported]
+    const importedResp = importedRef.current?.responses ?? []
+    const responses = importedResp.length
+      ? [...session.responses.filter((sr) => !importedResp.some((ir) => ir.questionId === sr.questionId)), ...importedResp]
+      : session.responses
+    return responses
+      .map((r) => `Q: ${qs.find((x) => x.id === r.questionId)?.question ?? r.questionId}\nA: ${r.answer}`)
+      .join('\n\n')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, importedSummary])
+
+  const handleImportResponses = (data: ImportedQuestionnaire) => {
+    importedRef.current = { responses: data.responses, questions: data.questions }
+    const merged = [
+      ...session.responses.filter((sr) => !data.responses.some((ir) => ir.questionId === sr.questionId)),
+      ...data.responses,
+    ]
+    updateSession(session.id, {
+      responses: merged,
+      importedQuestionnaireQuestions: data.questions,
+      customerEmail: data.email,
+      awaitingCustomerResponses: false,
+    })
+    setImportedSummary({ email: data.email, count: data.responses.length })
+    setShowImportPanel(false)
+    setIsGenerating(true)
+    generateUseCases()
+  }
+
+  if (showImportPanel) {
+    return (
+      <div className="min-h-screen bg-background">
+        <NavigationHeader title="Customer Responses" subtitle={session.customerName} onBack={onBack} />
+        <div className="max-w-3xl mx-auto px-4 md:px-6 py-8">
+          <QuestionnaireImportPanel
+            onImport={handleImportResponses}
+            onSkip={() => {
+              setShowImportPanel(false)
+              if (suggestedUseCases.length === 0 && !isGenerating) {
+                setIsGenerating(true)
+                generateUseCases()
+              }
+            }}
+          />
+        </div>
+      </div>
+    )
+  }
+
   if (showWorkflow) {
     return (
       <EnhancedDiscoveryWorkflow
@@ -715,6 +788,19 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 md:px-6 py-8 max-w-4xl">
+        {!isGenerating && (
+          <div className="flex items-center justify-end gap-3 mb-4">
+            {importedSummary && (
+              <span className="text-xs text-muted-foreground mr-auto">
+                Imported {importedSummary.count} customer answers{importedSummary.email ? ` from ${importedSummary.email}` : ''}
+              </span>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setShowImportPanel(true)}>
+              <DownloadSimple size={16} className="mr-2" />
+              Import customer responses
+            </Button>
+          </div>
+        )}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           {isGenerating ? (
             <Card className="border-2">
@@ -991,6 +1077,19 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
             </Card>
           )}
         </motion.div>
+
+        {!isGenerating && suggestedUseCases.length > 0 && (
+          <div className="mt-6">
+            <EngagementPrepCard
+              sessionId={session.id}
+              customerName={session.customerName}
+              industry={session.industry}
+              stakeholders={session.primaryStakeholder ? [session.primaryStakeholder] : undefined}
+              useCases={suggestedUseCases.map((uc) => ({ title: uc.title, description: uc.description }))}
+              transcript={engagementTranscript}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

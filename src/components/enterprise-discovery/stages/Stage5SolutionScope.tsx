@@ -41,52 +41,6 @@ interface Stage5SolutionScopeProps {
 
 type SubStep = 'revenue' | 'cost' | 'balance-sheet' | 'architecture'
 
-// Create default stage data
-function createDefaultStageData(): SolutionScopeStageData {
-  return {
-    currentSubStep: 'revenue',
-    
-    // Legacy scope definition (kept minimal - can be expanded)
-    inScope: [],
-    outOfScope: [],
-    mvpDefinition: '',
-    phases: [],
-    
-    // Legacy value drivers (populated from COI for backwards compatibility)
-    valueDrivers: [],
-    
-    // New detailed impact sections
-    revenueImpact: {
-      drivers: [],
-      totalAnnualRevenue: 0,
-      sourceFromCOI: false,
-    },
-    costImpact: {
-      drivers: [],
-      totalAnnualSavings: 0,
-      totalFTEEquivalent: 0,
-      sourceFromCOI: false,
-    },
-    balanceSheetCashFlow: {
-      drivers: [],
-      totalWorkingCapitalImpact: 0,
-      totalCashFlowImpact: 0,
-    },
-    
-    // Metric hierarchy
-    metricHierarchy: createEmptyMetricHierarchy(),
-    
-    // Totals
-    totalAnnualValue: 0,
-    riskAdjustedValue: 0,
-    paybackPeriod: 0,
-    
-    // Success metrics & risks (kept minimal - can be expanded)
-    successMetrics: [],
-    risks: [],
-  }
-}
-
 export function Stage5SolutionScope({
   initialData,
   coiData,
@@ -95,7 +49,6 @@ export function Stage5SolutionScope({
   clientName,
   onComplete,
   onBack,
-  isLiveMode = false,
 }: Stage5SolutionScopeProps) {
   // Current sub-step
   const [currentSubStep, setCurrentSubStep] = useState<SubStep>(
@@ -152,11 +105,6 @@ export function Stage5SolutionScope({
       priority: opp.rice?.score || 0,
     }))
   }, [prioritisationData])
-  
-  // Calculate totals
-  const totalAnnualValue = useMemo(() => {
-    return revenueData.totalAnnualRevenue + costData.totalAnnualSavings
-  }, [revenueData.totalAnnualRevenue, costData.totalAnnualSavings])
   
   // Generate legacy value drivers from COI for backwards compatibility
   const legacyValueDrivers = useMemo(() => {

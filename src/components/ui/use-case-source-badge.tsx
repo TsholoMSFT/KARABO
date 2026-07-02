@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Robot, UserCircle, Stack, ChatCircleText, Sparkle, ChartLine, Briefcase, Newspaper, MagnifyingGlass } from '@phosphor-icons/react'
+import { UserCircle, Stack, ChatCircleText, Sparkle, ChartLine, Briefcase, Newspaper, MagnifyingGlass } from '@phosphor-icons/react'
 import type { Icon } from '@phosphor-icons/react'
 
 export type UseCaseSource = 'ai-generated' | 'manual' | 'fallback' | 'discovery' | 'earnings' | 'financials' | 'news' | 'industry-research'

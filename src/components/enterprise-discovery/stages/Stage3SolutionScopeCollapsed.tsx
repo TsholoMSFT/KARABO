@@ -13,14 +13,13 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
-import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Accordion,
@@ -34,15 +33,13 @@ import {
   BarChart3,
   Sparkles,
   Calculator,
-  Info,
-  Check,
   Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TabCompletionIndicator } from '../TabCompletionIndicator'
 import { SkipForNowButton } from '../SkipForNowButton'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
-import { formatCurrency, calculateTotalCOI } from '@/lib/financial-calculations'
+import { calculateTotalCOI } from '@/lib/financial-calculations'
 import type {
   SolutionScopeStageData,
   OpportunityResourcesStageData,
@@ -50,7 +47,6 @@ import type {
   CostImpactDriver,
   BalanceSheetCashFlowDriver,
   TabCompletionStatus,
-  CostOfInaction,
 } from '@/lib/types'
 
 interface Stage3SolutionScopeCollapsedProps {
@@ -89,11 +85,9 @@ interface SimpleCostDriver {
 }
 
 export function Stage3SolutionScopeCollapsed({
-  initialData,
   previousStageData,
   onComplete,
   onBack,
-  isLiveMode = false,
 }: Stage3SolutionScopeCollapsedProps) {
   const { isAIFeatureEnabled } = useDiscoverySettings()
   

@@ -166,7 +166,6 @@ export function Stage5cBalanceSheet({
   
   // Grand total of all value (Revenue + Cost + Cash Flow)
   const grandTotalAnnualValue = revenueTotal + costTotal
-  const grandTotalWithCashFlow = grandTotalAnnualValue + totalCashFlowImpact
   
   // Update inputs
   const updateDriverInputs = (

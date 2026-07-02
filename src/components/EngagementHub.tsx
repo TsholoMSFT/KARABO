@@ -10,7 +10,7 @@ import {
   ArrowLeft, Plus, Toolbox, CalendarBlank, EnvelopeSimple, ListChecks, ClipboardText,
   TreeStructure, Path, FolderPlus, ChartBar, FileText, Trash, Sparkle,
 } from '@phosphor-icons/react'
-import type { Engagement, EngagementArtifactKind, EngagementType, Industry, UseCase } from '@/lib/types'
+import type { Engagement, EngagementArtifactKind, EngagementToolkitType, Industry, UseCase } from '@/lib/types'
 import { useEngagements } from '@/hooks/use-engagements'
 import { ENGAGEMENT_TYPE_LABELS } from '@/lib/engagement/format'
 import { downloadMarkdown, downloadDocxFromMarkdown, artifactFilename } from '@/lib/engagement/exports'
@@ -52,7 +52,7 @@ const TOOLS: ToolDef[] = [
   { kind: 'insights', label: 'Hub Insights', description: 'Portfolio rollup across accounts', icon: <ChartBar size={22} weight="duotone" />, status: 'ready' },
 ]
 
-const ENGAGEMENT_TYPES = Object.keys(ENGAGEMENT_TYPE_LABELS) as EngagementType[]
+const ENGAGEMENT_TYPES = Object.keys(ENGAGEMENT_TYPE_LABELS) as EngagementToolkitType[]
 
 /** Tools that don't operate on an already-selected engagement. */
 const NO_SELECTION_TOOLS: ToolKind[] = ['initiator', 'insights']
@@ -71,7 +71,7 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, onB
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
-  const [newType, setNewType] = useState<EngagementType>('discovery')
+  const [newType, setNewType] = useState<EngagementToolkitType>('discovery')
   const [newDate, setNewDate] = useState('')
   const [newStakeholders, setNewStakeholders] = useState('')
   const [activeTool, setActiveTool] = useState<ToolKind | null>(null)
@@ -168,7 +168,7 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, onB
             <div className="grid gap-3 sm:grid-cols-3 rounded-lg border p-4 bg-muted/20">
               <div className="space-y-1.5">
                 <Label className="text-xs">Type</Label>
-                <Select value={newType} onValueChange={(v) => setNewType(v as EngagementType)}>
+                <Select value={newType} onValueChange={(v) => setNewType(v as EngagementToolkitType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ENGAGEMENT_TYPES.map((t) => (

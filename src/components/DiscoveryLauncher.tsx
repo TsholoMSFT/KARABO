@@ -8,11 +8,11 @@ import { PausedSessionsList } from '@/components/enterprise-discovery/PausedSess
 import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { CustomerJourneyTool } from '@/components/CustomerJourneyTool'
 import { ThreadlightTool } from '@/components/ThreadlightTool'
-import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, ShieldCheck, Buildings, Microphone, GearSix, Briefcase, Rocket, Play, Toolbox, Calculator, FileArrowDown, ArrowsLeftRight, FileText, CloudArrowUp } from '@phosphor-icons/react'
+import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, ShieldCheck, Buildings, Microphone, GearSix, Briefcase, Rocket, Toolbox, FileArrowDown, ArrowsLeftRight, FileText, CloudArrowUp } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import type { EnterpriseDiscoverySession, DiscoverySession, CustomerJourney, AccountSegment } from '@/lib/types'
-import { getVisibleTabs, getSegmentFeatures, getDiscoveryButtonLabel, getStrategicAssessmentLabel, type DiscoveryTab } from '@/lib/segment-config'
+import { getVisibleTabs, getSegmentFeatures, getDiscoveryButtonLabel, getStrategicAssessmentLabel } from '@/lib/segment-config'
 
 type DiscoveryMode = 'quick' | 'sovereign-cloud' | 'enterprise' | 'tools'
 
@@ -33,7 +33,7 @@ interface DiscoveryLauncherProps {
   accountSegment?: AccountSegment
 }
 
-export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onStartDemo, onStartEnterpriseDemo, customerName, onOpenSessionComparison, onOpenExport, onOpenEngagementHub, currentSession, onJourneyUpdate, accountSegment = 'enterprise' }: DiscoveryLauncherProps) {
+  export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, customerName, onOpenSessionComparison, onOpenExport, onOpenEngagementHub, currentSession, onJourneyUpdate, accountSegment = 'enterprise' }: DiscoveryLauncherProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const visibleTabs = getVisibleTabs(accountSegment)
   const features = getSegmentFeatures(accountSegment)
@@ -368,7 +368,7 @@ export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onS
 
             {/* Threadlight Export Tool */}
             <ThreadlightTool
-              useCases={currentSession?.useCases || []}
+              useCases={[]}
               customerName={currentSession?.customerName}
               industry={currentSession?.industry}
             />

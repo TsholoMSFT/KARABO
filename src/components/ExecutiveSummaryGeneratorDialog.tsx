@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
+import { InlineDisclaimer } from '@/components/Disclaimer'
 import { AIDataDisclosure } from '@/components/AIDataDisclosure'
 
 export type ExecutiveSummaryPreset = 'standard' | 'stakeholder-email' | 'meeting-notes'

@@ -31,7 +31,7 @@ interface Stage0StartProps {
   isLiveMode?: boolean
 }
 
-export function Stage0Start({ initialData, initialCustomerName, onComplete, onBack, isLiveMode = false }: Stage0StartProps) {
+export function Stage0Start({ initialData, initialCustomerName, onComplete, onBack }: Stage0StartProps) {
   const [clientName, setClientName] = useState(initialData?.clientName || initialCustomerName || '')
   const [attendees, setAttendees] = useState<Attendee[]>(
     initialData?.attendees || [{ name: '', role: '' }]

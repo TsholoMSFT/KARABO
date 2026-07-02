@@ -42,7 +42,7 @@ interface Props {
 
 export const EMPTY_LANDING_ZONE: LandingZoneReadiness = {
   hasAILandingZone: false,
-  networkModel: undefined,
+  networkModel: 'unknown',
   privateEndpoints: false,
   eslzCompliant: false,
   subscriptionTopology: undefined,
@@ -144,7 +144,7 @@ export default function LandingZoneAssessment({ value, onChange, readOnly = fals
           icon={<GitBranch className="h-4 w-4" />}
           label="Environment Separation"
           description="Dev / Test / Prod environments isolated"
-          checked={value.environmentSeparation}
+          checked={value.environmentSeparation ?? false}
           onCheckedChange={v => update({ environmentSeparation: v })}
           readOnly={readOnly}
         />

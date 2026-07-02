@@ -511,7 +511,7 @@ export const SESSION_TEMPLATES: SessionTemplate[] = [
     id: 'technology',
     name: 'Technology & Software',
     description: 'Software companies and tech firms focused on product development and customer success',
-    industry: 'technology',
+    industry: 'technology-software',
     entityType: 'public-company',
     icon: 'Code',
     atmIndustryPack: {

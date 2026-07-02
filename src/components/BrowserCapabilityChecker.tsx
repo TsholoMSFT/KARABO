@@ -6,9 +6,8 @@ import {
   canUseLiveDiscovery,
   CapabilityError 
 } from '@/lib/browser-capabilities'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   WarningCircle,
@@ -17,7 +16,6 @@ import {
   MicrophoneSlash,
   GlobeX,
   Warning,
-  ArrowRight,
 } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 
