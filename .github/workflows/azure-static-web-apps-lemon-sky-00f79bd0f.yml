@@ -1,4 +1,19 @@
-name: Azure Static Web Apps CI/CD
+name: Deploy KARABO — Azure Static Web App
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Single canonical Static Web App for KARABO.
+#   • Target SWA :  karabo-app   (host: wonderful-ground-05f749f0f.7.azurestaticapps.net)
+#   • Resource gp:  rg-tsetati
+#   • Deploy token: secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_LEMON_SKY_00F79BD0F
+#                   (legacy secret NAME — its VALUE is karabo-app's deployment token)
+#
+# This workflow file name (…lemon-sky…) is also legacy. A second, now-orphaned
+# SWA "karabo" (lemon-sky-00f79bd0f) still exists in rg-tsetati but is NOT
+# deployed to. To fully de-duplicate once the Azure subscription is re-enabled:
+#   1. Delete the unused "karabo" (lemon-sky) SWA.
+#   2. (Optional) Recreate the deploy secret as AZURE_STATIC_WEB_APPS_API_TOKEN_KARABO_APP
+#      and update the two references below.
+# ─────────────────────────────────────────────────────────────────────────────
 
 on:
   push:
