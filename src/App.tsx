@@ -23,7 +23,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar, ShieldCheck, Calculator, Scales } from '@phosphor-icons/react'
+import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar, ShieldCheck, Calculator, Scales, Gauge } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Footer } from '@/components/ui/footer'
@@ -77,6 +77,7 @@ const UnitEconomicsEngine = lazy(() => import('@/components/UnitEconomicsEngine'
 const ValuePortfolio = lazy(() => import('@/components/ValuePortfolio').then(m => ({ default: m.ValuePortfolio })))
 const EngagementHub = lazy(() => import('@/components/EngagementHub').then(m => ({ default: m.EngagementHub })))
 const QuestionnaireBuilder = lazy(() => import('@/components/QuestionnaireBuilder').then(m => ({ default: m.QuestionnaireBuilder })))
+const Fy27AlignmentCockpit = lazy(() => import('@/components/fy27/Fy27AlignmentCockpit').then(m => ({ default: m.Fy27AlignmentCockpit })))
 
 /** Fallback spinner for lazy-loaded components */
 function LazyFallback() {
@@ -87,7 +88,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics' | 'value-portfolio' | 'engagement-hub' | 'csam-cockpit' | 'questionnaire-builder'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics' | 'value-portfolio' | 'engagement-hub' | 'csam-cockpit' | 'questionnaire-builder' | 'fy27-cockpit'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -1039,6 +1040,31 @@ function App() {
         </Suspense>
       )}
 
+      {currentView === 'fy27-cockpit' && (
+        <>
+          <NavigationHeader
+            onBackToLanding={handleBackToLanding}
+            onBack={() => setCurrentView('dashboard')}
+            backLabel="Back to dashboard"
+            title="ATS FY27 alignment cockpit"
+            subtitle="Secure AI Assessment, relationships, roadmap, consumption & blockers"
+          />
+          <div className="container mx-auto px-4 md:px-6 py-8 max-w-[1400px]">
+            <SectionErrorBoundary>
+              <Suspense fallback={<LazyFallback />}>
+                <Fy27AlignmentCockpit
+                  customerId={selectedCustomerId ?? undefined}
+                  customerName={selectedSession?.customerName}
+                  session={selectedSession ?? null}
+                  useCases={filteredUseCases.length ? filteredUseCases : (useCases ?? [])}
+                  actorName={selectedSession?.accountTeamRep}
+                />
+              </Suspense>
+            </SectionErrorBoundary>
+          </div>
+        </>
+      )}
+
       {currentView === 'questionnaire-builder' && (
         <Suspense fallback={<LazyFallback />}>
           <QuestionnaireBuilder
@@ -1453,6 +1479,9 @@ function App() {
               )}
               <Button variant="outline" onClick={() => setCurrentView('unit-economics')}>
                 <Calculator className="mr-2" /> Unit economics engine
+              </Button>
+              <Button variant="outline" onClick={() => setCurrentView('fy27-cockpit')}>
+                <Gauge className="mr-2" /> FY27 alignment cockpit
               </Button>
             </div>
 

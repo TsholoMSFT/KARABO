@@ -232,6 +232,14 @@ export interface Opportunity {
   owningRole: SalesRole
   /** Current owner's name. */
   owner?: string
+  /** Additional named owners / orchestrated contributors (e.g. STU specialist, partner). */
+  coOwners?: string[]
+  /** Estimated opportunity value (USD) — supports pipeline value roll-ups. */
+  estimatedValueUSD?: number
+  /** Win probability (0-100). */
+  winProbability?: number
+  /** True when this opportunity was created through a TDM-led engagement. */
+  tdmLed?: boolean
   /** Stage 4 handshake package (present once prepared). */
   handoff?: HandoffPackage
   /** Append-only audit trail of stage transitions. */
