@@ -57,3 +57,12 @@ The backend accepts either of these env vars:
 - `AzureWebJobsStorage` (fallback)
 
 If RSS returns an empty list with a message about configuration, set one of those.
+
+## Foundry Local routing
+
+`/api/health` reports safe Foundry Local metadata under `foundryLocal`: whether a loopback endpoint is configured, whether local routing is enabled for this runtime, and the selected model alias.
+
+- A non-loopback or HTTPS `FOUNDRY_LOCAL_ENDPOINT` is rejected.
+- `NODE_ENV=production` or `AZURE_FUNCTIONS_ENVIRONMENT=production` disables local routing even if the enable flag is set.
+- A stopped local service should add only the configured timeout before `/api/chat` falls through to Azure OpenAI. Lower `FOUNDRY_LOCAL_TIMEOUT_MS` if this delay is too long.
+- Run `npm run foundry:models` from the repository root if the configured alias is not present in the local catalog.

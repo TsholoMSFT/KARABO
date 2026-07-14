@@ -1,19 +1,17 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { makeCorsHeaders } from '../lib/xml-utils'
 import { getAoaiAuthHeaders } from '../lib/iq-credential'
+import {
+  DEFAULT_IMAGE_API_VERSION,
+  DEFAULT_IMAGE_DEPLOYMENT,
+  ImageGenerationOptions,
+  buildImageGenerationPayload,
+} from '../lib/image-config'
 
 const corsHeaders = makeCorsHeaders('POST, OPTIONS')
 
-type ImageSize = '1024x1024' | '1792x1024' | '1024x1792' | '512x512' | '256x256'
-type ImageStyle = 'natural' | 'vivid'
-type ImageQuality = 'standard' | 'hd'
-
-interface ImageRequest {
+interface ImageRequest extends ImageGenerationOptions {
   prompt?: string
-  size?: ImageSize
-  style?: ImageStyle
-  quality?: ImageQuality
-  n?: number
 }
 
 interface AoaiImageResponse {
@@ -30,8 +28,8 @@ async function imageHandler(req: HttpRequest, context: InvocationContext): Promi
 
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT
   const apiKey = process.env.AZURE_OPENAI_API_KEY
-  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_IMAGE || 'gpt-image-2'
-  const apiVersion = process.env.AZURE_OPENAI_IMAGE_API_VERSION || '2024-10-01-preview'
+  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_IMAGE || DEFAULT_IMAGE_DEPLOYMENT
+  const apiVersion = process.env.AZURE_OPENAI_IMAGE_API_VERSION || DEFAULT_IMAGE_API_VERSION
 
   if (!endpoint) {
     return {
@@ -67,13 +65,16 @@ async function imageHandler(req: HttpRequest, context: InvocationContext): Promi
 
   const url = `${endpoint.replace(/\/$/, '')}/openai/deployments/${deployment}/images/generations?api-version=${apiVersion}`
 
-  const payload: Record<string, unknown> = {
-    prompt,
-    size: body.size || '1024x1024',
-    n: Math.min(Math.max(body.n || 1, 1), 4),
+  let payload: Record<string, unknown>
+  try {
+    payload = buildImageGenerationPayload(prompt, body)
+  } catch (error) {
+    return {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      jsonBody: { error: error instanceof Error ? error.message : 'Invalid image options' },
+    }
   }
-  if (body.style) payload.style = body.style
-  if (body.quality) payload.quality = body.quality
 
   try {
     context.log(`Image generation: deployment=${deployment} size=${payload.size} promptLen=${prompt.length}`)

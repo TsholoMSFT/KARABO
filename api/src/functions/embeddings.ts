@@ -1,6 +1,11 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions'
 import { makeCorsHeaders } from '../lib/xml-utils'
 import { getAoaiAuthHeaders } from '../lib/iq-credential'
+import {
+  EMBEDDING_DIMENSIONS,
+  getEmbeddingDeployment,
+  validateEmbeddingVectors,
+} from '../lib/embedding-config'
 
 const corsHeaders = makeCorsHeaders('POST, OPTIONS')
 
@@ -19,7 +24,7 @@ async function embeddingsHandler(req: HttpRequest, _context: InvocationContext):
 
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT
   const apiKey = process.env.AZURE_OPENAI_API_KEY
-  const deployment = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || 'text-embedding-3-large'
+  const deployment = getEmbeddingDeployment()
   const apiVersion = process.env.AZURE_OPENAI_EMBEDDING_API_VERSION || '2024-10-21'
 
   if (!endpoint) {
@@ -69,10 +74,11 @@ async function embeddingsHandler(req: HttpRequest, _context: InvocationContext):
     }
     const data = (await r.json()) as AoaiEmbeddingsResponse
     const vectors = data.data.sort((a, b) => a.index - b.index).map((d) => d.embedding)
+    validateEmbeddingVectors(vectors)
     return {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      jsonBody: { vectors, model: data.model, usage: data.usage },
+      jsonBody: { vectors, model: data.model || deployment, dimensions: EMBEDDING_DIMENSIONS, usage: data.usage },
     }
   } catch (err) {
     return {

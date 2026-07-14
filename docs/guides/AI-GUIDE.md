@@ -31,10 +31,25 @@ I've added powerful AI capabilities to the ID-8 (Microsoft Innovation Hub Use Ca
 
 ## AI Model Information
 
-I chose two OpenAI models for optimal performance:
+The application uses task-specific model routing and bounded output budgets:
 
-- **GPT-4o**: Powers use case generation and executive summaries for highest quality strategic output
-- **GPT-4o-mini**: Powers real-time insights and suggestions for fast, responsive assistance
+- **Development**: Foundry Local first when explicitly enabled, then Azure OpenAI if the local service is unavailable or returns an invalid response.
+- **Production**: Azure OpenAI only, followed by the typed deterministic fallback owned by each feature.
+- **Embeddings**: `text-embedding-3-small` with 1536 dimensions.
+- **Images**: `gpt-image-1-mini` with low-cost quality defaults.
+
+## Foundry Local Development Setup
+
+Prerequisites are Windows, Node.js 20 or later, and enough disk space for the selected model and execution provider. The root development dependencies include the official `foundry-local-sdk-winml` package; they are not part of the Azure Functions package.
+
+1. List aliases available for this device with `npm run foundry:models`.
+2. Start and, on first use, download the configured model with `npm run foundry:local -- --model=<alias>`.
+3. Set `FOUNDRY_LOCAL_ENABLED` to `true` in `api/local.settings.json` and keep `FOUNDRY_LOCAL_ENDPOINT` on an HTTP loopback address.
+4. Start Azure Functions and the frontend/SWA emulator normally.
+
+The default alias is `phi-4-mini-instruct`; use an alias from `foundry:models` if it is unavailable on this machine. Model acquisition happens only during the explicit Foundry Local startup command, never during `/api/chat`. Press Ctrl+C to unload the model and stop the local service.
+
+Local requests stay on-device. If local inference times out, fails, or produces malformed JSON for a JSON task, the same task content is sent to Azure OpenAI as the configured development fallback. Production ignores all Foundry Local settings.
 
 ## Where to See AI in Action
 

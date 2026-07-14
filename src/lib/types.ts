@@ -2380,8 +2380,8 @@ export interface EngagementArtifact {
   data?: unknown
   generatedAt: number
   updatedAt?: number
-  /** 'ai' when produced by a generator, 'manual' when hand-authored/edited. */
-  source?: 'ai' | 'manual'
+  /** Origin of the initial artifact draft. */
+  source?: 'ai' | 'fallback' | 'manual'
 }
 
 /** A single task on an engagement timeline (business-day offset from the date). */

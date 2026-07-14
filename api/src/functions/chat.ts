@@ -1,6 +1,8 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { makeCorsHeaders, safeErrorMessage } from "../lib/xml-utils";
 import { getAoaiAuthHeaders } from "../lib/iq-credential";
+import { AITask, getOutputTokenLimit } from "../lib/ai-cost-controls";
+import { tryFoundryLocalChat } from "../lib/foundry-local-client";
 
 /**
  * Azure Function Proxy for Azure OpenAI
@@ -152,6 +154,7 @@ function getDeploymentConfig(model: ModelType, cloud: CloudEnvironment = AZURE_C
 interface ChatRequest {
   prompt: string;
   model?: ModelType;
+  task?: AITask;
   expectJson?: boolean;
   systemPrompt?: string;
   cloudEnvironment?: CloudEnvironment; // Optional: override cloud per request
@@ -173,7 +176,7 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
 
   try {
     const body = await req.json() as ChatRequest;
-    const { prompt, model = "phi-4-mini-instruct", expectJson = false, systemPrompt, cloudEnvironment } = body;
+    const { prompt, model = "phi-4-mini-instruct", task = "general", expectJson = false, systemPrompt, cloudEnvironment } = body;
 
     if (!prompt) {
       return {
@@ -185,6 +188,20 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
 
     // Resolve target cloud: request override > env var default
     const targetCloud = cloudEnvironment || AZURE_CLOUD_ENV;
+
+    try {
+      const localResponse = await tryFoundryLocalChat({ prompt, task, expectJson, systemPrompt });
+      if (localResponse) {
+        context.log(`AI provider=foundry-local model=${localResponse.model} task=${task}`);
+        return {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          jsonBody: localResponse,
+        };
+      }
+    } catch (error) {
+      context.warn(`Foundry Local unavailable; falling back to Azure OpenAI: ${safeErrorMessage(error)}`);
+    }
 
     // Get deployment config for requested model + cloud
     let config = getDeploymentConfig(model, targetCloud);
@@ -230,11 +247,12 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
     messages.push({ role: "user", content: prompt });
 
     const isGpt5OrO = GPT5_OR_O_SERIES_RE.test(config.deployment || "");
+    const outputTokenLimit = getOutputTokenLimit(task);
     const requestBody: Record<string, unknown> = { messages };
     if (isGpt5OrO) {
-      requestBody.max_completion_tokens = 8000;
+      requestBody.max_completion_tokens = outputTokenLimit;
     } else {
-      requestBody.max_tokens = 8000;
+      requestBody.max_tokens = outputTokenLimit;
       requestBody.temperature = 0.7;
     }
 
@@ -258,7 +276,7 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
     Object.assign(headers, authHeaders);
     context.log(`Auth=${authHeaders.Authorization ? "entra-id" : "api-key"} model=${actualModel} cloud=${config.cloud} aiHub=${config.isAIHub}`);
 
-    context.log(`Calling ${actualModel} (requested: ${model}) on ${config.cloud} at ${config.endpoint}`);
+    context.log(`Calling ${actualModel} (requested: ${model}) for task=${task} maxOutputTokens=${outputTokenLimit} on ${config.cloud} at ${config.endpoint}`);
 
     const response = await fetch(url, {
       method: "POST",
@@ -296,7 +314,7 @@ async function chatHandler(req: HttpRequest, context: InvocationContext): Promis
     return {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      jsonBody: { content, usage: data.usage },
+      jsonBody: { content, model: data.model || config.deployment, source: "azure-openai", usage: data.usage },
     };
   } catch (error: any) {
     context.error("Chat function error:", error);

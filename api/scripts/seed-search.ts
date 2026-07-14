@@ -1,5 +1,5 @@
 /**
- * Seeds the karabo-knowledge index with regulatory frameworks + solution-blueprint
+ * Seeds the karabo-knowledge-v2 index with regulatory frameworks + solution-blueprint
  * archetypes so semantic lookups (LearnMorePopover, archetype inference) have grounded
  * content even before customer-specific docs are ingested.
  *
@@ -8,14 +8,15 @@
  * Required env:
  *   AZURE_SEARCH_ENDPOINT        e.g. https://id8-search.search.windows.net
  *   AZURE_SEARCH_KEY             admin key
- *   AZURE_SEARCH_INDEX           defaults to karabo-knowledge
+ *   AZURE_SEARCH_INDEX           defaults to karabo-knowledge-v2
  *   AZURE_OPENAI_ENDPOINT        e.g. https://karabo-ai-hub.openai.azure.com/
  *   AZURE_OPENAI_API_KEY
- *   AZURE_OPENAI_EMBEDDING_DEPLOYMENT  defaults to text-embedding-3-large
+ *   AZURE_OPENAI_EMBEDDING_DEPLOYMENT  defaults to text-embedding-3-small
  */
 import { AzureKeyCredential, SearchClient } from '@azure/search-documents'
 import { REGULATION_REGISTRY } from '../../src/lib/regulatory-engine'
 import { ARCHETYPES } from '../../src/lib/solution-blueprint/archetypes'
+import { getEmbeddingDeployment, validateEmbeddingVectors } from '../src/lib/embedding-config'
 
 interface KnowledgeDoc {
   id: string
@@ -29,10 +30,10 @@ interface KnowledgeDoc {
 
 const searchEndpoint = process.env.AZURE_SEARCH_ENDPOINT
 const searchKey = process.env.AZURE_SEARCH_KEY
-const indexName = process.env.AZURE_SEARCH_INDEX || 'karabo-knowledge'
+const indexName = process.env.AZURE_SEARCH_INDEX || 'karabo-knowledge-v2'
 const aoaiEndpoint = process.env.AZURE_OPENAI_ENDPOINT
 const aoaiKey = process.env.AZURE_OPENAI_API_KEY
-const embedDeployment = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || 'text-embedding-3-large'
+const embedDeployment = getEmbeddingDeployment()
 const apiVersion = process.env.AZURE_OPENAI_EMBEDDING_API_VERSION || '2024-10-21'
 
 if (!searchEndpoint || !searchKey || !aoaiEndpoint || !aoaiKey) {
@@ -54,7 +55,9 @@ async function embedBatch(inputs: string[]): Promise<number[][]> {
     throw new Error(`Embeddings failed (${r.status}): ${t}`)
   }
   const data = (await r.json()) as { data: Array<{ embedding: number[]; index: number }> }
-  return data.data.sort((a, b) => a.index - b.index).map((d) => d.embedding)
+  const vectors = data.data.sort((a, b) => a.index - b.index).map((d) => d.embedding)
+  validateEmbeddingVectors(vectors)
+  return vectors
 }
 
 function safeId(prefix: string, raw: string): string {

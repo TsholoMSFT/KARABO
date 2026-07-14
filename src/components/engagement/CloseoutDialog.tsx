@@ -59,7 +59,7 @@ export function CloseoutDialog({ open, onOpenChange, context, onSaveArtifact }: 
       markdown,
       data: closeout ?? undefined,
       generatedAt: Date.now(),
-      source: 'ai',
+      source: closeout?.usedFallback ? 'fallback' : 'ai',
     })
     toast.success('Closeout saved to the engagement')
     onOpenChange(false)

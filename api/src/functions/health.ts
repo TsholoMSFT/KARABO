@@ -1,5 +1,6 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { makeCorsHeaders } from "../lib/xml-utils";
+import { getFoundryLocalStatus } from "../lib/foundry-local-client";
 
 const corsHeaders = makeCorsHeaders("GET, OPTIONS");
 
@@ -20,6 +21,7 @@ async function healthHandler(req: HttpRequest, context: InvocationContext): Prom
 
   const hasDocIntelEndpoint = !!process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT?.trim();
   const hasDocIntelKey = !!process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY?.trim();
+  const foundryLocal = getFoundryLocalStatus();
 
   context.log("Health check requested");
 
@@ -41,6 +43,7 @@ async function healthHandler(req: HttpRequest, context: InvocationContext): Prom
         hasGpt4oDeployment,
         hasGpt4oMiniDeployment,
       },
+      foundryLocal,
       documentIntelligence: {
         hasEndpoint: hasDocIntelEndpoint,
         hasKey: hasDocIntelKey,

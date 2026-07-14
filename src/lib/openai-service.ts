@@ -18,6 +18,7 @@ import type {
   GovernanceGap,
 } from './types'
 import { AI_GOVERNANCE_DIMENSION_LABELS, AI_GOVERNANCE_MATURITY_CONFIG } from './types'
+import { createFallbackEngagementCloseout, createFallbackFollowupEmail } from './ai-fallbacks'
 
 // API endpoint for the Azure Function proxy (never call AI services directly from the browser)
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT || '/api'
@@ -42,9 +43,9 @@ const responseCache = new Map<string, CacheEntry>()
 /**
  * Generate a cache key from prompt and model
  */
-function getCacheKey(prompt: string, model: string, expectJson: boolean, systemPrompt?: string): string {
+function getCacheKey(prompt: string, model: string, expectJson: boolean, systemPrompt: string | undefined, task: AITask): string {
   // Simple hash function for cache key
-  const input = `${model}:${expectJson}:${systemPrompt || ''}:${prompt}`
+  const input = `${task}:${model}:${expectJson}:${systemPrompt || ''}:${prompt}`
   let hash = 0
   for (let i = 0; i < input.length; i++) {
     const char = input.charCodeAt(i)
@@ -135,6 +136,24 @@ export type AITask =
   | 'engagement-diagram'  // Mermaid architecture diagram → GPT-4o-mini
   | 'general'         // Default → Phi-4-mini-instruct
 
+const AI_TASKS = new Set<AITask>([
+  'extraction',
+  'formatting',
+  'analysis',
+  'architecture',
+  'journey',
+  'governance',
+  'business-case',
+  'cost-optimization',
+  'executive',
+  'engagement-agenda',
+  'engagement-email',
+  'engagement-timeline',
+  'engagement-closeout',
+  'engagement-diagram',
+  'general',
+])
+
 /**
  * Get the optimal model for a given task
  * Cost-optimized routing:
@@ -174,7 +193,7 @@ export async function callAIForTask(
 ): Promise<string> {
   const model = getModelForTask(task)
   console.log(`[AI] Task: ${task} → Model: ${model}`)
-  return callOpenAI(prompt, model, options.expectJson ?? false, options.systemPrompt)
+  return callOpenAI(prompt, model, options.expectJson ?? false, options.systemPrompt, task)
 }
 
 interface ProxyResponse {
@@ -197,9 +216,10 @@ async function callViaProxy(
   model: ModelType = 'phi-4-mini-instruct',
   expectJson: boolean = false,
   systemPrompt?: string,
-  cloudEnvironment?: string
+  cloudEnvironment?: string,
+  task: AITask = 'general'
 ): Promise<string> {
-  const requestBody: Record<string, unknown> = { prompt, model, expectJson }
+  const requestBody: Record<string, unknown> = { prompt, model, expectJson, task }
   if (systemPrompt) requestBody.systemPrompt = systemPrompt
   if (cloudEnvironment) requestBody.cloudEnvironment = cloudEnvironment
 
@@ -291,10 +311,12 @@ export async function callOpenAI(
   prompt: string,
   model: ModelType = 'phi-4-mini-instruct',
   expectJson: boolean = false,
-  systemPrompt?: string
+  systemPrompt?: string,
+  task: AITask = 'general'
 ): Promise<string> {
+  const normalizedTask = AI_TASKS.has(task) ? task : 'general'
   // Check cache first
-  const cacheKey = getCacheKey(prompt, model, expectJson, systemPrompt)
+  const cacheKey = getCacheKey(prompt, model, expectJson, systemPrompt, normalizedTask)
   const cached = getFromCache(cacheKey)
   if (cached) {
     cacheHits++
@@ -304,7 +326,7 @@ export async function callOpenAI(
 
   try {
     console.log(`Using proxy API at ${API_ENDPOINT} (${model})`)
-    const result = await callViaProxy(prompt, model, expectJson, systemPrompt)
+    const result = await callViaProxy(prompt, model, expectJson, systemPrompt, undefined, normalizedTask)
 
     // Cache the successful response
     setCache(cacheKey, result, model)
@@ -1025,6 +1047,7 @@ export interface FollowupEmail {
   bodyText: string
   bullets: string[]
   callToAction?: string
+  usedFallback?: boolean
 }
 
 export async function generateFollowupEmail(
@@ -1061,11 +1084,11 @@ Return JSON:
       bodyText: typeof p.bodyText === 'string' ? p.bodyText : '',
       bullets: asStringArray(p.bullets),
       callToAction: typeof p.callToAction === 'string' ? p.callToAction : undefined,
+      usedFallback: false,
     }
   } catch (error) {
     console.error('Follow-up email generation failed:', error)
-    const text = 'Thank you for your time today. AI generation is unavailable — please edit this draft.'
-    return { subject: `Follow-up — ${ctx.customerName ?? 'our session'}`, bodyHtml: `<p>${text}</p>`, bodyText: text, bullets: [] }
+    return { ...createFallbackFollowupEmail(ctx), usedFallback: true }
   }
 }
 
@@ -1127,6 +1150,7 @@ export interface EngagementCloseout {
   risks: string[]
   nextSteps: string[]
   sentiment?: 'positive' | 'neutral' | 'mixed' | 'negative'
+  usedFallback?: boolean
 }
 
 export async function generateEngagementCloseout(ctx: EngagementGenContext): Promise<EngagementCloseout> {
@@ -1162,10 +1186,11 @@ Return JSON:
       risks: asStringArray(p.risks),
       nextSteps: asStringArray(p.nextSteps),
       sentiment,
+      usedFallback: false,
     }
   } catch (error) {
     console.error('Closeout generation failed:', error)
-    return { summary: '', decisions: [], actionItems: [], risks: [], nextSteps: [] }
+    return { ...createFallbackEngagementCloseout(ctx), usedFallback: true }
   }
 }
 

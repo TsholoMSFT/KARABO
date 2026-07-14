@@ -1,17 +1,18 @@
 /**
- * Creates the `karabo-knowledge` index in Azure AI Search.
+ * Creates the versioned `karabo-knowledge-v2` index in Azure AI Search.
  * Run with: cmd /c "C:\Program Files\nodejs\npx.cmd tsx scripts/create-search-index.ts"
  *
  * Required env (load from .env or local.settings.json values):
  *   AZURE_SEARCH_ENDPOINT  e.g. https://id8-search.search.windows.net
  *   AZURE_SEARCH_KEY       admin key
- *   AZURE_SEARCH_INDEX     defaults to karabo-knowledge
+ *   AZURE_SEARCH_INDEX     defaults to karabo-knowledge-v2
  */
 import { AzureKeyCredential, SearchIndexClient, SearchIndex } from '@azure/search-documents'
+import { EMBEDDING_DIMENSIONS } from '../src/lib/embedding-config'
 
 const endpoint = process.env.AZURE_SEARCH_ENDPOINT
 const key = process.env.AZURE_SEARCH_KEY
-const indexName = process.env.AZURE_SEARCH_INDEX || 'karabo-knowledge'
+const indexName = process.env.AZURE_SEARCH_INDEX || 'karabo-knowledge-v2'
 
 if (!endpoint || !key) {
   console.error('AZURE_SEARCH_ENDPOINT and AZURE_SEARCH_KEY must be set.')
@@ -33,7 +34,7 @@ const index: SearchIndex = {
       name: 'embedding',
       type: 'Collection(Edm.Single)',
       searchable: true,
-      vectorSearchDimensions: 3072,
+      vectorSearchDimensions: EMBEDDING_DIMENSIONS,
       vectorSearchProfileName: 'karabo-vector-profile',
     },
   ],

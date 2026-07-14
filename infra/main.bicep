@@ -13,7 +13,7 @@ param keyVaultName string = 'karabo-keyvault'
 param allowedOrigin string = '*'
 
 @description('Azure OpenAI embedding deployment name.')
-param embeddingDeployment string = 'text-embedding-3-large'
+param embeddingDeployment string = 'text-embedding-3-small'
 
 @description('Azure OpenAI chat deployment alias for "gpt-4o" (Foundry: gpt-5.2).')
 param chatDeploymentGpt4o string = 'gpt-5.2'
@@ -25,7 +25,7 @@ param chatDeploymentGpt4oMini string = 'gpt-5.4-mini'
 param searchEndpoint string = 'https://id8-search.search.windows.net'
 
 @description('Azure AI Search index name.')
-param searchIndex string = 'karabo-knowledge'
+param searchIndex string = 'karabo-knowledge-v2'
 
 var resourceToken = uniqueString(subscription().id, resourceGroup().id, environmentName)
 var tags = { 'azd-env-name': environmentName }

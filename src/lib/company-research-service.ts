@@ -402,7 +402,7 @@ export interface NewsSearchResponse {
 
 /**
  * Semantic search over the cached company-news corpus via /api/news-search.
- * Backed by text-embedding-3-large + blob storage (a low-cost alternative to
+ * Backed by text-embedding-3-small + blob storage (a low-cost alternative to
  * Azure AI Search). Never throws on a recoverable failure — returns an empty
  * result set with a diagnostic message instead.
  *

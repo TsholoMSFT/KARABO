@@ -19,8 +19,6 @@ import "./functions/learn-fetch";
 import "./functions/embeddings";
 import "./functions/search-knowledge";
 import "./functions/image";
-import "./functions/transcribe";
-import "./functions/realtime-session";
 import "./functions/exchange-rates";
 import "./functions/economic-data";
 import "./functions/company-financials";

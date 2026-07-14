@@ -8,6 +8,117 @@ import { toast } from 'sonner'
 import type { ReferenceArchitecturePattern } from './microsoft-solutions'
 import type { Industry } from './types'
 
+export interface FallbackFollowupEmail {
+  subject: string
+  bodyHtml: string
+  bodyText: string
+  bullets: string[]
+  callToAction: string
+}
+
+export interface FallbackFollowupEmailContext {
+  customerName?: string
+  engagementType?: string
+  audience?: string
+  senderName?: string
+  highlights?: string[]
+  useCases?: Array<{ title: string; description?: string }>
+}
+
+export interface FallbackEngagementCloseout {
+  summary: string
+  decisions: string[]
+  actionItems: Array<{ action: string; owner?: string; due?: string }>
+  risks: string[]
+  nextSteps: string[]
+  sentiment: 'neutral'
+}
+
+export function createFallbackEngagementCloseout(ctx: {
+  customerName?: string
+  engagementType?: string
+  useCases?: Array<{ title: string; description?: string }>
+}): FallbackEngagementCloseout {
+  const customerName = ctx.customerName?.trim() || 'the customer'
+  const engagementLabel = ctx.engagementType?.trim() || 'engagement session'
+  const useCaseTitles = (ctx.useCases || [])
+    .map((useCase) => useCase.title.trim())
+    .filter(Boolean)
+    .slice(0, 5)
+  const scope = useCaseTitles.length
+    ? ` The recorded scope includes ${useCaseTitles.join(', ')}.`
+    : ''
+
+  return {
+    summary: `A ${engagementLabel} was held with ${customerName}.${scope} Review the session notes before distributing this draft.`,
+    decisions: ['No decisions were automatically extracted; confirm decisions from the session notes.'],
+    actionItems: [
+      { action: 'Review and confirm the session summary, decisions, risks, and owners', owner: 'Microsoft & Customer' },
+    ],
+    risks: ['Risks were not automatically extracted; validate risks with the engagement stakeholders.'],
+    nextSteps: [
+      'Confirm priorities and success measures with the customer',
+      'Assign owners and due dates to agreed actions',
+    ],
+    sentiment: 'neutral',
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+export function createFallbackFollowupEmail(ctx: FallbackFollowupEmailContext): FallbackFollowupEmail {
+  const customerName = ctx.customerName?.trim() || 'your team'
+  const engagementLabel = ctx.engagementType?.trim() || 'our recent session'
+  const suppliedHighlights = (ctx.highlights || []).map((item) => item.trim()).filter(Boolean)
+  const useCaseHighlights = (ctx.useCases || [])
+    .map((useCase) => useCase.title.trim())
+    .filter(Boolean)
+    .map((title) => `Explore next steps for ${title}`)
+  const bullets = [...suppliedHighlights, ...useCaseHighlights].slice(0, 5)
+  if (bullets.length === 0) {
+    bullets.push('Confirm the priority outcomes and success measures discussed during the session')
+  }
+
+  const callToAction = ctx.audience?.toLowerCase().includes('technical')
+    ? 'Please share suitable times for a technical follow-up to validate scope, dependencies, and owners.'
+    : 'Please share suitable times for a follow-up to confirm priorities, owners, and next steps.'
+  const greeting = `Hello ${customerName} team,`
+  const opening = `Thank you for the time and perspectives shared during ${engagementLabel}. We captured the following priorities for confirmation:`
+  const closing = ctx.senderName?.trim() ? `Regards,\n${ctx.senderName.trim()}` : 'Regards,'
+  const bodyText = [
+    greeting,
+    '',
+    opening,
+    '',
+    ...bullets.map((bullet) => `- ${bullet}`),
+    '',
+    callToAction,
+    '',
+    closing,
+  ].join('\n')
+
+  return {
+    subject: `Follow-up: ${customerName} ${engagementLabel}`,
+    bodyText,
+    bodyHtml: [
+      `<p>${escapeHtml(greeting)}</p>`,
+      `<p>${escapeHtml(opening)}</p>`,
+      `<ul>${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join('')}</ul>`,
+      `<p>${escapeHtml(callToAction)}</p>`,
+      `<p>${escapeHtml(closing).replace(/\n/g, '<br>')}</p>`,
+    ].join(''),
+    bullets,
+    callToAction,
+  }
+}
+
 export interface AICallOptions {
   retries?: number
   retryDelayMs?: number
@@ -261,4 +372,6 @@ export default {
   createFallbackExecutiveSummary,
   createFallbackCOIEstimate,
   createFallbackEffortEstimate,
+  createFallbackFollowupEmail,
+  createFallbackEngagementCloseout,
 }

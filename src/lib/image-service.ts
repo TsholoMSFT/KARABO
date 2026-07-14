@@ -1,5 +1,5 @@
 /**
- * Client wrapper for the /api/image endpoint (gpt-image-2).
+ * Client wrapper for the /api/image endpoint (gpt-image-1-mini).
  * Provides high-level helpers for executive cover art, journey milestone
  * illustrations, and blueprint concept sketches, plus a small localStorage
  * cache so repeated renders are instant and free.
@@ -8,7 +8,7 @@
 const STYLE_PROMPT =
   'Microsoft modern, abstract gradient, executive presentation aesthetic, clean, professional, no text, no logos, soft lighting, depth of field'
 
-const CACHE_PREFIX = 'karabo-img-cache:'
+const CACHE_PREFIX = 'karabo-img-cache:v2:'
 const CACHE_BUDGET_BYTES = 5 * 1024 * 1024 // 5 MB
 
 export interface GeneratedImage {
@@ -17,13 +17,12 @@ export interface GeneratedImage {
   revisedPrompt?: string
 }
 
-export type ImageSize = '1024x1024' | '1792x1024' | '1024x1792'
+export type ImageSize = '1024x1024' | '1024x1536' | '1536x1024'
 
 interface ImageRequest {
   prompt: string
   size?: ImageSize
-  quality?: 'standard' | 'hd'
-  style?: 'natural' | 'vivid'
+  quality?: 'low' | 'medium' | 'high'
 }
 
 async function sha256(input: string): Promise<string> {
@@ -112,9 +111,8 @@ export async function generateHeroImage(opts: HeroImageOptions = {}): Promise<Ge
   )
   return generateImage({
     prompt: `${subject}. ${STYLE_PROMPT}.`,
-    size: '1792x1024',
-    quality: 'hd',
-    style: 'natural',
+    size: '1536x1024',
+    quality: 'low',
   })
 }
 
@@ -134,8 +132,7 @@ export async function generateJourneyMilestone(opts: JourneyMilestoneOptions): P
   return generateImage({
     prompt: `${subject}. ${STYLE_PROMPT}.`,
     size: '1024x1024',
-    quality: 'standard',
-    style: 'natural',
+    quality: 'low',
   })
 }
 
@@ -154,8 +151,7 @@ export async function generateBlueprintSketch(opts: BlueprintSketchOptions): Pro
   )
   return generateImage({
     prompt: `${subject}. ${STYLE_PROMPT}.`,
-    size: '1792x1024',
-    quality: 'hd',
-    style: 'natural',
+    size: '1536x1024',
+    quality: 'low',
   })
 }

@@ -15,13 +15,13 @@
       "value": "${ALLOWED_ORIGIN=*}"
     },
     "embeddingDeployment": {
-      "value": "${AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large}"
+      "value": "${AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-small}"
     },
     "searchEndpoint": {
       "value": "${AZURE_SEARCH_ENDPOINT=https://id8-search.search.windows.net}"
     },
     "searchIndex": {
-      "value": "${AZURE_SEARCH_INDEX=karabo-knowledge}"
+      "value": "${AZURE_SEARCH_INDEX=karabo-knowledge-v2}"
     }
   }
 }

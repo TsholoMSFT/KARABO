@@ -2,6 +2,7 @@ import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/fu
 import { AzureKeyCredential, SearchClient } from '@azure/search-documents'
 import { makeCorsHeaders } from '../lib/xml-utils'
 import { getAoaiAuthHeaders } from '../lib/iq-credential'
+import { getEmbeddingDeployment, isValidEmbeddingVector } from '../lib/embedding-config'
 
 const corsHeaders = makeCorsHeaders('POST, OPTIONS')
 
@@ -26,7 +27,7 @@ function getClient(): SearchClient<KnowledgeDoc> | null {
   if (cachedClient) return cachedClient
   const endpoint = process.env.AZURE_SEARCH_ENDPOINT
   const key = process.env.AZURE_SEARCH_KEY
-  const index = process.env.AZURE_SEARCH_INDEX || 'karabo-knowledge'
+  const index = process.env.AZURE_SEARCH_INDEX || 'karabo-knowledge-v2'
   if (!endpoint || !key) return null
   cachedClient = new SearchClient<KnowledgeDoc>(endpoint, index, new AzureKeyCredential(key))
   return cachedClient
@@ -35,7 +36,7 @@ function getClient(): SearchClient<KnowledgeDoc> | null {
 async function embedQuery(text: string): Promise<number[] | null> {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT
   const apiKey = process.env.AZURE_OPENAI_API_KEY
-  const deployment = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || 'text-embedding-3-large'
+  const deployment = getEmbeddingDeployment()
   const apiVersion = process.env.AZURE_OPENAI_EMBEDDING_API_VERSION || '2024-10-21'
   if (!endpoint) return null
   const authHeaders = await getAoaiAuthHeaders(apiKey)
@@ -48,7 +49,8 @@ async function embedQuery(text: string): Promise<number[] | null> {
   })
   if (!r.ok) return null
   const data = (await r.json()) as { data: Array<{ embedding: number[] }> }
-  return data.data?.[0]?.embedding ?? null
+  const vector = data.data?.[0]?.embedding
+  return isValidEmbeddingVector(vector) ? vector : null
 }
 
 async function searchKnowledgeHandler(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {

@@ -9,6 +9,7 @@ import { industryLabels } from './discovery-questions'
 import { buildBusinessFunctionContext, BUSINESS_FUNCTION_IDS } from './business-functions'
 import { CompanyInsight } from './company-research-service'
 import { parseJsonLenient } from './lenient-json'
+import { clipDiscoveryNotes } from './ai-input-limits'
 
 export interface SourceTextHighlight {
   text: string
@@ -143,7 +144,7 @@ Customer: ${context.customerName}${industryContext}${departmentContext}${locatio
 
 DISCOVERY NOTES (UNSTRUCTURED):
 """
-${notes}
+${clipDiscoveryNotes(notes)}
 """
 
 TASK: Extract 4-8 high-value use cases from these notes. For each use case:

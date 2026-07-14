@@ -8,19 +8,26 @@ import {
   type RSSItem,
 } from "../lib/xml-utils";
 import { getAoaiAuthHeaders } from "../lib/iq-credential";
+import {
+  EMBEDDING_DIMENSIONS,
+  cosineSimilarity,
+  getEmbeddingDeployment,
+  isValidEmbeddingVector,
+  validateEmbeddingVectors,
+} from "../lib/embedding-config";
 
 /**
  * Semantic ("grounded") search over the cached company-news corpus.
  *
  * A cost-effective alternative to Azure AI Search: it reuses the
- * already-deployed `text-embedding-3-large` model and the existing
+ * already-deployed `text-embedding-3-small` model and the existing
  * `kaaborsstorage` blob account, so there is **no standing monthly cost** —
  * just fractions-of-a-cent embedding tokens and pennies of blob storage.
  *
  * Pipeline:
  *   1. Resolve target news blobs (one company, or newest-per-company corpus-wide).
  *   2. For each blob, load a cached embedding index ({blob}.idx.json) or build it
- *      once (embed each item via text-embedding-3-large, then cache it).
+ *      once (embed each item via text-embedding-3-small, then cache it).
  *   3. Embed the query, cosine-rank items across all targets, return the top-k.
  *
  * Always returns HTTP 200 with a diagnostic `message` on degraded paths
@@ -34,6 +41,7 @@ const INDEX_CONTAINER = "news-index";
 const MAX_ITEMS_PER_BLOB = 120;
 const MAX_CORPUS_BLOBS = 16;
 const EMBED_TEXT_MAXLEN = 800;
+const NEWS_INDEX_SCHEMA_VERSION = 2;
 
 function getStorageConnectionString(): string | undefined {
   return (process.env.AZURE_STORAGE_CONNECTION_STRING || process.env.AzureWebJobsStorage)?.trim();
@@ -50,11 +58,11 @@ function itemText(item: RSSItem): string {
   return `${item.title}. ${item.description}`.slice(0, EMBED_TEXT_MAXLEN);
 }
 
-/** Batch-embed texts via the deployed text-embedding-3-large model. Returns null when auth/endpoint is unavailable. */
+/** Batch-embed texts via the configured embedding model. Returns null when auth/endpoint is unavailable. */
 async function embed(texts: string[]): Promise<number[][] | null> {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
-  const deployment = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT || "text-embedding-3-large";
+  const deployment = getEmbeddingDeployment();
   const apiVersion = process.env.AZURE_OPENAI_EMBEDDING_API_VERSION || "2024-10-21";
   if (!endpoint || texts.length === 0) return null;
   const authHeaders = await getAoaiAuthHeaders(apiKey);
@@ -67,21 +75,9 @@ async function embed(texts: string[]): Promise<number[][] | null> {
   });
   if (!r.ok) return null;
   const data = (await r.json()) as { data: Array<{ embedding: number[]; index: number }> };
-  return data.data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
-}
-
-function cosine(a: number[], b: number[]): number {
-  let dot = 0;
-  let na = 0;
-  let nb = 0;
-  const n = Math.min(a.length, b.length);
-  for (let i = 0; i < n; i++) {
-    dot += a[i] * b[i];
-    na += a[i] * a[i];
-    nb += b[i] * b[i];
-  }
-  if (na === 0 || nb === 0) return 0;
-  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+  const vectors = data.data.sort((a, b) => a.index - b.index).map((d) => d.embedding);
+  validateEmbeddingVectors(vectors);
+  return vectors;
 }
 
 function keywordScore(terms: string[], item: RSSItem): number {
@@ -93,9 +89,11 @@ function keywordScore(terms: string[], item: RSSItem): number {
 }
 
 interface NewsIndex {
+  schemaVersion: number;
   blobName: string;
   company: string;
   model: string;
+  dimensions: number;
   items: RSSItem[];
   vectors: number[][];
 }
@@ -119,6 +117,7 @@ async function getOrBuildIndex(
   const newsContainer = svc.getContainerClient(NEWS_CONTAINER);
   const indexContainer = svc.getContainerClient(INDEX_CONTAINER);
   const idxName = `${ref.name}.idx.json`;
+  const deployment = getEmbeddingDeployment();
 
   // Try cache first.
   try {
@@ -128,9 +127,17 @@ async function getOrBuildIndex(
       if (dl.readableStreamBody) {
         const json = await streamToString(dl.readableStreamBody);
         const cached = JSON.parse(json) as NewsIndex;
-        if (cached.items?.length && cached.vectors?.length === cached.items.length) {
+        const cacheMatches =
+          cached.schemaVersion === NEWS_INDEX_SCHEMA_VERSION &&
+          cached.model === deployment &&
+          cached.dimensions === EMBEDDING_DIMENSIONS &&
+          cached.items?.length &&
+          cached.vectors?.length === cached.items.length &&
+          cached.vectors.every(isValidEmbeddingVector);
+        if (cacheMatches) {
           return { items: cached.items, vectors: cached.vectors, model: cached.model };
         }
+        context.log(`news-search: rebuilding stale embedding cache ${idxName}`);
       }
     }
   } catch (e: any) {
@@ -155,9 +162,11 @@ async function getOrBuildIndex(
   try {
     await indexContainer.createIfNotExists();
     const payload: NewsIndex = {
+      schemaVersion: NEWS_INDEX_SCHEMA_VERSION,
       blobName: ref.name,
       company: ref.company,
-      model: "text-embedding-3-large",
+      model: deployment,
+      dimensions: EMBEDDING_DIMENSIONS,
       items,
       vectors,
     };
@@ -171,7 +180,7 @@ async function getOrBuildIndex(
     context.warn(`news-search: index cache write failed for ${idxName}: ${e?.message ?? "unknown"}`);
   }
 
-  return { items, vectors, model: "text-embedding-3-large" };
+  return { items, vectors, model: deployment };
 }
 
 /** Resolve which news blobs to search: one company, or the newest blob per company corpus-wide. */
@@ -278,7 +287,7 @@ async function newsSearchHandler(req: HttpRequest, context: InvocationContext): 
       scored = allItems.map((item, i) => ({
         item,
         company: targets.length === 1 ? targets[0].company : "",
-        score: allVectors[i].length ? cosine(qv, allVectors[i]) : 0,
+        score: allVectors[i].length ? cosineSimilarity(qv, allVectors[i]) : 0,
       }));
     } else {
       const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -300,7 +309,7 @@ async function newsSearchHandler(req: HttpRequest, context: InvocationContext): 
       query,
       company,
       method,
-      model: method === "vector" ? "text-embedding-3-large" : undefined,
+      model: method === "vector" ? getEmbeddingDeployment() : undefined,
       totalIndexed: allItems.length,
       companiesSearched: companies.size,
       results,

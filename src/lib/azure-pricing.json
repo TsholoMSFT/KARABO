@@ -7,7 +7,8 @@
     "gpt-4o-mini":       { "inputPer1M": 0.15, "outputPer1M": 0.60 },
     "gpt-5-nano":        { "inputPer1M": 0.05, "outputPer1M": 0.40 },
     "phi-4-mini":        { "inputPer1M": 0.075, "outputPer1M": 0.30 },
-    "text-embedding-3-large": { "inputPer1M": 0.13, "outputPer1M": 0 }
+    "text-embedding-3-large": { "inputPer1M": 0.13, "outputPer1M": 0 },
+    "text-embedding-3-small": { "inputPer1M": 0.02, "outputPer1M": 0 }
   },
   "aiSearch": {
     "free":     { "monthlyUSD": 0,    "label": "Free (50MB, dev only)" },

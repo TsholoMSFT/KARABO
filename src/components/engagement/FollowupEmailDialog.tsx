@@ -68,7 +68,7 @@ export function FollowupEmailDialog({ open, onOpenChange, context, onSaveArtifac
       markdown: buildMarkdown(),
       data: email ?? undefined,
       generatedAt: Date.now(),
-      source: 'ai',
+      source: email?.usedFallback ? 'fallback' : 'ai',
     })
     toast.success('Email saved to the engagement')
     onOpenChange(false)
