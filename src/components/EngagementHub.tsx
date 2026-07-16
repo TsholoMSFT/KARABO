@@ -10,7 +10,7 @@ import {
   ArrowLeft, Plus, Toolbox, CalendarBlank, EnvelopeSimple, ListChecks, ClipboardText,
   TreeStructure, Path, FolderPlus, ChartBar, FileText, Trash, Sparkle,
 } from '@phosphor-icons/react'
-import type { Engagement, EngagementArtifactKind, EngagementToolkitType, Industry, UseCase } from '@/lib/types'
+import type { CustomerStakeholder, Engagement, EngagementArtifactKind, EngagementToolkitType, Industry, UseCase } from '@/lib/types'
 import { useEngagements } from '@/hooks/use-engagements'
 import { ENGAGEMENT_TYPE_LABELS } from '@/lib/engagement/format'
 import { downloadMarkdown, downloadDocxFromMarkdown, artifactFilename } from '@/lib/engagement/exports'
@@ -28,6 +28,8 @@ interface EngagementHubProps {
   industry?: Industry
   sessionId?: string
   useCases?: UseCase[]
+  customerStakeholders?: CustomerStakeholder[]
+  initialTool?: 'agenda' | 'email'
   onBack: () => void
 }
 
@@ -61,7 +63,7 @@ const KIND_LABEL: Record<EngagementArtifactKind, string> = {
   agenda: 'Agenda', email: 'Email', timeline: 'Timeline', closeout: 'Closeout', diagram: 'Diagram', journey: 'Journey',
 }
 
-export function EngagementHub({ customerName, industry, sessionId, useCases, onBack }: EngagementHubProps) {
+export function EngagementHub({ customerName, industry, sessionId, useCases, customerStakeholders, initialTool, onBack }: EngagementHubProps) {
   const { engagements, addEngagement, deleteEngagement, saveArtifact, deleteArtifact } = useEngagements()
 
   const visibleEngagements = useMemo(
@@ -70,15 +72,21 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, onB
   )
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [showNew, setShowNew] = useState(false)
+  const [showNew, setShowNew] = useState(Boolean(initialTool) && visibleEngagements.length === 0)
   const [newType, setNewType] = useState<EngagementToolkitType>('discovery')
   const [newDate, setNewDate] = useState('')
   const [newStakeholders, setNewStakeholders] = useState('')
-  const [activeTool, setActiveTool] = useState<ToolKind | null>(null)
+  const [activeTool, setActiveTool] = useState<ToolKind | null>(initialTool ?? null)
 
   useEffect(() => {
     if (!selectedId && visibleEngagements.length > 0) setSelectedId(visibleEngagements[0].id)
   }, [visibleEngagements, selectedId])
+
+  useEffect(() => {
+    if (!initialTool) return
+    setActiveTool(initialTool)
+    if (visibleEngagements.length === 0) setShowNew(true)
+  }, [initialTool, visibleEngagements.length])
 
   const selected: Engagement | null = engagements.find((e) => e.id === selectedId) ?? null
 
@@ -107,7 +115,9 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, onB
     industry: industry as string | undefined,
     engagementType: selected ? ENGAGEMENT_TYPE_LABELS[selected.type] : undefined,
     useCases: useCases?.map((u) => ({ title: u.title, description: u.description })),
-    stakeholders: selected?.stakeholders,
+    stakeholders: selected?.stakeholders?.length
+      ? selected.stakeholders
+      : customerStakeholders?.map((stakeholder) => `${stakeholder.name} (${stakeholder.role})`),
   }
 
   const openTool = (tool: ToolDef) => {

@@ -19,7 +19,7 @@ import type {
   ComplianceEnforcement,
 } from './types'
 
-// Defined here (not in demo-data) to avoid circular dependency
+// Defined here as the canonical industry regulation mapping.
 export const INDUSTRY_REGULATIONS: Record<Industry, AIRegulationFramework[]> = {
   general: ['gdpr', 'iso-42001', 'oecd-ai-principles'],
   healthcare: ['hipaa', 'gdpr', 'eu-ai-act', 'iso-42001'],

@@ -15,7 +15,6 @@ import { useCustomers } from '@/hooks/use-customers'
 import { LandingPage } from '@/components/LandingPage'
 import { NavigationHeader } from '@/components/NavigationHeader'
 import { EmptyState } from '@/components/EmptyState'
-import { DemoModeBanner } from '@/components/DemoModeBanner'
 import { Disclaimer } from '@/components/Disclaimer'
 import { SectionErrorBoundary } from '@/components/SectionErrorBoundary'
 import { Button } from '@/components/ui/button'
@@ -27,18 +26,6 @@ import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Footer } from '@/components/ui/footer'
 import { assessPortfolio, detectJurisdictions } from '@/lib/regulatory-engine'
-import { 
-  DEMO_DISCOVERY_SESSION, 
-  DEMO_USE_CASES, 
-  DEMO_ENTERPRISE_SESSION,
-  DEMO_RETAIL_SESSION,
-  DEMO_RETAIL_USE_CASES,
-  DEMO_RETAIL_ENTERPRISE_SESSION,
-  DEMO_FINANCIAL_SESSION,
-  DEMO_FINANCIAL_USE_CASES,
-  DEMO_FINANCIAL_ENTERPRISE_SESSION,
-} from '@/lib/demo-data'
-import type { DemoIndustry } from '@/lib/demo-data'
 import type { ExtractedUseCase } from '@/lib/use-case-extraction'
 import type { DiscoveryTrack } from '@/lib/discovery-questions'
 
@@ -50,6 +37,7 @@ const PrioritizationMatrix = lazy(() => import('@/components/PrioritizationMatri
 const TopRecommendations = lazy(() => import('@/components/TopRecommendations').then(m => ({ default: m.TopRecommendations })))
 const MutualSuccessPlanDialog = lazy(() => import('@/components/MutualSuccessPlan').then(m => ({ default: m.MutualSuccessPlanDialog })))
 const CustomerMetadataComponent = lazy(() => import('@/components/CustomerMetadata').then(m => ({ default: m.CustomerMetadata })))
+const CustomerStakeholderMap = lazy(() => import('@/components/CustomerStakeholderMap').then(m => ({ default: m.CustomerStakeholderMap })))
 const ExecutiveSummary = lazy(() => import('@/components/ExecutiveSummary').then(m => ({ default: m.ExecutiveSummary })))
 const ExecutiveSummaryGeneratorDialog = lazy(() => import('@/components/ExecutiveSummaryGeneratorDialog').then(m => ({ default: m.ExecutiveSummaryGeneratorDialog })))
 const DiscoveryLauncher = lazy(() => import('@/components/DiscoveryLauncher').then(m => ({ default: m.DiscoveryLauncher })))
@@ -94,7 +82,7 @@ interface SessionState {
 
 function App() {
   const { sessions: discoverySessions, addSession, updateSession } = useDiscovery()
-  const { customers, findOrCreateCustomer } = useCustomers()
+  const { customers, findOrCreateCustomer, updateCustomer } = useCustomers()
   const [useCases, setUseCases] = useLocalStorage<UseCase[]>('use-cases', [])
   const [selectedSessionId, setSelectedSessionId] = useLocalStorage<string | null>('selected-session-id', null)
   const [selectedCustomerId, setSelectedCustomerId] = useLocalStorage<string | null>('selected-customer-id', null)
@@ -153,10 +141,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   
-  // Demo mode state
-  const [isDemoMode, setIsDemoMode] = useState(false)
-  const [demoIndustry, setDemoIndustry] = useState<DemoIndustry>('mining')
-  
   const [currentView, setCurrentView] = useState<AppView>('landing')
   const [currentDiscoverySession, setCurrentDiscoverySession] = useState<DiscoverySession | null>(null)
   const [comparingSessions, setComparingSessions] = useState<DiscoverySession[]>([])
@@ -189,7 +173,9 @@ function App() {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [execSummaryGeneratorOpen, setExecSummaryGeneratorOpen] = useState(false)
+  const [requestedEngagementTool, setRequestedEngagementTool] = useState<'agenda' | 'email' | undefined>()
   const selectedSession = discoverySessions?.find((s) => s.id === selectedSessionId) || null
+  const selectedCustomer = customers.find((customer) => customer.id === selectedCustomerId) || null
   const filteredUseCases = useCases?.filter((uc) => uc.discoverySessionId === selectedSessionId) || []
   
   const useCasesList = filteredUseCases
@@ -525,82 +511,14 @@ function App() {
     setCurrentView('enterprise-discovery')
   }
 
-  const handleStartEngagementHub = () => {
+  const handleStartEngagementHub = (tool?: 'agenda' | 'email') => {
+    setRequestedEngagementTool(tool)
     setCurrentView('engagement-hub')
   }
 
   const handleResumeEnterpriseDiscovery = (session: AnyEnterpriseSession) => {
     setCurrentEnterpriseSession(session)
     setCurrentView('enterprise-discovery')
-  }
-
-  // Demo mode handlers - load pre-populated demo data for selected industry
-  const handleStartDemo = (demoType: 'mining' | 'retail' | 'financial') => {
-    // Select the appropriate demo data based on type
-    const demoDataMap = {
-      mining: { session: DEMO_DISCOVERY_SESSION, useCases: DEMO_USE_CASES, name: 'Zava Mining', desc: 'AI-powered mining innovations with regulatory compliance' },
-      retail: { session: DEMO_RETAIL_SESSION, useCases: DEMO_RETAIL_USE_CASES, name: 'MegaMart Retail', desc: 'Retail AI for inventory, shrinkage, and customer experience' },
-      financial: { session: DEMO_FINANCIAL_SESSION, useCases: DEMO_FINANCIAL_USE_CASES, name: 'Contoso Financial', desc: 'Financial services AI for fraud, onboarding, and credit' },
-    }
-    const demoData = demoDataMap[demoType]
-
-    // Create a fresh demo session with unique IDs
-    const demoSession: DiscoverySession = {
-      ...demoData.session,
-      id: `demo-session-${Date.now()}`,
-      customerId: `demo-customer-${Date.now()}`,
-      createdAt: Date.now(),
-      completedAt: Date.now(),
-      isDemo: true,
-    }
-    
-    // Create customer and add session
-    const customer = findOrCreateCustomer(demoSession.customerName, demoSession.innovationHubSPOC || '', demoSession.stockTicker)
-    demoSession.customerId = customer.id
-    addSession(demoSession)
-    
-    // Add demo use cases with updated session ID
-    const demoUseCasesWithIds = demoData.useCases.map(uc => ({
-      ...uc,
-      id: `demo-uc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      discoverySessionId: demoSession.id,
-      createdAt: Date.now(),
-    }))
-    setUseCases(current => [...(current || []), ...demoUseCasesWithIds])
-    
-    // Select the demo session
-    setSelectedCustomerId(customer.id)
-    setSelectedSessionId(demoSession.id)
-    
-    toast.success(`Demo loaded! Exploring ${demoData.name} use cases...`, {
-      description: demoData.desc,
-    })
-  }
-
-  const handleStartEnterpriseDemo = (demoType: 'mining' | 'retail' | 'financial') => {
-    // Select the appropriate enterprise demo data based on type
-    const demoDataMap = {
-      mining: { session: DEMO_ENTERPRISE_SESSION, name: 'Zava Mining', desc: 'Predictive maintenance opportunity' },
-      retail: { session: DEMO_RETAIL_ENTERPRISE_SESSION, name: 'MegaMart Retail', desc: 'Inventory optimization opportunity' },
-      financial: { session: DEMO_FINANCIAL_ENTERPRISE_SESSION, name: 'Contoso Financial', desc: 'Fraud detection and onboarding opportunity' },
-    }
-    const demoData = demoDataMap[demoType]
-
-    // Load pre-populated enterprise discovery session
-    const demoEnterpriseSession: EnterpriseDiscoverySession = {
-      ...demoData.session,
-      id: `demo-enterprise-${Date.now()}`,
-      createdAt: Date.now(),
-      sessionDate: Date.now(),
-      isDemo: true,
-    }
-    
-    setCurrentEnterpriseSession(demoEnterpriseSession)
-    setCurrentView('enterprise-discovery')
-    
-    toast.success(`Enterprise Demo loaded!`, {
-      description: `Exploring ${demoData.name} ${demoData.desc}.`,
-    })
   }
 
   const handleEnterpriseSessionPause = (session: AnyEnterpriseSession) => {
@@ -640,30 +558,6 @@ function App() {
     setCurrentDiscoverySession(null)
     resetPendingDiscoveryDraft()
     setCurrentEnterpriseSession(null)
-    // Exit demo mode when going back to landing
-    if (isDemoMode) {
-      setIsDemoMode(false)
-    }
-  }
-
-  // Demo mode handlers
-  const handleEnterDemoMode = (industry: DemoIndustry) => {
-    setIsDemoMode(true)
-    setDemoIndustry(industry)
-    toast.success(`Demo Mode activated for ${industry === 'mining' ? 'Zava Mining' : industry === 'retail' ? 'MegaMart Retail' : 'Contoso Financial'}`, {
-      description: 'Forms will be pre-filled with sample data. You can edit any values.',
-    })
-  }
-
-  const handleExitDemoMode = () => {
-    setIsDemoMode(false)
-    setCurrentView('landing')
-    setCurrentDiscoverySession(null)
-    resetPendingDiscoveryDraft()
-    setCurrentEnterpriseSession(null)
-    toast.info('Exited demo mode', {
-      description: 'You can start a fresh session or continue with existing data.',
-    })
   }
   
   const handleSessionMetadataSubmit = (metadata: SessionMetadata) => {
@@ -831,18 +725,9 @@ function App() {
     <>
       <Toaster position="top-right" />
       
-      {/* Demo Mode Banner */}
-      {isDemoMode && (
-        <DemoModeBanner 
-          demoIndustry={demoIndustry} 
-          onExitDemo={handleExitDemoMode} 
-        />
-      )}
-      
-      {/* Main content wrapper with padding when demo mode is active */}
       <SectionErrorBoundary section="Application">
       <Suspense fallback={<LazyFallback />}>
-      <div className={isDemoMode ? 'pt-12' : ''}>
+      <div>
       
       {currentView === 'landing' && (
         <LandingPage
@@ -857,10 +742,9 @@ function App() {
           onOpenPortfolio={() => setCurrentView('portfolio')}
           onOpenCsamCockpit={() => setCurrentView('csam-cockpit')}
           onOpenCustomerQuestionnaire={() => setCurrentView('questionnaire-builder')}
+          onOpenAgenda={() => handleStartEngagementHub('agenda')}
+          onOpenFollowupEmail={() => handleStartEngagementHub('email')}
           onSelectTemplate={handleSelectTemplate}
-          isDemoMode={isDemoMode}
-          demoIndustry={demoIndustry}
-          onEnterDemoMode={handleEnterDemoMode}
         />
       )}
 
@@ -917,7 +801,12 @@ function App() {
             industry={selectedSession?.industry}
             sessionId={selectedSessionId ?? undefined}
             useCases={filteredUseCases}
-            onBack={() => setCurrentView('dashboard')}
+            customerStakeholders={selectedCustomer?.stakeholders}
+            initialTool={requestedEngagementTool}
+            onBack={() => {
+              setRequestedEngagementTool(undefined)
+              setCurrentView(selectedSessionId ? 'dashboard' : 'landing')
+            }}
           />
         </Suspense>
       )}
@@ -970,7 +859,7 @@ function App() {
           <div className="container mx-auto px-4 md:px-6 py-8 max-w-[1400px]">
             <SectionErrorBoundary>
               <Suspense fallback={<LazyFallback />}>
-                <CsamCockpit isDemoMode={isDemoMode} />
+                <CsamCockpit />
               </Suspense>
             </SectionErrorBoundary>
           </div>
@@ -1043,8 +932,6 @@ function App() {
           onCancel={handleDiscoveryCancel}
           onBackToLanding={handleBackToLanding}
           initialMetadata={selectedCustomerId ? { customerName: customers.find(c => c.id === selectedCustomerId)?.name || '' } : undefined}
-          isDemoMode={isDemoMode}
-          demoIndustry={demoIndustry}
         />
       )}
 
@@ -1053,8 +940,6 @@ function App() {
           onAnalyze={handleNotesAnalyze}
           onCancel={handleNotesCancel}
           onBackToLanding={handleBackToLanding}
-          isDemoMode={isDemoMode}
-          demoIndustry={demoIndustry}
           initialDraft={draftDiscoveryNotes}
           onDraftChange={setDraftDiscoveryNotes}
           onDraftClear={() => setDraftDiscoveryNotes(null)}
@@ -1164,8 +1049,6 @@ function App() {
           initialIndustry={sessionState?.industry}
           initialResponses={sessionState?.responses}
           initialDiscoveryTrack={pendingDiscoveryTrack || undefined}
-          isDemoMode={isDemoMode}
-          demoIndustry={demoIndustry}
         />
       )}
 
@@ -1284,8 +1167,6 @@ function App() {
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
-                  onStartDemo={handleStartDemo}
-                  onStartEnterpriseDemo={handleStartEnterpriseDemo}
                   onOpenEngagementHub={handleStartEngagementHub}
                   accountSegment={undefined}
                 />
@@ -1325,6 +1206,13 @@ function App() {
                   }}
                 />
 
+                {selectedCustomer && (
+                  <CustomerStakeholderMap
+                    customer={selectedCustomer}
+                    onChange={(stakeholders) => updateCustomer(selectedCustomer.id, { stakeholders })}
+                  />
+                )}
+
                 {(customerMetadata?.executiveSummary || '').trim() ? (
                   <ExecutiveSummary
                     summary={customerMetadata?.executiveSummary || ''}
@@ -1354,8 +1242,6 @@ function App() {
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
-                  onStartDemo={handleStartDemo}
-                  onStartEnterpriseDemo={handleStartEnterpriseDemo}
                   onOpenSessionComparison={() => setSessionManagerOpen(true)}
                   onOpenExport={() => handleOpenTableExport()}
                   onOpenEngagementHub={handleStartEngagementHub}
@@ -1704,6 +1590,7 @@ function App() {
             sessionLocation={selectedSession?.innovationHubLocation}
             sessionIndustry={selectedSession?.industry}
             complianceEnforcement={(selectedSession as any)?.complianceEnforcement || 'advisory'}
+            customerStakeholders={selectedCustomer?.stakeholders}
           />
 
           <TableExportView
@@ -1750,7 +1637,7 @@ function App() {
         </motion.div>
       )}
 
-      </div>{/* End of demo mode wrapper */}
+      </div>
 
       </Suspense>
       </SectionErrorBoundary>

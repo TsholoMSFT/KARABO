@@ -52,7 +52,7 @@ export function PortfolioOverviewPage({
   }, [rows, profiles])
 
   if (!profiles.length) {
-    return <EmptyState>No customers yet. Add a profile or enable demo mode to explore the sample scenarios.</EmptyState>
+    return <EmptyState>No customers yet. Add a profile to begin.</EmptyState>
   }
 
   return (

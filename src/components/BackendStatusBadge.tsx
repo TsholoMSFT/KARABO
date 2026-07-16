@@ -56,7 +56,7 @@ export function BackendStatusBadge() {
 
   useEffect(() => {
     if (prev.current === 'online' && status === 'offline') {
-      toast.warning('Karabo backend is unreachable — running in offline/demo mode')
+      toast.warning('Karabo backend is unreachable — running in offline mode')
     }
     if (prev.current === 'offline' && status === 'online') {
       toast.success('Karabo backend reconnected')

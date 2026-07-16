@@ -54,14 +54,13 @@ const NAV: NavItem[] = [
 ]
 
 const SOURCE_LABELS: Record<CsamProfileSource, string> = {
-  demo: 'Demo scenarios',
   manual: 'Manually entered',
   service: 'Existing services',
   msx: 'MSX (Dataverse)',
 }
 
-export function CsamCockpit({ isDemoMode = false }: { isDemoMode?: boolean }) {
-  const csam = useCsamSelection(isDemoMode)
+export function CsamCockpit() {
+  const csam = useCsamSelection()
   const { profiles, selectedId, setSelectedId, selected, saveHypothesis } = csam
   const [page, setPage] = useState<PageId>('portfolio')
   const [lens, setLens] = useState<CockpitLens>('csam')
@@ -115,7 +114,7 @@ export function CsamCockpit({ isDemoMode = false }: { isDemoMode?: boolean }) {
   if (!profiles.length) {
     return (
       <EmptyState>
-        No customer profiles yet. Enable demo mode to explore the four sample scenarios, or add a profile to begin.
+        No customer profiles yet. Add a profile to begin.
       </EmptyState>
     )
   }

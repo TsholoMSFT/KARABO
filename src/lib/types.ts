@@ -13,8 +13,19 @@ export interface Customer {
   innovationHubSPOC: string
   stockTicker?: string
   accountId?: string              // Linked Account entity (ATS)
+  stakeholders?: CustomerStakeholder[]
   createdAt: number
   updatedAt?: number
+}
+
+export type StakeholderInfluence = 'low' | 'high'
+export type StakeholderInterest = 'low' | 'high'
+
+export interface CustomerStakeholder extends Stakeholder {
+  department?: string
+  email?: string
+  influence: StakeholderInfluence
+  interest: StakeholderInterest
 }
 
 // ============================================================================
@@ -465,6 +476,8 @@ export interface UseCase {
   // Ownership / accountability
   customerAccountable?: string
   microsoftAccountable?: string
+  bant?: BantQualification
+  raciAssignments?: RaciAssignment[]
   impact: number
   feasibility: number
   rice: {
@@ -583,6 +596,29 @@ export interface UseCase {
     askedAt: number
     answeredAt?: number
   }>
+}
+
+export type QualificationSignalStatus = 'unknown' | 'weak' | 'confirmed'
+
+export interface QualificationSignal {
+  status: QualificationSignalStatus
+  evidence?: string
+  stakeholderId?: string
+}
+
+export interface BantQualification {
+  budget: QualificationSignal
+  authority: QualificationSignal
+  need: QualificationSignal
+  timeline: QualificationSignal
+  updatedAt?: number
+}
+
+export type RaciRole = 'responsible' | 'accountable' | 'consulted' | 'informed'
+
+export interface RaciAssignment {
+  stakeholderId: string
+  role: RaciRole
 }
 
 // ============================================================================
@@ -2463,7 +2499,6 @@ export type DiscoverySessionCreationSource =
   | 'skip-to-use-cases'
   | 'notes-analysis'
   | 'ai-assessment'
-  | 'demo'
 
 export interface DiscoveryQuestion {
   id: string
@@ -2497,7 +2532,6 @@ export interface DiscoverySession {
   businessUnitLabel?: string             // Optional free-text division/BU (e.g. "Personal & Business Banking")
   targetKpis?: string[]                  // Desired business KPI outcomes (KPI ids) captured in Discovery
   desiredOutcomes?: string               // Freeform desired outcomes / target improvements
-  isDemo?: boolean  // Flag to identify demo sessions
   innovationHubLocation: string
   solutionEngineer: string
   accountTeamRep: string
@@ -3562,7 +3596,6 @@ export interface EnterpriseDiscoverySession {
   isPaused?: boolean
   pausedAt?: number
   lastSavedAt?: number
-  isDemo?: boolean // Flag to identify demo sessions
   
   createdAt: number
   completedAt?: number

@@ -143,7 +143,7 @@ const CONNECTORS: ConnectorMeta[] = [
 const STATUS_LABEL: Record<'unknown' | 'configured' | 'unconfigured' | 'error', { label: string; cls: string; icon: React.ReactNode }> = {
   unknown: { label: 'Checking…', cls: 'bg-muted text-muted-foreground', icon: <Info size={12} /> },
   configured: { label: 'Connected', cls: 'bg-emerald-100 text-emerald-700 border border-emerald-200', icon: <CheckCircle size={12} weight="fill" /> },
-  unconfigured: { label: 'Demo mode', cls: 'bg-amber-100 text-amber-700 border border-amber-200', icon: <Warning size={12} /> },
+  unconfigured: { label: 'Not configured', cls: 'bg-amber-100 text-amber-700 border border-amber-200', icon: <Warning size={12} /> },
   error: { label: 'Unreachable', cls: 'bg-rose-100 text-rose-700 border border-rose-200', icon: <Warning size={12} /> },
 }
 

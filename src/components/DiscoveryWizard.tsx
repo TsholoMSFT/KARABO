@@ -5,7 +5,6 @@ import { NavigationHeader } from '@/components/NavigationHeader'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels, type DiscoveryTrack } from '@/lib/discovery-questions'
 import { groupedBusinessFunctions } from '@/lib/business-functions'
-import { DEMO_DISCOVERY_RESPONSES_BY_INDUSTRY, DEMO_SESSION_METADATA_BY_INDUSTRY, type DemoIndustry } from '@/lib/demo-data'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -33,8 +32,6 @@ interface DiscoveryWizardProps {
   initialIndustry?: Industry
   initialResponses?: DiscoveryResponse[]
   initialDiscoveryTrack?: DiscoveryTrack
-  isDemoMode?: boolean
-  demoIndustry?: DemoIndustry
 }
 
 type WizardStep = 'name' | 'industry' | 'business-function' | 'track' | 'research' | 'outcomes' | 'questions'
@@ -62,9 +59,7 @@ export function DiscoveryWizard({
   initialSessionName,
   initialIndustry,
   initialResponses,
-  initialDiscoveryTrack,
-  isDemoMode,
-  demoIndustry
+  initialDiscoveryTrack
 }: DiscoveryWizardProps) {
   const { isAIFeatureEnabled } = useDiscoverySettings()
   const [wizardStep, setWizardStep] = useState<WizardStep>(
@@ -98,39 +93,6 @@ export function DiscoveryWizard({
   const handleCompanyResearchSummaryChange = useCallback((summary: string) => {
     setCompanyResearchSummary(summary)
   }, [])
-
-  // Pre-fill demo data when demo mode is active
-  useEffect(() => {
-    if (isDemoMode && demoIndustry) {
-      const demoMetadata = DEMO_SESSION_METADATA_BY_INDUSTRY[demoIndustry]
-      const demoResponses = DEMO_DISCOVERY_RESPONSES_BY_INDUSTRY[demoIndustry]
-      
-      // Set session name from demo metadata
-      if (!sessionName && demoMetadata.customerName) {
-        setSessionName(`${demoMetadata.customerName} Discovery`)
-      }
-      
-      // Set industry based on demo industry
-      const industryMap: Record<DemoIndustry, Industry> = {
-        mining: 'energy',
-        retail: 'retail',
-        financial: 'financial-services',
-      }
-      if (!selectedIndustry) {
-        setSelectedIndustry(industryMap[demoIndustry])
-      }
-      
-      // Pre-fill responses if we don't have any yet
-      if (responses.length === 0 && demoResponses) {
-        setResponses(demoResponses)
-      }
-      
-      // Skip to questions step if we have the basics filled
-      if (wizardStep === 'name' && demoMetadata.customerName) {
-        setWizardStep('questions')
-      }
-    }
-  }, [isDemoMode, demoIndustry, sessionName, selectedIndustry, responses.length, wizardStep])
 
   const baseQuestions = selectedIndustry
     ? getQuestionsForIndustry(selectedIndustry, discoveryTrack)

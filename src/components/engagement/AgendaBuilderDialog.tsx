@@ -11,8 +11,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { VoiceInputField } from '@/components/VoiceInputField'
+import { AgendaTableEditor } from '@/components/engagement/AgendaTableEditor'
 import { AIBadge, InlineDisclaimer } from '@/components/Disclaimer'
 import { Sparkle, FileText, FloppyDisk, ArrowClockwise } from '@phosphor-icons/react'
 import { generateEngagementAgenda, type EngagementAgenda } from '@/lib/openai-service'
@@ -41,9 +41,9 @@ export function AgendaBuilderDialog({ open, onOpenChange, context, onSaveArtifac
   const [durationMinutes, setDurationMinutes] = useState(90)
   const [generating, setGenerating] = useState(false)
   const [agenda, setAgenda] = useState<EngagementAgenda | null>(null)
-  const [markdown, setMarkdown] = useState('')
 
   const customer = context.customerName || 'Customer'
+  const markdown = agenda ? agendaToMarkdown(agenda, context.customerName) : ''
 
   const handleGenerate = async () => {
     setGenerating(true)
@@ -58,7 +58,6 @@ export function AgendaBuilderDialog({ open, onOpenChange, context, onSaveArtifac
         durationMinutes,
       })
       setAgenda(result)
-      setMarkdown(agendaToMarkdown(result, context.customerName))
     } catch {
       toast.error('Could not generate the agenda. Please try again.')
     } finally {
@@ -83,7 +82,6 @@ export function AgendaBuilderDialog({ open, onOpenChange, context, onSaveArtifac
 
   const reset = () => {
     setAgenda(null)
-    setMarkdown('')
   }
 
   return (
@@ -124,15 +122,32 @@ export function AgendaBuilderDialog({ open, onOpenChange, context, onSaveArtifac
             <InlineDisclaimer icon="info" text="The agenda is AI-generated from the context you provide. Review and edit before sharing with the customer." />
           </div>
         ) : (
-          <div className="space-y-2">
-            <Label htmlFor="agenda-markdown">Agenda (editable Markdown)</Label>
-            <Textarea
-              id="agenda-markdown"
-              value={markdown}
-              onChange={(e) => setMarkdown(e.target.value)}
-              rows={16}
-              className="font-mono text-sm"
-            />
+          <div className="space-y-5">
+            {agenda.objectives.length > 0 && (
+              <div>
+                <Label>Objectives</Label>
+                <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+                  {agenda.objectives.map((objective, index) => <li key={index}>{objective}</li>)}
+                </ul>
+              </div>
+            )}
+            <div>
+              <Label>Agenda</Label>
+              <div className="mt-2">
+                <AgendaTableEditor
+                  items={agenda.items}
+                  onChange={(items) => setAgenda({ ...agenda, items })}
+                />
+              </div>
+            </div>
+            {agenda.nextSteps.length > 0 && (
+              <div>
+                <Label>Next steps</Label>
+                <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+                  {agenda.nextSteps.map((step, index) => <li key={index}>{step}</li>)}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 

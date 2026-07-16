@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { UseCase, AIRegulationFramework, SecurityRequirement, DataClassification, AIRiskLevel, type ComplianceEnforcement, type RegulatoryAssessment, type Industry } from '@/lib/types'
+import { UseCase, AIRegulationFramework, SecurityRequirement, DataClassification, AIRiskLevel, type BantQualification, type CustomerStakeholder, type RaciAssignment, type ComplianceEnforcement, type RegulatoryAssessment, type Industry } from '@/lib/types'
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,9 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { KPISelector } from '@/components/KPISelector'
-import { REGULATION_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS, RISK_LEVEL_LABELS } from '@/lib/demo-data'
+import { BantQualificationEditor } from '@/components/BantQualification'
+import { RaciEditor } from '@/components/RaciEditor'
+import { REGULATION_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS, RISK_LEVEL_LABELS } from '@/lib/compliance-labels'
 import { assessUseCaseRisk, RISK_LEVEL_CONFIG, detectJurisdictions } from '@/lib/regulatory-engine'
 import { Scales, ShieldCheck, CaretDown, X, ShieldWarning } from '@phosphor-icons/react'
 import { toast } from 'sonner'
@@ -31,15 +33,18 @@ interface UseCaseDialogProps {
   sessionLocation?: string
   sessionIndustry?: Industry
   complianceEnforcement?: ComplianceEnforcement
+  customerStakeholders?: CustomerStakeholder[]
 }
 
-export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase, sessionLocation, sessionIndustry, complianceEnforcement = 'advisory' }: UseCaseDialogProps) {
+export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase, sessionLocation, sessionIndustry, complianceEnforcement = 'advisory', customerStakeholders = [] }: UseCaseDialogProps) {
   const [title, setTitle] = useState(editingUseCase?.title || '')
   const [description, setDescription] = useState(editingUseCase?.description || '')
   const [selectedKPIs, setSelectedKPIs] = useState<string[]>(editingUseCase?.kpis || [])
 
   const [customerAccountable, setCustomerAccountable] = useState(editingUseCase?.customerAccountable || '')
   const [microsoftAccountable, setMicrosoftAccountable] = useState(editingUseCase?.microsoftAccountable || '')
+  const [bant, setBant] = useState<BantQualification | undefined>(editingUseCase?.bant)
+  const [raciAssignments, setRaciAssignments] = useState<RaciAssignment[]>(editingUseCase?.raciAssignments ?? [])
   
   // Compliance & Security state
   const [complianceOpen, setComplianceOpen] = useState(false)
@@ -84,6 +89,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase, sess
       setSelectedKPIs(editingUseCase.kpis || [])
       setCustomerAccountable(editingUseCase.customerAccountable || '')
       setMicrosoftAccountable(editingUseCase.microsoftAccountable || '')
+      setBant(editingUseCase.bant)
+      setRaciAssignments(editingUseCase.raciAssignments ?? [])
       setSelectedFrameworks(editingUseCase.aiRegulations?.applicableFrameworks || [])
       setRiskLevel(editingUseCase.aiRegulations?.riskClassification || '')
       setJurisdictions(editingUseCase.aiRegulations?.jurisdictions || [])
@@ -97,6 +104,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase, sess
       setSelectedKPIs([])
       setCustomerAccountable('')
       setMicrosoftAccountable('')
+      setBant(undefined)
+      setRaciAssignments([])
       setSelectedFrameworks([])
       setRiskLevel('')
       setJurisdictions([])
@@ -134,6 +143,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase, sess
       kpis: selectedKPIs,
       customerAccountable: customerAccountable.trim() || undefined,
       microsoftAccountable: microsoftAccountable.trim() || undefined,
+      bant,
+      raciAssignments,
       aiRegulations: hasAiRegulations ? {
         applicableFrameworks: selectedFrameworks,
         riskClassification: (riskLevel || liveAssessment?.overallRisk) || undefined,
@@ -159,6 +170,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase, sess
     setSelectedKPIs([])
     setCustomerAccountable('')
     setMicrosoftAccountable('')
+    setBant(undefined)
+    setRaciAssignments([])
     setSelectedFrameworks([])
     setRiskLevel('')
     setJurisdictions([])
@@ -176,6 +189,8 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase, sess
       setSelectedKPIs([])
       setCustomerAccountable('')
       setMicrosoftAccountable('')
+      setBant(undefined)
+      setRaciAssignments([])
       setSelectedFrameworks([])
       setRiskLevel('')
       setJurisdictions([])
@@ -271,6 +286,14 @@ export function UseCaseDialog({ open, onOpenChange, onSave, editingUseCase, sess
               </div>
             </div>
           </div>
+
+          <Separator />
+
+          <BantQualificationEditor value={bant} onChange={setBant} />
+
+          <Separator />
+
+          <RaciEditor stakeholders={customerStakeholders} value={raciAssignments} onChange={setRaciAssignments} />
 
           <Separator />
 

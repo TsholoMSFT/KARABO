@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocalStorage } from './use-local-storage'
 import { setManualProfiles } from '@/lib/csam/data-provider'
-import { DEMO_CSAM_PROFILES } from '@/lib/csam/demo-scenarios'
 import type { ActionPlan, CsamCustomerProfile, ValueHypothesis } from '@/lib/csam/types'
 
 /**
  * Persistent store for CSAM cockpit customer profiles plus the action plans and
  * value hypotheses generated against them. Mirrors use-discovery / use-engagements.
  *
- * When demo mode is on, the four sample scenarios are merged in (read-only)
- * alongside any manually-entered profiles.
  */
-export function useCsam(isDemoMode = false) {
+export function useCsam() {
   const [stored, setStored] = useLocalStorage<CsamCustomerProfile[]>('csam-profiles', [])
 
   // Keep the manual provider in sync so the data-provider seam can serve them.
@@ -19,12 +16,7 @@ export function useCsam(isDemoMode = false) {
     setManualProfiles(stored || [])
   }, [stored])
 
-  const profiles = useMemo<CsamCustomerProfile[]>(() => {
-    const manual = stored || []
-    if (!isDemoMode) return manual
-    const manualIds = new Set(manual.map((p) => p.customerId))
-    return [...manual, ...DEMO_CSAM_PROFILES.filter((p) => !manualIds.has(p.customerId))]
-  }, [stored, isDemoMode])
+  const profiles = useMemo<CsamCustomerProfile[]>(() => stored || [], [stored])
 
   const getProfile = useCallback(
     (customerId: string): CsamCustomerProfile | undefined => profiles.find((p) => p.customerId === customerId),
@@ -80,8 +72,8 @@ export function useCsam(isDemoMode = false) {
 }
 
 /** Convenience hook for a single selected customer. */
-export function useCsamSelection(isDemoMode = false) {
-  const csam = useCsam(isDemoMode)
+export function useCsamSelection() {
+  const csam = useCsam()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = selectedId ? csam.getProfile(selectedId) ?? null : null
   return { ...csam, selectedId, setSelectedId, selected }

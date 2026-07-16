@@ -14,22 +14,18 @@ import {
   ChartBar,
   MagnifyingGlass,
   Briefcase,
-  Play,
-  HardHat,
-  ShoppingCart,
-  Bank,
   FileText,
   ShieldCheck,
   CaretDown,
   CaretUp,
   Buildings,
   Heartbeat,
-  ClipboardText
+  ClipboardText,
+  CalendarBlank,
+  EnvelopeSimple
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AboutSection } from '@/components/AboutSection'
-
-import type { DemoIndustry } from '@/lib/demo-data'
 
 interface LandingPageProps {
   customers: Customer[]
@@ -41,13 +37,9 @@ interface LandingPageProps {
   onOpenPortfolio?: () => void
   onOpenCsamCockpit?: () => void
   onOpenCustomerQuestionnaire?: () => void
-  onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
-  onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
+  onOpenAgenda?: () => void
+  onOpenFollowupEmail?: () => void
   onSelectTemplate?: (template: SessionTemplate) => void
-  // Demo mode props
-  isDemoMode?: boolean
-  demoIndustry?: DemoIndustry
-  onEnterDemoMode?: (industry: DemoIndustry) => void
 }
 
 export function LandingPage({ 
@@ -60,14 +52,14 @@ export function LandingPage({
   onOpenPortfolio,
   onOpenCsamCockpit,
   onOpenCustomerQuestionnaire,
-  onStartDemo,
-  onStartEnterpriseDemo,
+  onOpenAgenda,
+  onOpenFollowupEmail,
   onSelectTemplate,
-  onEnterDemoMode
 }: LandingPageProps) {
   const hasExistingCustomers = customers.length > 0
   const [showTemplates, setShowTemplates] = useState(false)
   const [showSecurityNotice, setShowSecurityNotice] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   return (
     <>
@@ -107,7 +99,7 @@ export function LandingPage({
             transition={{ delay: 0.3 }}
             className="text-5xl font-bold tracking-tight"
           >
-            Microsoft Innovation Hub: ID-8
+            Use Case Generator
           </motion.h1>
           
           <motion.p
@@ -116,7 +108,7 @@ export function LandingPage({
             transition={{ delay: 0.4 }}
             className="text-xl text-muted-foreground max-w-2xl mx-auto"
           >
-            AI Discovery and Assessment Platform
+            Turn customer context into qualified, prioritized use cases and engagement-ready outputs.
           </motion.p>
           
           <motion.div
@@ -210,6 +202,14 @@ export function LandingPage({
           </AnimatePresence>
         </motion.div>
 
+        <div className="mb-6 flex justify-center">
+          <Button type="button" variant="ghost" className="gap-2" onClick={() => setShowAdvanced((current) => !current)}>
+            <Buildings size={18} weight="duotone" />
+            Advanced tools
+            {showAdvanced ? <CaretUp size={14} /> : <CaretDown size={14} />}
+          </Button>
+        </div>
+
         <div className="space-y-10">
           {/* ── Discover lane ────────────────────────────────────── */}
           <section aria-labelledby="discover-lane-heading">
@@ -225,7 +225,7 @@ export function LandingPage({
               </div>
               <Badge variant="outline" className="text-xs">Stage 1</Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {/* Quick Discovery Card */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -261,41 +261,66 @@ export function LandingPage({
                   </li>
                 </ul>
                 <Separator />
-                <div className="space-y-3">
-                  <Button onClick={onStartNew} className="w-full gap-2" size="lg">
-                    <RocketLaunch size={20} weight="duotone" />
-                    Start Discovery
-                  </Button>
-
-                  <div className="flex flex-col gap-2">
-                    {onStartNotesAnalysis && (
-                      <Button
-                        onClick={onStartNotesAnalysis}
-                        variant="outline"
-                        className="w-full gap-2"
-                      >
-                        <FileText size={18} weight="duotone" />
-                        Analyze Notes (Optional)
-                      </Button>
-                    )}
-                    {onSelectTemplate && (
-                      <Button
-                        onClick={() => setShowTemplates(true)}
-                        variant="secondary"
-                        className="w-full gap-2"
-                      >
-                        <Sparkle size={18} weight="duotone" />
-                        Use Industry Template
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                <Button onClick={onStartNew} className="w-full gap-2" size="lg">
+                  <RocketLaunch size={20} weight="duotone" />
+                  Start Guided Discovery
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
 
+          {onStartNotesAnalysis && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.61 }}>
+              <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-cyan-500/50">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-cyan-500/10 mb-2">
+                    <FileText size={28} weight="duotone" className="text-cyan-500" />
+                  </div>
+                  <CardTitle className="text-xl">Analyze Notes</CardTitle>
+                  <CardDescription>Paste meeting notes or a transcript and extract candidate use cases with supporting context.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>Extract problems, outcomes, and use cases</li>
+                    <li>Retain source evidence for review</li>
+                    <li>Refine before adding to the customer</li>
+                  </ul>
+                  <Separator />
+                  <Button onClick={onStartNotesAnalysis} variant="outline" className="w-full gap-2" size="lg">
+                    <FileText size={18} weight="duotone" /> Analyze Notes
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {onSelectTemplate && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.62 }}>
+              <Card className="h-full border-2 hover:shadow-lg transition-all duration-300 hover:border-amber-500/50">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-amber-500/10 mb-2">
+                    <Sparkle size={28} weight="duotone" className="text-amber-500" />
+                  </div>
+                  <CardTitle className="text-xl">Industry Template</CardTitle>
+                  <CardDescription>Start with proven questions and use-case patterns tailored to the customer’s industry.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>Choose an industry-specific starting point</li>
+                    <li>Adapt suggested questions and outcomes</li>
+                    <li>Shorten preparation time</li>
+                  </ul>
+                  <Separator />
+                  <Button onClick={() => setShowTemplates(true)} variant="outline" className="w-full gap-2" size="lg">
+                    <Sparkle size={18} weight="duotone" /> Choose Template
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Enterprise Discovery Card */}
-          <motion.div
+          {showAdvanced && (<motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.62 }}
@@ -339,13 +364,49 @@ export function LandingPage({
                 </Button>
               </CardContent>
             </Card>
-          </motion.div>
+          </motion.div>)}
 
             </div>
           </section>
 
+          <section aria-labelledby="prepare-lane-heading">
+            <div className="mb-4">
+              <h2 id="prepare-lane-heading" className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+                <CalendarBlank size={22} weight="duotone" className="text-emerald-500" />
+                Prepare
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">Turn selected use cases into customer-ready meeting material.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="border-2 hover:border-emerald-500/50 transition-colors">
+                <CardHeader>
+                  <CalendarBlank size={28} weight="duotone" className="text-emerald-500" />
+                  <CardTitle className="text-xl">Agenda Builder</CardTitle>
+                  <CardDescription>Create a time-boxed, tabular agenda grounded in the customer and use cases.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={onOpenAgenda} variant="outline" className="w-full gap-2" size="lg">
+                    <CalendarBlank size={18} /> Build Agenda
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="border-2 hover:border-sky-500/50 transition-colors">
+                <CardHeader>
+                  <EnvelopeSimple size={28} weight="duotone" className="text-sky-500" />
+                  <CardTitle className="text-xl">Follow-up Email</CardTitle>
+                  <CardDescription>Draft an audience-aware recap with decisions, actions, and next steps.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={onOpenFollowupEmail} variant="outline" className="w-full gap-2" size="lg">
+                    <EnvelopeSimple size={18} /> Draft Email
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
           {/* ── Build lane ───────────────────────────────────────── */}
-          <section aria-labelledby="build-lane-heading">
+          {showAdvanced && (<section aria-labelledby="build-lane-heading">
             <div className="flex items-baseline justify-between mb-4 gap-3 flex-wrap">
               <div>
                 <h2 id="build-lane-heading" className="text-2xl font-semibold tracking-tight flex items-center gap-2">
@@ -409,7 +470,7 @@ export function LandingPage({
             </motion.div>
           )}
             </div>
-          </section>
+          </section>)}
 
           {/* Continue Existing (secondary action, footer) */}
           <motion.div
@@ -428,19 +489,19 @@ export function LandingPage({
                   ? `Continue Existing (${customers.length} session${customers.length !== 1 ? 's' : ''})`
                   : 'Continue Existing'}
               </Button>
-              {onOpenPortfolio && (
+              {showAdvanced && onOpenPortfolio && (
                 <Button onClick={onOpenPortfolio} variant="outline" className="gap-2">
                   <Buildings size={18} weight="duotone" />
                   Portfolio Intelligence
                 </Button>
               )}
-              {onOpenCsamCockpit && (
+              {showAdvanced && onOpenCsamCockpit && (
                 <Button onClick={onOpenCsamCockpit} variant="outline" className="gap-2">
                   <Heartbeat size={18} weight="duotone" />
                   Client Health Dashboard
                 </Button>
               )}
-              {onOpenCustomerQuestionnaire && (
+              {showAdvanced && onOpenCustomerQuestionnaire && (
                 <Button onClick={onOpenCustomerQuestionnaire} variant="outline" className="gap-2">
                   <ClipboardText size={18} weight="duotone" />
                   Send Customer Questionnaire
@@ -459,84 +520,6 @@ export function LandingPage({
         >
           <AboutSection />
         </motion.div>
-
-        {/* Try Demo Section */}
-        {(onStartDemo || onStartEnterpriseDemo || onEnterDemoMode) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.85 }}
-            className="mt-8"
-          >
-            <Card className="bg-gradient-to-r from-primary/5 via-transparent to-primary/5 border-primary/20">
-              <CardContent className="py-6">
-                <div className="text-center mb-4">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Play size={20} weight="fill" className="text-primary" />
-                    <h3 className="font-semibold text-lg">Try Demo Mode</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Enter demo mode with pre-filled forms to explore all features</p>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
-                  {/* 1. Quick Discovery - Zava Mining */}
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 h-auto py-3 hover:border-amber-500/50 hover:bg-amber-500/5"
-                      onClick={() => {
-                        onEnterDemoMode?.('mining')
-                        onStartNew()
-                      }}
-                    >
-                      <HardHat size={18} weight="duotone" className="text-amber-600" />
-                      <div className="text-left">
-                        <div className="font-medium text-sm">Zava Mining</div>
-                        <div className="text-[10px] text-muted-foreground">Discovery</div>
-                      </div>
-                    </Button>
-                  </div>
-                  
-                  {/* 2. Discovery - Contoso Financial */}
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 h-auto py-3 hover:border-teal-500/50 hover:bg-teal-500/5"
-                      onClick={() => {
-                        onEnterDemoMode?.('financial')
-                        onStartNew()
-                      }}
-                    >
-                      <Bank size={18} weight="duotone" className="text-blue-600" />
-                      <div className="text-left">
-                        <div className="font-medium text-sm">Contoso Financial</div>
-                        <div className="text-[10px] text-muted-foreground">Discovery</div>
-                      </div>
-                    </Button>
-                  </div>
-                  
-                  {/* 3. Enterprise Discovery - MegaMart Retail */}
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 h-auto py-3 hover:border-green-500/50 hover:bg-green-500/5"
-                      onClick={() => {
-                        onEnterDemoMode?.('retail')
-                        onStartEnterpriseDiscovery()
-                      }}
-                    >
-                      <ShoppingCart size={18} weight="duotone" className="text-green-600" />
-                      <div className="text-left">
-                        <div className="font-medium text-sm">MegaMart Retail</div>
-                        <div className="text-[10px] text-muted-foreground">Strategic Assessment</div>
-                      </div>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
 
         <motion.p
           initial={{ opacity: 0 }}

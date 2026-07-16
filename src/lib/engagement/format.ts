@@ -32,18 +32,22 @@ export function agendaToMarkdown(a: EngagementAgenda, customerName?: string): st
     a.objectives.forEach((o) => lines.push(`- ${o}`))
     lines.push('')
   }
-  lines.push('## Agenda')
-  a.items.forEach((it) => {
-    const time = it.time ? `**${it.time}** — ` : ''
-    const owner = it.owner ? ` _(${it.owner})_` : ''
-    lines.push(`- ${time}${it.topic}${owner}`)
-    if (it.description) lines.push(`  - ${it.description}`)
-  })
+  lines.push('## Agenda', '', '| Time | Topic | Owner | Details |', '| --- | --- | --- | --- |')
+  a.items.forEach((it) => lines.push(
+    `| ${escapeTableCell(it.time)} | ${escapeTableCell(it.topic)} | ${escapeTableCell(it.owner)} | ${escapeTableCell(it.description)} |`,
+  ))
   if (a.nextSteps.length) {
     lines.push('', '## Next steps')
     a.nextSteps.forEach((s) => lines.push(`- ${s}`))
   }
   return lines.join('\n')
+}
+
+function escapeTableCell(value?: string): string {
+  return (value ?? '')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>')
+    .trim()
 }
 
 export function emailToMarkdown(e: FollowupEmail): string {

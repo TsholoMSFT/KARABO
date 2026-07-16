@@ -3,16 +3,14 @@
  *
  * The cockpit reads all account / investment / usage / health data through
  * this interface so the source can change without reworking the UI:
- *   v1  — DemoProvider (sample scenarios) + ManualProvider (locally stored)
+ *   v1  — ManualProvider (locally stored)
  *   next — ServiceBackedProvider (existing free Functions: company-financials,
  *          economic-data, earnings, graph-query usage reports)
  *   later — MsxProvider (Dataverse), GraphUsageProvider (M365 usage),
  *           FabricProvider (telemetry) — gated on governance approval.
  */
 import type { CsamCustomerProfile } from './types'
-import { DEMO_CSAM_PROFILES } from './demo-scenarios'
-
-export type CsamProviderMode = 'demo' | 'manual' | 'service' | 'msx'
+export type CsamProviderMode = 'manual' | 'service' | 'msx'
 
 export interface CsamCustomerRef {
   customerId: string
@@ -27,22 +25,6 @@ export interface CsamDataProvider {
   readonly available: boolean
   listCustomers(): Promise<CsamCustomerRef[]>
   getProfile(customerId: string): Promise<CsamCustomerProfile | null>
-}
-
-// ----------------------------------------------------------------------------
-// Demo provider — the four sample scenarios (Section 13)
-// ----------------------------------------------------------------------------
-
-export const demoProvider: CsamDataProvider = {
-  id: 'demo',
-  label: 'Demo scenarios',
-  available: true,
-  async listCustomers() {
-    return DEMO_CSAM_PROFILES.map((p) => ({ customerId: p.customerId, name: p.name, source: 'demo' as const }))
-  },
-  async getProfile(customerId) {
-    return DEMO_CSAM_PROFILES.find((p) => p.customerId === customerId) ?? null
-  },
 }
 
 // ----------------------------------------------------------------------------
@@ -100,12 +82,11 @@ export const msxProvider: CsamDataProvider = {
 }
 
 export const CSAM_PROVIDERS: CsamDataProvider[] = [
-  demoProvider,
   manualProvider,
   serviceBackedProvider,
   msxProvider,
 ]
 
 export function resolveProvider(mode: CsamProviderMode): CsamDataProvider {
-  return CSAM_PROVIDERS.find((p) => p.id === mode) ?? demoProvider
+  return CSAM_PROVIDERS.find((p) => p.id === mode) ?? manualProvider
 }

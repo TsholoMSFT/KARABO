@@ -161,7 +161,7 @@ export function ExecutiveSummaryGeneratorDialog({
 
   useEffect(() => {
     if (!open) return
-    // reset per-open to keep it demo-friendly and avoid leaking state
+    // Reset per-open to avoid leaking state between summaries.
     setPreset('standard')
     setPastedText('')
     setAttachmentResults([])

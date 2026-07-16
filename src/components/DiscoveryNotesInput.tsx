@@ -16,8 +16,6 @@ import { NavigationHeader } from '@/components/NavigationHeader'
 import { Sparkle, FileText, Info, CaretDown, CaretUp } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import { DEMO_NOTES, DEMO_SESSION_METADATA_BY_INDUSTRY } from '@/lib/demo-data'
-import type { DemoIndustry } from '@/lib/demo-data'
 
 // Draft persistence interface
 export interface DiscoveryDraft {
@@ -41,9 +39,6 @@ interface DiscoveryNotesInputProps {
   onAnalyze: (notes: string, metadata: SessionMetadata, extractedUseCases: ExtractedUseCase[], sessionName: string, industry: Industry, entityType?: EntityType, businessFunctions?: BusinessFunction[]) => void
   onCancel: () => void
   onBackToLanding?: () => void
-  // Demo mode props
-  isDemoMode?: boolean
-  demoIndustry?: DemoIndustry
   // Draft persistence props
   initialDraft?: DiscoveryDraft | null
   onDraftChange?: (draft: DiscoveryDraft) => void
@@ -69,8 +64,6 @@ export function DiscoveryNotesInput({
   onAnalyze,
   onCancel,
   onBackToLanding,
-  isDemoMode,
-  demoIndustry,
   initialDraft,
   onDraftChange,
   onDraftClear
@@ -129,28 +122,6 @@ export function DiscoveryNotesInput({
     return () => clearTimeout(timer)
   }, [notes, customerName, sessionName, industry, entityType, location, stockTicker,
       innovationHubSPOC, primaryStakeholder, accountTeamRep, solutionEngineer, onDraftChange])
-
-  // Pre-fill with demo data when demo mode is active
-  useEffect(() => {
-    if (isDemoMode && demoIndustry) {
-      const demoNotes = DEMO_NOTES[demoIndustry]
-      const demoMetadata = DEMO_SESSION_METADATA_BY_INDUSTRY[demoIndustry]
-      if (demoNotes && demoMetadata) {
-        setNotes(demoNotes)
-        setCustomerName(demoMetadata.customerName)
-        setSessionName(`${demoMetadata.customerName} Notes Analysis`)
-        setLocation(demoMetadata.innovationHubLocation)
-        setStockTicker(demoMetadata.stockTicker || '')
-        // Set industry based on demo type
-        const industryMap: Record<DemoIndustry, Industry> = {
-          mining: 'mining-resources',
-          retail: 'retail',
-          financial: 'financial-services'
-        }
-        setIndustry(industryMap[demoIndustry])
-      }
-    }
-  }, [isDemoMode, demoIndustry])
 
   const isValid = notes.trim().length >= 50 && sessionName.trim() && customerName.trim()
 

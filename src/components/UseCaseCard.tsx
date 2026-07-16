@@ -12,12 +12,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { UseCaseSourceBadges } from '@/components/ui/use-case-source-badge'
 import { REFERENCE_ARCHITECTURES, type ReferenceArchitecturePattern } from '@/lib/microsoft-solutions'
 import { calculateATMScore } from '@/lib/atm-scoring'
+import { summarizeBant } from '@/lib/qualification'
 import { ATMBadge } from '@/components/ATMBadge'
 import ArchitectureLayerDiagram from '@/components/ArchitectureLayerDiagram'
 import { PencilSimple, Trash, Sparkle, Info, ShieldCheck, Scales, CaretDown, CaretUp, Calculator, TrendUp, CurrencyDollar, Target, TreeStructure, Cube, Robot, Gauge, Warning, Lightning, Clock, Users, ArrowRight, CheckCircle, Question, Pause, Prohibit, X, FileText } from '@phosphor-icons/react'
 import { calculateRICEScore, getQuadrant } from '@/lib/scoring'
 import { getKPIById, KPI_CATEGORIES } from '@/lib/kpis'
-import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/demo-data'
+import { REGULATION_LABELS, RISK_LEVEL_LABELS, SECURITY_REQUIREMENT_LABELS, DATA_CLASSIFICATION_LABELS } from '@/lib/compliance-labels'
 import { RISK_LEVEL_CONFIG } from '@/lib/regulatory-engine'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getServiceLabel } from '@/lib/microsoft-solutions'
@@ -93,6 +94,7 @@ export function UseCaseCard({
   const impactFeasScore = useCase.impact * useCase.feasibility
   const quadrant = getQuadrant(useCase.impact, useCase.feasibility)
   const atmScore = useMemo(() => calculateATMScore(useCase), [useCase])
+  const bantSummary = useMemo(() => summarizeBant(useCase.bant), [useCase.bant])
 
   const hasComplianceInfo = useCase.aiRegulations || useCase.cybersecurity
   const hasCOIInfo = useCase.costOfInaction || useCase.expectedValue
@@ -252,6 +254,30 @@ export function UseCaseCard({
               )}
               {/* ATM Qualification Badge */}
               {atmScore && <ATMBadge atmScore={atmScore} />}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] px-1.5 py-0 ${
+                      bantSummary.indication === 'ready'
+                        ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700'
+                        : bantSummary.indication === 'attention'
+                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-700'
+                          : 'text-muted-foreground'
+                    }`}
+                  >
+                    BANT {bantSummary.confirmed}/4
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  {bantSummary.indication === 'ready'
+                    ? 'Budget, Authority, Need, and Timeline are confirmed.'
+                    : `${bantSummary.warnings.join(' ')} Advisory only.`}
+                </TooltipContent>
+              </Tooltip>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0" title="RACI assignments">
+                RACI {useCase.raciAssignments?.length ?? 0}
+              </Badge>
               {/* Architecture Layer Badge */}
               {useCase.referenceArchitecture && REFERENCE_ARCHITECTURES[useCase.referenceArchitecture as ReferenceArchitecturePattern]?.layers && (
                 <Tooltip>

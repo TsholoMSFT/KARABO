@@ -7,7 +7,7 @@
  * realising value from the investment, and what must happen next?".
  *
  * All v1 data flows through the CsamDataProvider seam (see data-provider.ts):
- * Manual entry + existing free services + Demo now; MSX / Graph / Fabric /
+ * Manual entry and existing services now; MSX / Graph / Fabric /
  * usage telemetry later — without reworking these types.
  */
 import type { AccountSegment } from '@/lib/types'
@@ -508,7 +508,7 @@ export interface CsamTeam {
   csa?: string
 }
 
-export type CsamProfileSource = 'demo' | 'manual' | 'service' | 'msx'
+export type CsamProfileSource = 'manual' | 'service' | 'msx'
 
 export interface CsamCustomerProfile {
   customerId: string

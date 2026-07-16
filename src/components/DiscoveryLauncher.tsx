@@ -19,8 +19,6 @@ interface DiscoveryLauncherProps {
   onStartLiveDiscovery?: () => void
   onStartEnterpriseDiscovery?: () => void
   onResumeEnterpriseDiscovery?: (session: EnterpriseDiscoverySession) => void
-  onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
-  onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onOpenSessionComparison?: () => void
   onOpenExport?: () => void
   onOpenEngagementHub?: () => void
