@@ -808,21 +808,6 @@ export interface CrossBorderDataFlow {
   risk: AIRiskLevel
 }
 
-/**
- * Complete sovereign cloud assessment — attached to DiscoverySession.
- */
-export interface SovereignCloudAssessment {
-  cloudEnvironment: SovereignCloudEnvironment
-  recommendedRegions: SovereignCloudRegion[]
-  mandateLevel: SovereignCloudMandateLevel
-  dataResidency: DataResidencyRequirement
-  serviceAvailability: SovereignServiceCheck[]
-  crossBorderFlows: CrossBorderDataFlow[]
-  gaps: SovereignCloudGap[]
-  readinessScore: number            // 0-100
-  assessedAt: number
-}
-
 // ── Configuration constants ──
 
 export const SOVEREIGN_CLOUD_LABELS: Record<SovereignCloudEnvironment, string> = {
@@ -1089,39 +1074,6 @@ export interface CurrentStateMaturity {
   cloudReadiness: 'on-premises' | 'hybrid' | 'cloud-first' | 'cloud-native'
   aiUsage: 'none' | 'experimental' | 'pilot' | 'production'
   aiGovernance: 'yes' | 'no' | 'unknown'
-}
-
-/**
- * Complete Sovereign Cloud Track Assessment — the extended assessment from the track.
- */
-export interface SovereignCloudTrackAssessment {
-  // Core sovereign assessment (superset of SovereignCloudAssessment)
-  cloudEnvironment: SovereignCloudEnvironment
-  recommendedRegions: SovereignCloudRegion[]
-  mandateLevel: SovereignCloudMandateLevel
-  dataResidency?: DataResidencyRequirement
-  serviceAvailability: SovereignServiceCheck[]
-  crossBorderFlows: CrossBorderDataFlow[]
-  gaps: SovereignCloudGap[]
-  readinessScore: number
-  assessedAt: number
-
-  // Deployment model decision
-  deploymentModel: DeploymentModel
-  deploymentConstraints: DeploymentConstraints
-  deploymentRecommendation: DeploymentRecommendation
-
-  // Cross-pull assessments
-  landingZoneReadiness?: LandingZoneReadiness
-  cafReadiness?: Record<string, number>  // CAF dimension → maturity score
-  governanceAssessment?: AIGovernanceAssessment
-
-  // Migrated from AI Assessment Lite
-  currentStateMaturity?: CurrentStateMaturity
-  processCandidates?: string
-  processNotes?: string
-  constraints?: string
-  processAnalysis?: string  // AI-generated analysis
 }
 
 // ============================================================================
@@ -2576,13 +2528,6 @@ export interface DiscoverySession {
 
   // AI Governance Assessment (populated by governance workflow step)
   aiGovernanceAssessment?: AIGovernanceAssessment
-
-  // Sovereign Cloud Assessment (populated by compliance review step)
-  sovereignCloudAssessment?: SovereignCloudAssessment
-
-  // Sovereign Cloud Track Assessment (populated by sovereign cloud track)
-  sovereignCloudTrackAssessment?: SovereignCloudTrackAssessment
-  deploymentModel?: DeploymentModel
 
   // ATS Enablement
   userRole?: UserRole               // Persona that created this session

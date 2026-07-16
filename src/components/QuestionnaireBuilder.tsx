@@ -7,7 +7,7 @@
  *  - Share via copy / Teams / Outlook
  *  - Retrieve submissions (admin-token gated) and export them (JSON / Markdown)
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
   ArrowSquareOut,
@@ -15,6 +15,7 @@ import {
   Copy,
   DownloadSimple,
   LinkSimple,
+  MagnifyingGlass,
   PaperPlaneTilt,
   TrashSimple,
   X,
@@ -26,6 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import {
   Select,
@@ -66,6 +68,12 @@ const EXPIRY_OPTIONS = [
   { value: '14', label: '14 days' },
   { value: '30', label: '30 days' },
 ]
+const QUESTION_CATEGORY_LABELS = {
+  business: 'Business outcomes',
+  challenges: 'Challenges',
+  users: 'Users and stakeholders',
+  technical: 'Technical considerations',
+} as const
 
 export function QuestionnaireBuilder({
   onBack,
@@ -83,12 +91,40 @@ export function QuestionnaireBuilder({
   const [introMessage, setIntroMessage] = useState('')
   const [expiryDays, setExpiryDays] = useState('0')
   const [generating, setGenerating] = useState(false)
+  const [questionSearch, setQuestionSearch] = useState('')
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([])
 
   const [retrieval, setRetrieval] = useState<
     Record<string, { loading: boolean; error?: string; submissions?: QuestionnaireSubmission[] }>
   >({})
 
-  const previewQuestions = useMemo(() => getQuestionsForIndustry(industry, track), [industry, track])
+  const availableQuestions = useMemo(() => getQuestionsForIndustry(industry, track), [industry, track])
+  const selectedQuestionIdSet = useMemo(() => new Set(selectedQuestionIds), [selectedQuestionIds])
+  const previewQuestions = useMemo(
+    () => availableQuestions.filter((question) => selectedQuestionIdSet.has(question.id)),
+    [availableQuestions, selectedQuestionIdSet],
+  )
+  const groupedQuestions = useMemo(() => {
+    const query = questionSearch.trim().toLowerCase()
+    return Object.entries(QUESTION_CATEGORY_LABELS).map(([category, label]) => ({
+      category,
+      label,
+      questions: availableQuestions.filter(
+        (question) => question.category === category && (!query || question.question.toLowerCase().includes(query)),
+      ),
+    })).filter((group) => group.questions.length > 0)
+  }, [availableQuestions, questionSearch])
+
+  useEffect(() => {
+    setSelectedQuestionIds(availableQuestions.map((question) => question.id))
+    setQuestionSearch('')
+  }, [availableQuestions])
+
+  const toggleQuestion = (questionId: string, selected: boolean) => {
+    setSelectedQuestionIds((current) =>
+      selected ? [...current, questionId] : current.filter((id) => id !== questionId),
+    )
+  }
 
   const addBusinessFunction = (id: string) => {
     const bf = id as BusinessFunction
@@ -99,6 +135,10 @@ export function QuestionnaireBuilder({
   const handleGenerate = async () => {
     if (!customerName.trim()) {
       toast.error('Enter a company name first')
+      return
+    }
+    if (previewQuestions.length === 0) {
+      toast.error('Select at least one question')
       return
     }
     setGenerating(true)
@@ -253,6 +293,66 @@ export function QuestionnaireBuilder({
               <p className="text-xs text-muted-foreground">{DISCOVERY_TRACK_DESCRIPTIONS[track]}</p>
             </div>
 
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <Label htmlFor="question-search">Questions</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Choose the exact questions included in the customer link.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedQuestionIds(availableQuestions.map((question) => question.id))}
+                  >
+                    Select all
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedQuestionIds([])}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+              <div className="relative">
+                <MagnifyingGlass
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                  id="question-search"
+                  value={questionSearch}
+                  onChange={(event) => setQuestionSearch(event.target.value)}
+                  placeholder="Search questions"
+                  className="pl-9"
+                />
+              </div>
+              <div className="max-h-80 overflow-y-auto rounded-md border p-4 space-y-5">
+                {groupedQuestions.map((group) => (
+                  <section key={group.category} className="space-y-2">
+                    <h3 className="text-sm font-medium">{group.label}</h3>
+                    {group.questions.map((question) => (
+                      <label key={question.id} className="flex items-start gap-3 py-1.5 text-sm leading-5 cursor-pointer">
+                        <Checkbox
+                          checked={selectedQuestionIdSet.has(question.id)}
+                          onCheckedChange={(checked) => toggleQuestion(question.id, checked === true)}
+                          className="mt-0.5 shrink-0"
+                        />
+                        <span>{question.question}</span>
+                      </label>
+                    ))}
+                  </section>
+                ))}
+                {groupedQuestions.length === 0 && (
+                  <p className="text-sm text-muted-foreground py-4 text-center">No questions match your search.</p>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {previewQuestions.length} of {availableQuestions.length} questions selected
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label>Business functions (optional)</Label>
               <div className="flex flex-wrap gap-2">
@@ -326,7 +426,7 @@ export function QuestionnaireBuilder({
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={handleGenerate} disabled={generating || !customerName.trim()}>
+              <Button onClick={handleGenerate} disabled={generating || !customerName.trim() || previewQuestions.length === 0}>
                 <LinkSimple size={18} className="mr-2" />
                 {generating ? 'Generating…' : 'Generate link'}
               </Button>

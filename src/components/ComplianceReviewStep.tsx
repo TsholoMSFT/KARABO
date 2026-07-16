@@ -15,20 +15,13 @@ import type {
   AIRiskLevel,
   ComplianceEnforcement,
   RegulatoryAssessment,
-  SovereignCloudAssessment,
-} from '@/lib/types'
-import {
-  SOVEREIGN_CLOUD_LABELS,
-  SOVEREIGN_REGION_LABELS,
 } from '@/lib/types'
 import {
   assessUseCaseRisk,
   getRegulationDisplayInfo,
   RISK_LEVEL_CONFIG,
-  getSovereignImplicationsFromFrameworks,
 } from '@/lib/regulatory-engine'
 import { detectJurisdictions, getApplicableFrameworks } from '@/lib/regulatory-engine'
-import { assessSovereignCloud } from '@/lib/sovereign-cloud-engine'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -53,10 +46,6 @@ import {
   LinkSimple,
   Signature,
   Info,
-  Cloud,
-  Globe,
-  MapPin,
-  ShieldWarning,
 } from '@phosphor-icons/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -137,20 +126,6 @@ export function ComplianceReviewStep({
 
     setAssessed(results)
   }, [useCases, jurisdictions, session.industry, enforcement])
-
-  // Sovereign cloud assessment
-  const [sovereignAssessment, setSovereignAssessment] = useState<SovereignCloudAssessment | null>(null)
-  const [sovereignExpanded, setSovereignExpanded] = useState(false)
-
-  useEffect(() => {
-    const assessment = assessSovereignCloud(session, jurisdictions)
-    setSovereignAssessment(assessment)
-  }, [session, jurisdictions])
-
-  // Sovereign implications from triggered frameworks
-  const sovereignImplications = useMemo(() => {
-    return getSovereignImplicationsFromFrameworks(applicableFrameworkCodes)
-  }, [applicableFrameworkCodes])
 
   // Track expanded use cases
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
@@ -289,203 +264,6 @@ export function ComplianceReviewStep({
               )
             })}
           </div>
-
-          <Separator />
-
-          {/* Sovereign Cloud & Data Residency Panel */}
-          {sovereignAssessment && sovereignAssessment.mandateLevel !== 'optional' && (
-            <Collapsible open={sovereignExpanded} onOpenChange={setSovereignExpanded}>
-              <div className="border rounded-lg overflow-hidden bg-card">
-                <CollapsibleTrigger asChild>
-                  <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors">
-                    <Cloud size={20} weight="duotone" className="text-blue-400" />
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-sm">Sovereign Cloud & Data Residency</h4>
-                      <p className="text-xs text-muted-foreground">
-                        {SOVEREIGN_CLOUD_LABELS[sovereignAssessment.cloudEnvironment]}
-                        {sovereignAssessment.mandateLevel === 'required' ? ' — Required' : ' — Recommended'}
-                        {' · '}{sovereignAssessment.readinessScore}/100 readiness
-                      </p>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={sovereignAssessment.mandateLevel === 'required'
-                        ? 'text-red-400 bg-red-500/10 border-red-500/30'
-                        : 'text-blue-400 bg-blue-500/10 border-blue-500/30'}
-                    >
-                      {sovereignAssessment.mandateLevel === 'required' ? '🔴 Required' : '🔵 Recommended'}
-                    </Badge>
-                    {sovereignExpanded ? <CaretUp size={16} /> : <CaretDown size={16} />}
-                  </div>
-                </CollapsibleTrigger>
-
-                <CollapsibleContent>
-                  <div className="px-4 pb-4 space-y-4">
-                    <Separator />
-
-                    {/* Requirement summary */}
-                    <div className="flex items-start gap-2 text-xs text-muted-foreground p-3 rounded-md border bg-muted/20">
-                      <Globe size={14} className="text-primary flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-foreground/80 font-medium mb-1">
-                          {sovereignAssessment.dataResidency.justification}
-                        </p>
-                        {sovereignAssessment.dataResidency.triggeringFrameworks.length > 0 && (
-                          <p>Driven by: {sovereignAssessment.dataResidency.triggeringFrameworks.map(f => {
-                            const info = getRegulationDisplayInfo(f)
-                            return info.shortName
-                          }).join(', ')}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Recommended regions */}
-                    {sovereignAssessment.recommendedRegions.length > 0 && (
-                      <div>
-                        <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1">
-                          <MapPin size={12} /> Recommended Regions
-                        </h5>
-                        <div className="flex flex-wrap gap-2">
-                          {sovereignAssessment.recommendedRegions.map(region => (
-                            <Badge key={region} variant="outline" className="text-xs">
-                              {SOVEREIGN_REGION_LABELS[region] || region}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Service availability */}
-                    <div>
-                      <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                        Service Availability in {SOVEREIGN_CLOUD_LABELS[sovereignAssessment.cloudEnvironment]}
-                      </h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                        {sovereignAssessment.serviceAvailability.map(svc => (
-                          <div
-                            key={svc.service}
-                            className={`flex items-start gap-2 p-2 rounded border text-xs ${
-                              svc.availableInCloud
-                                ? 'border-green-500/20 bg-green-500/5'
-                                : 'border-red-500/20 bg-red-500/5'
-                            }`}
-                          >
-                            <span>{svc.availableInCloud ? '✅' : '❌'}</span>
-                            <div className="flex-1">
-                              <span className="font-medium">{svc.service}</span>
-                              {svc.limitations && (
-                                <p className="text-muted-foreground text-[10px] mt-0.5">{svc.limitations}</p>
-                              )}
-                              {svc.availableModels && svc.availableModels.length > 0 && (
-                                <p className="text-muted-foreground text-[10px]">
-                                  Models: {svc.availableModels.join(', ')}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Cross-border data flows */}
-                    {sovereignAssessment.crossBorderFlows.some(f => f.risk !== 'minimal') && (
-                      <div>
-                        <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1">
-                          <ShieldWarning size={12} /> Cross-border Data Flow Assessment
-                        </h5>
-                        <div className="space-y-1.5">
-                          {sovereignAssessment.crossBorderFlows.filter(f => f.risk !== 'minimal').map((flow, i) => {
-                            const cfg = RISK_LEVEL_CONFIG[flow.risk]
-                            return (
-                              <div key={i} className={`flex items-start gap-2 p-2 rounded border text-xs ${cfg.bgColor} ${cfg.borderColor}`}>
-                                <span>{cfg.icon}</span>
-                                <div className="flex-1">
-                                  <span className="font-medium">{flow.dataTypes[0]}</span>
-                                  <p className="text-muted-foreground text-[10px]">
-                                    {flow.permitted ? 'Permitted' : 'Blocked'} — {flow.mechanism}
-                                  </p>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Gaps */}
-                    {sovereignAssessment.gaps.length > 0 && (
-                      <div>
-                        <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1">
-                          <Warning size={12} className="text-amber-400" /> Readiness Gaps ({sovereignAssessment.gaps.length})
-                        </h5>
-                        <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
-                          {sovereignAssessment.gaps.map(gap => (
-                            <div key={gap.id} className="flex items-start gap-2 p-2 rounded bg-muted/40 text-xs">
-                              <span>{gap.impact === 'high' ? '🔴' : gap.impact === 'medium' ? '🟡' : '🟢'}</span>
-                              <div className="flex-1">
-                                <p className="font-medium">{gap.description}</p>
-                                <p className="text-muted-foreground text-[10px]">{gap.recommendation}</p>
-                              </div>
-                              <Badge variant="outline" className="text-[10px]">{gap.dimension}</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Regulatory framework implications */}
-                    {sovereignImplications.length > 0 && (
-                      <div>
-                        <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                          Framework Sovereign Cloud Implications
-                        </h5>
-                        <div className="space-y-1">
-                          {sovereignImplications.map((impl, i) => (
-                            <div key={i} className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/30">
-                              <Badge
-                                variant="outline"
-                                className={`text-[9px] ${
-                                  impl.mandateLevel === 'required'
-                                    ? 'text-red-400 border-red-500/30'
-                                    : 'text-blue-400 border-blue-500/30'
-                                }`}
-                              >
-                                {impl.mandateLevel}
-                              </Badge>
-                              <span className="font-medium">{impl.frameworkShortName}</span>
-                              <span className="text-muted-foreground flex-1">→ {SOVEREIGN_CLOUD_LABELS[impl.requiredCloud]}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Readiness score bar */}
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-medium text-muted-foreground">Readiness</span>
-                      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            sovereignAssessment.readinessScore >= 70 ? 'bg-green-500'
-                              : sovereignAssessment.readinessScore >= 40 ? 'bg-yellow-500'
-                              : 'bg-red-500'
-                          }`}
-                          style={{ width: `${sovereignAssessment.readinessScore}%` }}
-                        />
-                      </div>
-                      <span className={`text-xs font-bold ${
-                        sovereignAssessment.readinessScore >= 70 ? 'text-green-400'
-                          : sovereignAssessment.readinessScore >= 40 ? 'text-yellow-400'
-                          : 'text-red-400'
-                      }`}>
-                        {sovereignAssessment.readinessScore}/100
-                      </span>
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
-          )}
 
           <Separator />
 

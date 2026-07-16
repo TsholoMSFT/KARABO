@@ -23,8 +23,6 @@ import {
   CaretDown,
   CaretUp,
   Buildings,
-  Compass,
-  ChartLineUp,
   Heartbeat,
   ClipboardText
 } from '@phosphor-icons/react'
@@ -36,14 +34,11 @@ import type { DemoIndustry } from '@/lib/demo-data'
 interface LandingPageProps {
   customers: Customer[]
   onStartNew: () => void
-  onStartSovereignCloud?: () => void
   onStartSolutionBlueprint?: () => void
   onStartEnterpriseDiscovery: () => void
-  onStartDUCE?: () => void
   onStartNotesAnalysis?: () => void
   onViewExisting: () => void
   onOpenPortfolio?: () => void
-  onOpenValuePortfolio?: () => void
   onOpenCsamCockpit?: () => void
   onOpenCustomerQuestionnaire?: () => void
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
@@ -58,14 +53,11 @@ interface LandingPageProps {
 export function LandingPage({ 
   customers, 
   onStartNew, 
-  onStartSovereignCloud,
   onStartSolutionBlueprint,
   onStartEnterpriseDiscovery,
-  onStartDUCE,
   onStartNotesAnalysis, 
   onViewExisting,
   onOpenPortfolio,
-  onOpenValuePortfolio,
   onOpenCsamCockpit,
   onOpenCustomerQuestionnaire,
   onStartDemo,
@@ -318,7 +310,7 @@ export function LandingPage({
                 </div>
                 <CardTitle className="text-xl">Strategic Assessment</CardTitle>
                 <CardDescription className="text-sm">
-                  5-stage framework with financial impact and prioritization outputs
+                  5-stage framework with evidence-based prioritization outputs
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -329,7 +321,7 @@ export function LandingPage({
                   </li>
                   <li className="flex items-start gap-2">
                     <ChartBar size={16} weight="duotone" className="mt-0.5 text-brand-blue flex-shrink-0" />
-                    <span>Financial impact modeling and prioritization</span>
+                    <span>Outcome validation and prioritization</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Sparkle size={16} weight="duotone" className="mt-0.5 text-brand-blue flex-shrink-0" />
@@ -349,103 +341,6 @@ export function LandingPage({
             </Card>
           </motion.div>
 
-          {/* DUCE — Innovation Hub Engine Card */}
-          {onStartDUCE && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.63 }}
-            >
-              <Card className="h-full border-2 border-violet-500/40 hover:shadow-lg transition-all duration-300 hover:border-violet-500 bg-gradient-to-br from-violet-500/5 to-transparent">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-violet-500/10">
-                      <Compass size={28} weight="duotone" className="text-violet-500" />
-                    </div>
-                    <Badge variant="outline" className="text-xs">Decision Engine</Badge>
-                  </div>
-                  <CardTitle className="text-xl">DUCE — Innovation Hub Engine</CardTitle>
-                  <CardDescription className="text-sm">
-                    6-step decision-driven flow: strategy → process → problems → use cases → deep dive → outputs
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <Lightbulb size={16} weight="duotone" className="mt-0.5 text-violet-500 flex-shrink-0" />
-                      <span>Quantify problems, classify AI fit, and rank dispositions deterministically</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-violet-500 flex-shrink-0" />
-                      <span>Recommend architecture patterns from a curated library + co-lead TA inputs</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-violet-500 flex-shrink-0" />
-                      <span>Produce roadmap, decision log, and exportable knowledge output</span>
-                    </li>
-                  </ul>
-                  <Separator />
-                  <Button
-                    onClick={onStartDUCE}
-                    className="w-full gap-2 bg-violet-600 hover:bg-violet-700 text-white"
-                    size="lg"
-                  >
-                    <Compass size={20} weight="duotone" />
-                    Start DUCE
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Sovereign Cloud Assessment Card */}
-          {onStartSovereignCloud && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.64 }}
-            >
-              <Card className="h-full border-2 border-teal-500/40 hover:shadow-lg transition-all duration-300 hover:border-teal-500 bg-gradient-to-br from-teal-500/5 to-transparent">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-teal-500/10">
-                      <ShieldCheck size={28} weight="duotone" className="text-teal-500" />
-                    </div>
-                    <Badge variant="outline" className="text-xs">Cloud</Badge>
-                  </div>
-                  <CardTitle className="text-xl">Sovereign Cloud Assessment</CardTitle>
-                  <CardDescription className="text-sm">
-                    Assess deployment model, sovereign/hybrid strategy, and AI readiness
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <ShieldCheck size={16} weight="duotone" className="mt-0.5 text-teal-500 flex-shrink-0" />
-                      <span>Map deployment model: public, sovereign, Azure Local, Arc, Foundry Local</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Sparkle size={16} weight="duotone" className="mt-0.5 text-teal-500 flex-shrink-0" />
-                      <span>Landing Zone, CAF, compliance & regulatory assessment</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChartBar size={16} weight="duotone" className="mt-0.5 text-teal-500 flex-shrink-0" />
-                      <span>AI architecture, data, and governance readiness</span>
-                    </li>
-                  </ul>
-                  <Separator />
-                  <Button
-                    onClick={onStartSovereignCloud}
-                    className="w-full gap-2 bg-teal-600 hover:bg-teal-700 text-white"
-                    size="lg"
-                  >
-                    <ShieldCheck size={20} weight="duotone" />
-                    Sovereign Cloud Assessment
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
             </div>
           </section>
 
@@ -539,12 +434,6 @@ export function LandingPage({
                   Portfolio Intelligence
                 </Button>
               )}
-              {onOpenValuePortfolio && (
-                <Button onClick={onOpenValuePortfolio} variant="outline" className="gap-2">
-                  <ChartLineUp size={18} weight="duotone" />
-                  Value Portfolio
-                </Button>
-              )}
               {onOpenCsamCockpit && (
                 <Button onClick={onOpenCsamCockpit} variant="outline" className="gap-2">
                   <Heartbeat size={18} weight="duotone" />
@@ -608,20 +497,20 @@ export function LandingPage({
                     </Button>
                   </div>
                   
-                  {/* 2. Sovereign Cloud Assessment - Contoso Financial */}
+                  {/* 2. Discovery - Contoso Financial */}
                   <div className="space-y-2">
                     <Button
                       variant="outline"
                       className="w-full gap-2 h-auto py-3 hover:border-teal-500/50 hover:bg-teal-500/5"
                       onClick={() => {
                         onEnterDemoMode?.('financial')
-                        onStartSovereignCloud?.()
+                        onStartNew()
                       }}
                     >
                       <Bank size={18} weight="duotone" className="text-blue-600" />
                       <div className="text-left">
                         <div className="font-medium text-sm">Contoso Financial</div>
-                        <div className="text-[10px] text-muted-foreground">Sovereign Cloud</div>
+                        <div className="text-[10px] text-muted-foreground">Discovery</div>
                       </div>
                     </Button>
                   </div>

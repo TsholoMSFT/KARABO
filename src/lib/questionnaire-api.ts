@@ -54,6 +54,18 @@ export async function submitQuestionnaire(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
+  if (res.status === 400) {
+    try {
+      const body = await res.json()
+      if (body?.error === 'Validation failed' && Array.isArray(body.details)) {
+        throw new QuestionnaireValidationError(body.details)
+      }
+      throw new Error(typeof body?.error === 'string' ? body.error : 'Failed to submit your responses.')
+    } catch (error) {
+      if (error instanceof Error) throw error
+      throw new Error('Failed to submit your responses.')
+    }
+  }
   if (!res.ok) throw new Error(await parseError(res, 'Failed to submit your responses.'))
   return res.json() as Promise<{ ok: boolean; id: string }>
 }
@@ -71,6 +83,21 @@ export async function getQuestionnaireResponses(
 }
 
 export type QuestionnaireErrorKind = 'not-found' | 'expired' | 'error'
+
+export interface QuestionnaireValidationDetail {
+  questionId: string
+  error: string
+}
+
+export class QuestionnaireValidationError extends Error {
+  details: QuestionnaireValidationDetail[]
+
+  constructor(details: QuestionnaireValidationDetail[]) {
+    super('Some responses need attention before you can submit.')
+    this.name = 'QuestionnaireValidationError'
+    this.details = details
+  }
+}
 
 /** Typed error so the customer surface can render distinct states. */
 export class QuestionnaireError extends Error {

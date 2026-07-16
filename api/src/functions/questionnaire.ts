@@ -10,6 +10,7 @@ import {
   type QuestionnaireLinkConfig,
   type QuestionnaireSubmission,
 } from "../lib/questionnaire-store";
+import { validateQuestionnaireResponses, type QuestionnaireResponse } from "../lib/questionnaire-validation";
 
 /**
  * Customer self-serve Discovery questionnaire endpoints.
@@ -182,6 +183,14 @@ async function submitHandler(req: HttpRequest, context: InvocationContext): Prom
     if (responses.length > MAX_FIELD) {
       return { status: 400, headers: { ...cors, ...JSON_HEADERS }, jsonBody: { error: "Too many responses." } };
     }
+    const validationDetails = validateQuestionnaireResponses(link.config.questions, responses);
+    if (validationDetails.length > 0) {
+      return {
+        status: 400,
+        headers: { ...cors, ...JSON_HEADERS },
+        jsonBody: { error: "Validation failed", details: validationDetails },
+      };
+    }
 
     const submission: QuestionnaireSubmission = {
       id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -189,7 +198,7 @@ async function submitHandler(req: HttpRequest, context: InvocationContext): Prom
       primaryStakeholder: str(body?.primaryStakeholder, 200),
       businessFunction: str(body?.businessFunction, 80),
       companyName: str(body?.companyName, 200),
-      responses,
+      responses: responses as QuestionnaireResponse[],
       submittedAt: Date.now(),
     };
 

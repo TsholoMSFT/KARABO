@@ -5,26 +5,22 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { PausedSessionsList } from '@/components/enterprise-discovery/PausedSessionsList'
-import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { CustomerJourneyTool } from '@/components/CustomerJourneyTool'
 import { ThreadlightTool } from '@/components/ThreadlightTool'
-import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, ShieldCheck, Buildings, Microphone, GearSix, Briefcase, Rocket, Toolbox, FileArrowDown, ArrowsLeftRight, FileText, CloudArrowUp } from '@phosphor-icons/react'
+import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket, Toolbox, FileArrowDown, ArrowsLeftRight, FileText } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
-import { toast } from 'sonner'
 import type { EnterpriseDiscoverySession, DiscoverySession, CustomerJourney, AccountSegment } from '@/lib/types'
 import { getVisibleTabs, getSegmentFeatures, getDiscoveryButtonLabel, getStrategicAssessmentLabel } from '@/lib/segment-config'
 
-type DiscoveryMode = 'quick' | 'sovereign-cloud' | 'enterprise' | 'tools'
+type DiscoveryMode = 'quick' | 'enterprise' | 'tools'
 
 interface DiscoveryLauncherProps {
   onStartDiscovery: () => void
-  onStartSovereignCloud?: () => void
   onStartLiveDiscovery?: () => void
   onStartEnterpriseDiscovery?: () => void
   onResumeEnterpriseDiscovery?: (session: EnterpriseDiscoverySession) => void
   onStartDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
   onStartEnterpriseDemo?: (demoType: 'mining' | 'retail' | 'financial') => void
-  customerName?: string
   onOpenSessionComparison?: () => void
   onOpenExport?: () => void
   onOpenEngagementHub?: () => void
@@ -33,7 +29,7 @@ interface DiscoveryLauncherProps {
   accountSegment?: AccountSegment
 }
 
-  export function DiscoveryLauncher({ onStartDiscovery, onStartSovereignCloud, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, customerName, onOpenSessionComparison, onOpenExport, onOpenEngagementHub, currentSession, onJourneyUpdate, accountSegment = 'enterprise' }: DiscoveryLauncherProps) {
+  export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onOpenSessionComparison, onOpenExport, onOpenEngagementHub, currentSession, onJourneyUpdate, accountSegment = 'enterprise' }: DiscoveryLauncherProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const visibleTabs = getVisibleTabs(accountSegment)
   const features = getSegmentFeatures(accountSegment)
@@ -50,7 +46,6 @@ interface DiscoveryLauncherProps {
               {availableTabs.map(tab => (
                 <TabsTrigger key={tab.id} value={tab.id} className="gap-2">
                   {tab.id === 'quick' && <><Rocket size={16} /> Discovery</>}
-                  {tab.id === 'sovereign-cloud' && <><ShieldCheck size={16} weight="fill" /> Sovereign Cloud</>}
                   {tab.id === 'enterprise' && <><Briefcase size={16} /> {getStrategicAssessmentLabel(accountSegment)}{tab.badge && <Badge variant="outline" className="ml-1 text-[10px] px-1.5 py-0">{tab.badge}</Badge>}</>}
                   {tab.id === 'tools' && <><Toolbox size={16} /> Tools</>}
                 </TabsTrigger>
@@ -141,92 +136,6 @@ interface DiscoveryLauncherProps {
           </Card>
         )}
 
-        {/* Sovereign Cloud Assessment Card */}
-        {mode === 'sovereign-cloud' && (
-          <Card className="border-2 border-teal-500/30 bg-gradient-to-br from-teal-500/5 to-secondary/5">
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                <div className="space-y-2">
-                  <CardTitle className="text-2xl flex items-center gap-3">
-                    <ShieldCheck size={28} weight="fill" className="text-teal-500" />
-                    Sovereign Cloud Assessment
-                  </CardTitle>
-                  <CardDescription className="text-base">
-                    Assess deployment models for disconnected, government, regulated, and hybrid cloud environments — including Azure Local, Arc, and Foundry Local.
-                  </CardDescription>
-                  <div className="flex items-center gap-2 pt-1">
-                    <Badge variant="outline" className="gap-1.5 bg-background">
-                      <ShieldCheck size={14} />
-                      Data Sovereignty
-                    </Badge>
-                    <Badge variant="outline" className="gap-1.5 bg-background">
-                      <CloudArrowUp size={14} />
-                      Deployment Models
-                    </Badge>
-                    <Badge variant="outline" className="gap-1.5 bg-background">
-                      <ChartLine size={14} />
-                      Readiness & Gaps
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
-                  <Button
-                    onClick={() => {
-                      if (!onStartSovereignCloud) {
-                        toast.info('Sovereign Cloud Assessment is not available in this context')
-                        return
-                      }
-                      onStartSovereignCloud()
-                    }}
-                    size="lg"
-                    className="gap-2 bg-teal-600 hover:bg-teal-600/90 text-white"
-                  >
-                    <ShieldCheck size={20} weight="fill" />
-                    Start Sovereign Cloud Assessment
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex gap-3 items-start">
-                  <div className="bg-teal-500/10 p-2 rounded-lg shrink-0">
-                    <ShieldCheck size={24} weight="bold" className="text-teal-500" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm mb-1">Classify & Constrain</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Define connectivity, data classification, latency needs, and regulatory constraints
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3 items-start">
-                  <div className="bg-secondary/10 p-2 rounded-lg shrink-0">
-                    <CloudArrowUp size={24} weight="fill" className="text-secondary" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm mb-1">Deployment Decision Tree</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Engine-driven recommendations across Azure Public, Gov, Local, Arc, and Foundry Local
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3 items-start">
-                  <div className="bg-accent/10 p-2 rounded-lg shrink-0">
-                    <ChartLine size={24} weight="bold" className="text-accent" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm mb-1">Readiness & Gap Analysis</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Service availability matrix, Foundry Local model catalog, and migration recommendations
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Enterprise Discovery Card */}
         {mode === 'enterprise' && (
           <>
@@ -244,12 +153,12 @@ interface DiscoveryLauncherProps {
                     Strategic Assessment Process
                   </CardTitle>
                   <CardDescription className="text-base">
-                    Comprehensive {features.strategicAssessmentStages}-stage assessment framework with {accountSegment === 'enterprise' ? 'financial modeling, stakeholder mapping, and ROI analysis' : 'quick business case and ROI estimation'}.
+                    Comprehensive {features.strategicAssessmentStages}-stage framework for evidence gathering, stakeholder alignment, and prioritization.
                   </CardDescription>
                   <div className="flex items-center gap-2 pt-1">
                     <Badge variant="outline" className="gap-1.5 bg-background">
                       <ChartLine size={14} />
-                      Financial Analysis
+                      Evidence Review
                     </Badge>
                     <Badge variant="outline" className="gap-1.5 bg-background">
                       <Buildings size={14} />
@@ -257,7 +166,7 @@ interface DiscoveryLauncherProps {
                     </Badge>
                     <Badge variant="outline" className="gap-1.5 bg-background">
                       <Sparkle size={14} weight="fill" />
-                      ROI Calculator
+                      Prioritization
                     </Badge>
                   </div>
                 </div>
@@ -302,9 +211,9 @@ interface DiscoveryLauncherProps {
                     <ChartLine size={24} weight="bold" className="text-secondary" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-sm mb-1">Financial Modeling</h4>
+                    <h4 className="font-semibold text-sm mb-1">Outcome Validation</h4>
                     <p className="text-xs text-muted-foreground">
-                      Build detailed ROI projections with cost-benefit analysis and investment timelines
+                      Validate expected outcomes, dependencies, risks, and measurable success criteria
                     </p>
                   </div>
                 </div>
@@ -347,18 +256,6 @@ interface DiscoveryLauncherProps {
                 </div>
               </CardHeader>
             </Card>
-
-            {/* Quick COI Calculator */}
-            <QuickCOICalculator 
-              variant="inline"
-              customerName={customerName}
-              autoContext={{
-                companyName: customerName,
-              }}
-              onSave={(coiData) => {
-                toast.success(`COI of ${coiData.totalCOI.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })} calculated`)
-              }}
-            />
 
             {/* Customer Journey Builder */}
             <CustomerJourneyTool

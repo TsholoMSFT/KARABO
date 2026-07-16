@@ -422,13 +422,6 @@ export const aiAssessmentQuestions: DiscoveryQuestion[] = [
     category: 'challenges',
     placeholder: 'E.g., policies, logging, prompt/response retention, DLP, audit trails, security reviews...',
   },
-  {
-    id: 'ai-sec-q6',
-    question: 'How are you thinking about cost management and ROI measurement for the AI investment?',
-    category: 'business',
-    placeholder: 'E.g., baseline metrics, KPIs, chargeback/showback, cost caps, monthly ROI review cadence...',
-  },
-
   // ============================
   // INDUSTRY-SPECIFIC VARIATIONS
   // ============================

@@ -23,7 +23,6 @@ import type {
   StakeholderDisposition,
   AIGovernanceAssessment,
   RegulatoryAssessment,
-  SovereignCloudAssessment,
 } from './types'
 
 // ============================================================================
@@ -156,7 +155,7 @@ export type SecureAIAssessmentStatus = 'draft' | 'active' | 'superseded'
 
 /** One rolled-up dimension of the secure-AI posture. */
 export interface SecureAIDimensionScore {
-  key: 'ai-governance' | 'regulatory-compliance' | 'data-sovereignty' | 'responsible-ai'
+  key: 'ai-governance' | 'regulatory-compliance' | 'responsible-ai'
   label: string
   /** 0-100 normalized score. */
   score: number
@@ -178,7 +177,7 @@ export interface SecureAIRemediation {
 
 /**
  * A packaged, versioned, refreshable Customer Secure AI Assessment. Aggregates
- * the existing AI-governance, regulatory-compliance and data-sovereignty
+ * the existing AI-governance and regulatory-compliance
  * assessments into a single ownable posture score the ATS can share with the
  * v-team and re-run over time (the `refreshedFromId` / `version` chain).
  */
@@ -216,7 +215,6 @@ export interface SecureAIAssessmentInput {
   governance?: AIGovernanceAssessment
   /** Use-case level regulatory assessments (worst-case is used for the gate). */
   regulatory?: RegulatoryAssessment[]
-  sovereign?: SovereignCloudAssessment
   createdBy?: string
 }
 

@@ -1,6 +1,6 @@
 /**
  * Secure AI Assessment engine (Focus 3) — aggregates the existing AI-governance,
- * regulatory-compliance and data-sovereignty assessments into a single, ownable,
+ * regulatory-compliance assessments into a single, ownable,
  * versioned "Customer Secure AI Assessment" posture that the ATS can share with
  * the v-team and REFRESH over time (the version / refreshedFrom chain).
  *
@@ -26,7 +26,6 @@ const DEFAULT_REFRESH_DAYS = 90
 const BASE_WEIGHTS: Record<SecureAIDimensionScore['key'], number> = {
   'ai-governance': 0.35,
   'regulatory-compliance': 0.30,
-  'data-sovereignty': 0.20,
   'responsible-ai': 0.15,
 }
 
@@ -113,20 +112,6 @@ function buildDimensions(input: SecureAIAssessmentInput): SecureAIDimensionScore
     })
   }
 
-  // ── Data sovereignty ────────────────────────────────────────────────────
-  if (input.sovereign) {
-    const score = Math.round(input.sovereign.readinessScore)
-    dims.push({
-      key: 'data-sovereignty',
-      label: 'Data Sovereignty',
-      score,
-      weight: BASE_WEIGHTS['data-sovereignty'],
-      band: bandForPosture(score),
-      summary: `Sovereign-cloud readiness ${score}/100 (${input.sovereign.mandateLevel} mandate).`,
-      gaps: input.sovereign.gaps.slice(0, 5).map((g) => g.description),
-    })
-  }
-
   return dims
 }
 
@@ -142,18 +127,6 @@ function buildRemediations(input: SecureAIAssessmentInput): SecureAIRemediation[
         priority: impactToPriority(g.impact),
         effort: 'medium',
         recommendation: g.gap,
-      })
-    }
-  }
-  if (input.sovereign) {
-    for (const g of input.sovereign.gaps.filter((x) => x.impact !== 'low').slice(0, 3)) {
-      rems.push({
-        id: genId('rem'),
-        title: `Sovereignty: ${g.dimension}`,
-        dimension: 'data-sovereignty',
-        priority: impactToPriority(g.impact),
-        effort: 'medium',
-        recommendation: g.recommendation,
       })
     }
   }

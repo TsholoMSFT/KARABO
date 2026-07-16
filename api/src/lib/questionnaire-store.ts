@@ -17,6 +17,7 @@
 import { TableClient, odata, type TableEntity } from "@azure/data-tables";
 import { randomBytes } from "crypto";
 import { getCredential } from "./iq-credential";
+import type { QuestionnaireQuestion, QuestionnaireResponse } from "./questionnaire-validation";
 
 // ── Contract (mirrors src/lib/questionnaire-types.ts) ────────────────────────
 export type QuestionnaireStatus = "pending" | "completed" | "expired";
@@ -26,7 +27,7 @@ export interface QuestionnaireLinkConfig {
   industry: string;
   track: string;
   businessFunctions?: string[];
-  questions: unknown[];
+  questions: QuestionnaireQuestion[];
   introMessage?: string;
   expiresAt?: number;
   createdBy?: string;
@@ -38,7 +39,7 @@ export interface QuestionnaireSubmission {
   primaryStakeholder?: string;
   businessFunction?: string;
   companyName?: string;
-  responses: unknown[];
+  responses: QuestionnaireResponse[];
   submittedAt: number;
 }
 
@@ -237,7 +238,7 @@ export async function listSubmissions(linkToken: string): Promise<QuestionnaireS
         primaryStakeholder: (e.primaryStakeholder as string) || undefined,
         businessFunction: (e.businessFunction as string) || undefined,
         companyName: (e.companyName as string) || undefined,
-        responses: e.responsesJson ? (JSON.parse(String(e.responsesJson)) as unknown[]) : [],
+        responses: e.responsesJson ? (JSON.parse(String(e.responsesJson)) as QuestionnaireResponse[]) : [],
         submittedAt: Number(e.submittedAt ?? 0),
       });
     }

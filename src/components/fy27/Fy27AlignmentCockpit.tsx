@@ -83,7 +83,6 @@ export function Fy27AlignmentCockpit({
     sessionId: session?.id,
     governance: session?.aiGovernanceAssessment,
     regulatory,
-    sovereign: session?.sovereignCloudAssessment,
     createdBy: actorName,
   }
 

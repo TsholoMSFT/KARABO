@@ -152,7 +152,6 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     },
   },
   'gdpr': {
-    code: 'gdpr',
     displayName: 'General Data Protection Regulation',
     shortName: 'GDPR',
     jurisdiction: 'European Union',
@@ -969,7 +968,6 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     },
   },
 }
-
 // ============================================================================
 // COMPREHENSIVE JURISDICTION → FRAMEWORK MAPPING
 // ============================================================================
@@ -1458,123 +1456,3 @@ export const RISK_LEVEL_CONFIG: Record<AIRiskLevel, {
   },
 }
 
-// ============================================================================
-// SOVEREIGN CLOUD IMPLICATIONS PER FRAMEWORK
-// ============================================================================
-
-import type { SovereignCloudEnvironment, SovereignCloudMandateLevel } from './types'
-
-export interface SovereignCloudImplication {
-  framework: AIRegulationFramework
-  frameworkShortName: string
-  requiredCloud: SovereignCloudEnvironment
-  mandateLevel: SovereignCloudMandateLevel
-  reason: string
-}
-
-/**
- * Map of frameworks that have sovereign cloud implications.
- * Used by ComplianceReviewStep to surface sovereign cloud recommendations
- * alongside regulatory assessments.
- */
-const FRAMEWORK_SOVEREIGN_IMPLICATIONS: Partial<Record<AIRegulationFramework, {
-  cloud: SovereignCloudEnvironment
-  mandateLevel: SovereignCloudMandateLevel
-  reason: string
-}>> = {
-  fedramp: {
-    cloud: 'azure-government',
-    mandateLevel: 'required',
-    reason: 'FedRAMP requires deployment to FedRAMP-authorized cloud environments (Azure Government)',
-  },
-  'nist-ai-rmf': {
-    cloud: 'azure-government',
-    mandateLevel: 'recommended',
-    reason: 'NIST AI RMF recommends government-authorized infrastructure for federal AI workloads',
-  },
-  'white-house-eo': {
-    cloud: 'azure-government',
-    mandateLevel: 'recommended',
-    reason: 'US Executive Order on AI recommends government cloud for federal AI deployments',
-  },
-  gdpr: {
-    cloud: 'azure-eu-boundary',
-    mandateLevel: 'recommended',
-    reason: 'GDPR data processing requirements are best met with EU Data Boundary controls',
-  },
-  'eu-ai-act': {
-    cloud: 'azure-eu-boundary',
-    mandateLevel: 'recommended',
-    reason: 'EU AI Act high-risk systems benefit from EU data residency for conformity assessment',
-  },
-  nis2: {
-    cloud: 'azure-eu-boundary',
-    mandateLevel: 'recommended',
-    reason: 'NIS2 critical infrastructure directive favors EU-resident cloud deployments',
-  },
-  dora: {
-    cloud: 'azure-eu-boundary',
-    mandateLevel: 'recommended',
-    reason: 'DORA requires financial entities to manage ICT third-party risk — EU boundary aids compliance',
-  },
-  popia: {
-    cloud: 'azure-public',
-    mandateLevel: 'recommended',
-    reason: 'POPIA mandates adequate protection for cross-border transfers — South Africa regions recommended',
-  },
-  'au-data-policy': {
-    cloud: 'azure-public',
-    mandateLevel: 'recommended',
-    reason: 'AU Data Policy Framework promotes African data sovereignty — prefer African-region Azure data centres',
-  },
-  'uae-ai-strategy': {
-    cloud: 'azure-public',
-    mandateLevel: 'recommended',
-    reason: 'UAE National AI Strategy favors in-country data processing — UAE North region recommended',
-  },
-  'china-ai-regulations': {
-    cloud: 'azure-china-21vianet',
-    mandateLevel: 'required',
-    reason: 'China Cybersecurity Law mandates in-country data processing — Azure China (21Vianet) required',
-  },
-}
-
-/**
- * Get sovereign cloud implications from a list of triggered regulatory frameworks.
- * Returns deduplicated list sorted by mandate level (required first).
- */
-export function getSovereignImplicationsFromFrameworks(
-  frameworkCodes: AIRegulationFramework[]
-): SovereignCloudImplication[] {
-  const implications: SovereignCloudImplication[] = []
-  const seen = new Set<string>()
-
-  for (const code of frameworkCodes) {
-    const impl = FRAMEWORK_SOVEREIGN_IMPLICATIONS[code]
-    if (!impl) continue
-
-    // Deduplicate by cloud environment
-    const key = `${code}-${impl.cloud}`
-    if (seen.has(key)) continue
-    seen.add(key)
-
-    const detail = REGULATION_REGISTRY[code]
-    implications.push({
-      framework: code,
-      frameworkShortName: detail?.shortName || code,
-      requiredCloud: impl.cloud,
-      mandateLevel: impl.mandateLevel,
-      reason: impl.reason,
-    })
-  }
-
-  // Sort: required first, then recommended, then optional
-  const mandateOrder: Record<SovereignCloudMandateLevel, number> = {
-    required: 0,
-    recommended: 1,
-    optional: 2,
-  }
-  implications.sort((a, b) => mandateOrder[a.mandateLevel] - mandateOrder[b.mandateLevel])
-
-  return implications
-}

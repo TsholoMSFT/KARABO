@@ -1,6 +1,6 @@
 /**
  * Secure AI Assessment tab (Focus 3) — packages the existing governance /
- * regulatory / sovereign assessments into one ownable, versioned posture that
+ * regulatory assessments into one ownable, versioned posture that
  * can be shared with the v-team and refreshed over time.
  */
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,7 +35,7 @@ export interface SecureAiAssessmentTabProps {
 }
 
 export function SecureAiAssessmentTab({ input, current, onSave }: SecureAiAssessmentTabProps) {
-  const hasInputs = Boolean(input.governance || (input.regulatory && input.regulatory.length) || input.sovereign)
+  const hasInputs = Boolean(input.governance || (input.regulatory && input.regulatory.length))
 
   const handleGenerate = () => {
     onSave(buildSecureAIAssessment(input))
@@ -68,14 +68,14 @@ export function SecureAiAssessmentTab({ input, current, onSave }: SecureAiAssess
           <ShieldCheck className="mx-auto text-4xl text-muted-foreground" />
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             No Secure AI Assessment yet. Generate one by aggregating this customer's AI-governance,
-            regulatory-compliance and data-sovereignty assessments into a single posture.
+            regulatory-compliance assessments into a single posture.
           </p>
           <Button onClick={handleGenerate} disabled={!hasInputs}>
             <Sparkle className="mr-1.5" /> Generate assessment
           </Button>
           {!hasInputs && (
             <p className="text-xs text-orange-700">
-              Complete an AI governance, compliance or sovereign-cloud assessment first.
+              Complete an AI governance or compliance assessment first.
             </p>
           )}
         </CardContent>

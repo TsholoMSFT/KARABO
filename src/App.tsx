@@ -22,8 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, CurrencyDollar, ShieldCheck, Calculator, Scales, Gauge } from '@phosphor-icons/react'
+import { Plus, ChartScatter, ListNumbers, FileArrowDown, FileArrowUp, CaretDown, CaretUp, FolderOpen, Funnel, ShieldCheck, Scales, Gauge } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Footer } from '@/components/ui/footer'
@@ -57,7 +56,6 @@ const DiscoveryLauncher = lazy(() => import('@/components/DiscoveryLauncher').th
 const DiscoveryWizard = lazy(() => import('@/components/DiscoveryWizard').then(m => ({ default: m.DiscoveryWizard })))
 const DiscoveryResults = lazy(() => import('@/components/DiscoveryResults').then(m => ({ default: m.DiscoveryResults })))
 const DiscoveryNotesInput = lazy(() => import('@/components/DiscoveryNotesInput').then(m => ({ default: m.DiscoveryNotesInput })))
-const SovereignCloudWorkflow = lazy(() => import('@/components/SovereignCloudWorkflow').then(m => ({ default: m.SovereignCloudWorkflow })))
 const SolutionBlueprintWorkspace = lazy(() => import('@/components/SolutionBlueprintWorkspace').then(m => ({ default: m.SolutionBlueprintWorkspace })))
 const EnhancedDiscoveryWorkflow = lazy(() => import('@/components/EnhancedDiscoveryWorkflow').then(m => ({ default: m.EnhancedDiscoveryWorkflow })))
 const LiveDiscoveryMode = lazy(() => import('@/components/LiveDiscoveryMode').then(m => ({ default: m.LiveDiscoveryMode })))
@@ -69,12 +67,8 @@ const CsamCockpit = lazy(() => import('@/components/csam/CsamCockpit').then(m =>
 const PortfolioIntelligenceView = lazy(() => import('@/components/PortfolioIntelligenceView').then(m => ({ default: m.PortfolioIntelligenceView })))
 const CustomerSelector = lazy(() => import('@/components/CustomerSelector').then(m => ({ default: m.CustomerSelector })))
 const EnterpriseDiscoveryOrchestrator = lazy(() => import('@/components/enterprise-discovery/EnterpriseDiscoveryOrchestratorMVP').then(m => ({ default: m.EnterpriseDiscoveryOrchestratorMVP })))
-const FinancialImpactTab = lazy(() => import('@/components/FinancialImpactTab').then(m => ({ default: m.FinancialImpactTab })))
 const ImportUseCasesDialog = lazy(() => import('@/components/ImportUseCasesDialog').then(m => ({ default: m.ImportUseCasesDialog })))
-const DUCEWizard = lazy(() => import('@/components/duce').then(m => ({ default: m.DUCEWizard })))
 const PipelineBoard = lazy(() => import('@/components/PipelineBoard').then(m => ({ default: m.PipelineBoard })))
-const UnitEconomicsEngine = lazy(() => import('@/components/UnitEconomicsEngine').then(m => ({ default: m.UnitEconomicsEngine })))
-const ValuePortfolio = lazy(() => import('@/components/ValuePortfolio').then(m => ({ default: m.ValuePortfolio })))
 const EngagementHub = lazy(() => import('@/components/EngagementHub').then(m => ({ default: m.EngagementHub })))
 const QuestionnaireBuilder = lazy(() => import('@/components/QuestionnaireBuilder').then(m => ({ default: m.QuestionnaireBuilder })))
 const Fy27AlignmentCockpit = lazy(() => import('@/components/fy27/Fy27AlignmentCockpit').then(m => ({ default: m.Fy27AlignmentCockpit })))
@@ -88,7 +82,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'sovereign-cloud' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'duce-wizard' | 'portfolio' | 'pipeline' | 'unit-economics' | 'value-portfolio' | 'engagement-hub' | 'csam-cockpit' | 'questionnaire-builder' | 'fy27-cockpit'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'portfolio' | 'pipeline' | 'engagement-hub' | 'csam-cockpit' | 'questionnaire-builder' | 'fy27-cockpit'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -109,7 +103,7 @@ function App() {
 
   // Per-customer Solution Blueprint state (read-only here \u2014 owned by SolutionBlueprintWorkspace).
   // We surface its signals (reuse %, gap count) on the prioritization matrix.
-  const [blueprintEstatesByCustomer, setBlueprintEstatesByCustomer] = useLocalStorage<Record<string, import('@/lib/solution-blueprint/types').TechnologyEstate>>(
+  const [blueprintEstatesByCustomer] = useLocalStorage<Record<string, import('@/lib/solution-blueprint/types').TechnologyEstate>>(
     'solution-blueprint-estates',
     {},
   )
@@ -169,7 +163,7 @@ function App() {
   const [sessionState, setSessionState] = useState<SessionState | null>(null)
   const [pendingSessionMetadata, setPendingSessionMetadata] = useState<SessionMetadata | null>(null)
   const [pendingDiscoveryTrack, setPendingDiscoveryTrack] = useState<DiscoveryTrack | null>(null)
-  const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live' | 'sovereign-cloud'>('standard')
+  const [discoveryMode, setDiscoveryMode] = useState<'standard' | 'live'>('standard')
   const [notesSession, setNotesSession] = useState<{ metadata: SessionMetadata; notes: string; extractedUseCases: ExtractedUseCase[] } | null>(null)
   
   // Draft persistence for notes - prevents data loss when switching views
@@ -192,10 +186,8 @@ function App() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [showImpactFeasibilityDesc, setShowImpactFeasibilityDesc] = useState(false)
   const [showRiceDesc, setShowRiceDesc] = useState(false)
-    const [showFinancialImpactDesc, setShowFinancialImpactDesc] = useState(false)
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [importDialogOpen, setImportDialogOpen] = useState(false)
-  const [postQuickDiscoveryGateOpen, setPostQuickDiscoveryGateOpen] = useState(false)
   const [execSummaryGeneratorOpen, setExecSummaryGeneratorOpen] = useState(false)
   const selectedSession = discoverySessions?.find((s) => s.id === selectedSessionId) || null
   const filteredUseCases = useCases?.filter((uc) => uc.discoverySessionId === selectedSessionId) || []
@@ -427,14 +419,6 @@ function App() {
     toast.success(`Imported ${newUseCases.length} use case${newUseCases.length !== 1 ? 's' : ''} successfully!`)
   }
 
-  const handleUpsertUseCasesForSession = (sessionId: string, nextForSession: UseCase[]) => {
-    setUseCases((current) => {
-      const existing = current || []
-      const others = existing.filter((uc) => uc.discoverySessionId !== sessionId)
-      return [...others, ...nextForSession]
-    })
-  }
-
   const handleDeleteUseCase = (id: string) => {
     setUseCases((current) => (current || []).filter((uc) => uc.id !== id))
     toast.success('Use case deleted')
@@ -490,17 +474,6 @@ function App() {
     setCurrentView('session-metadata')
   }
 
-  const handleStartSovereignCloud = () => {
-    if (selectedSessionId && selectedSession) {
-      setCurrentView('sovereign-cloud')
-      return
-    }
-
-    resetPendingDiscoveryDraft()
-    setDiscoveryMode('sovereign-cloud')
-    setCurrentView('session-metadata')
-  }
-
   const [pendingBlueprintSeed, setPendingBlueprintSeed] = useState<{
     name: string
     description?: string
@@ -550,30 +523,6 @@ function App() {
   const handleStartEnterpriseDiscovery = () => {
     setCurrentEnterpriseSession(null)
     setCurrentView('enterprise-discovery')
-  }
-
-  const handleStartDUCE = () => {
-    // Reuse selected session if present; otherwise create a lightweight one so DUCE has a sessionId.
-    if (!selectedSessionId) {
-      const session: DiscoverySession = {
-        id: `duce-${Date.now()}`,
-        customerId: '',
-        customerName: 'New DUCE Engagement',
-        name: 'DUCE Session',
-        industry: 'general',
-        innovationHubLocation: '',
-        solutionEngineer: '',
-        accountTeamRep: '',
-        primaryStakeholder: '',
-        responses: [],
-        suggestedUseCases: [],
-        createdAt: Date.now(),
-        completedAt: Date.now(),
-      }
-      addSession(session)
-      setSelectedSessionId(session.id)
-    }
-    setCurrentView('duce-wizard')
   }
 
   const handleStartEngagementHub = () => {
@@ -718,36 +667,6 @@ function App() {
   }
   
   const handleSessionMetadataSubmit = (metadata: SessionMetadata) => {
-    if (discoveryMode === 'sovereign-cloud') {
-      const session: DiscoverySession = {
-        id: `ai-${Date.now()}`,
-        customerId: '',
-        customerName: metadata.customerName,
-        innovationHubSPOC: metadata.innovationHubSPOC,
-        primaryStakeholder: metadata.primaryStakeholder,
-        accountTeamRep: metadata.accountTeamRep,
-        innovationHubLocation: metadata.innovationHubLocation,
-        solutionEngineer: metadata.solutionEngineer,
-        stockTicker: metadata.stockTicker,
-        accountSegment: metadata.accountSegment,
-        name: `Sovereign Cloud - ${metadata.customerName}`,
-        industry: 'general',
-        responses: [],
-        suggestedUseCases: [],
-        createdAt: Date.now(),
-        completedAt: Date.now(),
-      }
-
-      const customer = findOrCreateCustomer(session.customerName, session.innovationHubSPOC || '', session.stockTicker)
-      session.customerId = customer.id
-      addSession(session)
-      setSelectedCustomerId(customer.id)
-      setSelectedSessionId(session.id)
-      setDiscoveryMode('standard')
-      setCurrentView('sovereign-cloud')
-      return
-    }
-
     setPendingSessionMetadata(metadata)
     if (discoveryMode === 'live') {
       setCurrentView('live-discovery')
@@ -895,8 +814,6 @@ function App() {
       handleStartSolutionBlueprint()
     } else {
       setCurrentView('dashboard')
-      // Explicit end-of-mode decision gate (Quick Discovery -> Proceed or Conclude).
-      setPostQuickDiscoveryGateOpen(true)
     }
   }
 
@@ -933,14 +850,11 @@ function App() {
           onStartNew={() => {
             handleStartDiscovery()
           }}
-          onStartSovereignCloud={handleStartSovereignCloud}
           onStartSolutionBlueprint={handleStartSolutionBlueprint}
           onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
-          onStartDUCE={handleStartDUCE}
           onStartNotesAnalysis={handleStartNotesAnalysis}
           onViewExisting={() => setCurrentView('dashboard')}
           onOpenPortfolio={() => setCurrentView('portfolio')}
-          onOpenValuePortfolio={() => setCurrentView('value-portfolio')}
           onOpenCsamCockpit={() => setCurrentView('csam-cockpit')}
           onOpenCustomerQuestionnaire={() => setCurrentView('questionnaire-builder')}
           onSelectTemplate={handleSelectTemplate}
@@ -962,26 +876,6 @@ function App() {
           <div className="container mx-auto px-4 md:px-6 py-8 max-w-[1400px]">
             <SectionErrorBoundary>
               <PortfolioIntelligenceView />
-            </SectionErrorBoundary>
-          </div>
-        </>
-      )}
-
-      {currentView === 'value-portfolio' && (
-        <>
-          <NavigationHeader
-            onBackToLanding={handleBackToLanding}
-            onBack={() => setCurrentView('dashboard')}
-            backLabel="Back to dashboard"
-            title="Value Portfolio"
-            subtitle="Price the use-case book as an investment portfolio"
-          />
-          <div className="container mx-auto px-4 md:px-6 py-8 max-w-[1400px]">
-            <SectionErrorBoundary>
-              <ValuePortfolio
-                useCases={filteredUseCases.length ? filteredUseCases : (useCases ?? [])}
-                customerName={selectedSession?.customerName}
-              />
             </SectionErrorBoundary>
           </div>
         </>
@@ -1014,18 +908,6 @@ function App() {
             </SectionErrorBoundary>
           </div>
         </>
-      )}
-
-      {currentView === 'unit-economics' && (
-        <Suspense fallback={<LazyFallback />}>
-          <UnitEconomicsEngine
-            customerName={selectedSession?.customerName}
-            annualRevenueUSD={selectedSession?.manualFinancials?.annualRevenue}
-            itBudgetUSD={selectedSession?.manualFinancials?.itBudget}
-            onBack={() => setCurrentView('dashboard')}
-            onBackToLanding={handleBackToLanding}
-          />
-        </Suspense>
       )}
 
       {currentView === 'engagement-hub' && (
@@ -1095,27 +977,6 @@ function App() {
         </>
       )}
 
-      {currentView === 'duce-wizard' && selectedSessionId && (
-        <Suspense fallback={<LazyFallback />}>
-          <SectionErrorBoundary>
-            <DUCEWizard
-              sessionId={selectedSessionId}
-              customerName={discoverySessions?.find(s => s.id === selectedSessionId)?.customerName}
-              industry={discoverySessions?.find(s => s.id === selectedSessionId)?.industry}
-              primaryStakeholder={discoverySessions?.find(s => s.id === selectedSessionId)?.primaryStakeholder}
-              useCases={(useCases || []).filter(u => u.discoverySessionId === selectedSessionId)}
-              onUseCasesChange={(next) => {
-                setUseCases((current) => {
-                  const others = (current || []).filter(u => u.discoverySessionId !== selectedSessionId)
-                  return [...others, ...next.map(u => ({ ...u, discoverySessionId: selectedSessionId }))]
-                })
-              }}
-              onExit={handleBackToLanding}
-            />
-          </SectionErrorBoundary>
-        </Suspense>
-      )}
-
       {currentView === 'enterprise-discovery' && (
         <>
           <NavigationHeader 
@@ -1134,69 +995,6 @@ function App() {
             onCancel={handleEnterpriseDiscoveryCancel}
             onPause={handleEnterpriseSessionPause}
             />
-          </div>
-        </>
-      )}
-
-      {currentView === 'sovereign-cloud' && (
-        <>
-          <NavigationHeader
-            onBackToLanding={handleBackToLanding}
-            onBack={() => setCurrentView('dashboard')}
-            backLabel="Back"
-            title="Sovereign Cloud Assessment"
-            subtitle="Deployment model, sovereign/hybrid strategy, and AI readiness"
-          />
-          <div className="container mx-auto px-4 md:px-6 py-8 max-w-5xl">
-            {!selectedSession ? (
-              <Card className="border-2 bg-card">
-                <CardHeader>
-                  <CardTitle>No active session selected</CardTitle>
-                  <CardDescription>
-                    Create or select a discovery session before running a Sovereign Cloud Assessment.
-                  </CardDescription>
-                </CardHeader>
-                <CardFooter className="flex justify-end">
-                  <Button onClick={() => setCurrentView('dashboard')}>Back to Dashboard</Button>
-                </CardFooter>
-              </Card>
-            ) : (
-              <SovereignCloudWorkflow
-                session={selectedSession}
-                useCases={filteredUseCases}
-                onUpdateSession={updateSession}
-                onUpsertUseCases={(next) => handleUpsertUseCasesForSession(selectedSession.id, next)}
-                onProceedToPortfolio={() => setCurrentView('dashboard')}
-                onProceedToEnterprise={() => {
-                  setCurrentEnterpriseSession(null)
-                  setCurrentView('enterprise-discovery')
-                }}
-                onConclude={() => setCurrentView('dashboard')}
-                isDemoMode={isDemoMode}
-                demoIndustry={demoIndustry}
-                initialEstate={selectedSession.customerId ? blueprintEstatesByCustomer[selectedSession.customerId] ?? null : null}
-                onEstatePatch={async (patch) => {
-                  const cid = selectedSession.customerId
-                  if (!cid) return
-                  const { EMPTY_ESTATE } = await import('@/lib/solution-blueprint/types')
-                  setBlueprintEstatesByCustomer((prev) => {
-                    const existing = prev[cid]
-                    const customerName = customers.find(c => c.id === cid)?.name ?? selectedSession.customerName ?? 'Unknown'
-                    const base: import('@/lib/solution-blueprint/types').TechnologyEstate = existing ?? {
-                      ...EMPTY_ESTATE,
-                      id: `estate-${cid}`,
-                      customerId: cid,
-                      customerName,
-                      updatedAt: Date.now(),
-                    }
-                    return {
-                      ...prev,
-                      [cid]: { ...base, ...patch, updatedAt: Date.now() },
-                    }
-                  })
-                }}
-              />
-            )}
           </div>
         </>
       )}
@@ -1346,9 +1144,6 @@ function App() {
             setCurrentDiscoverySession(null)
             setNotesSession(null)
 
-            // Explicit end-of-mode decision gate (Notes Analysis -> Proceed or Conclude)
-            // User is already on the Portfolio/Matrix dashboard; this prompts whether to proceed to Sovereign Cloud Assessment.
-            setPostQuickDiscoveryGateOpen(true)
           }}
           onCancel={() => {
             setCurrentView('dashboard')
@@ -1477,9 +1272,6 @@ function App() {
                   <Funnel className="mr-2" /> Open use-case pipeline
                 </Button>
               )}
-              <Button variant="outline" onClick={() => setCurrentView('unit-economics')}>
-                <Calculator className="mr-2" /> Unit economics engine
-              </Button>
               <Button variant="outline" onClick={() => setCurrentView('fy27-cockpit')}>
                 <Gauge className="mr-2" /> FY27 alignment cockpit
               </Button>
@@ -1489,7 +1281,6 @@ function App() {
               <>
                 <DiscoveryLauncher 
                   onStartDiscovery={handleStartDiscovery} 
-                  onStartSovereignCloud={handleStartSovereignCloud}
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
@@ -1560,13 +1351,11 @@ function App() {
 
                 <DiscoveryLauncher 
                   onStartDiscovery={handleStartDiscovery} 
-                  onStartSovereignCloud={handleStartSovereignCloud}
                   onStartLiveDiscovery={handleStartLiveDiscovery} 
                   onStartEnterpriseDiscovery={handleStartEnterpriseDiscovery}
                   onResumeEnterpriseDiscovery={handleResumeEnterpriseDiscovery}
                   onStartDemo={handleStartDemo}
                   onStartEnterpriseDemo={handleStartEnterpriseDemo}
-                  customerName={customerMetadata?.customerName}
                   onOpenSessionComparison={() => setSessionManagerOpen(true)}
                   onOpenExport={() => handleOpenTableExport()}
                   onOpenEngagementHub={handleStartEngagementHub}
@@ -1609,7 +1398,7 @@ function App() {
                       onValueChange={(value) => setScoringMethod(value as ScoringMethod)}
                       className="w-full sm:w-auto"
                     >
-                      <TabsList className="grid w-full sm:w-auto grid-cols-4">
+                      <TabsList className="grid w-full sm:w-auto grid-cols-3">
                         <TabsTrigger value="blended" className="gap-2">
                           <Scales size={18} />
                           <span className="hidden sm:inline">Balanced</span>
@@ -1623,11 +1412,6 @@ function App() {
                         <TabsTrigger value="rice" className="gap-2">
                           <ListNumbers size={18} />
                           RICE
-                        </TabsTrigger>
-                        <TabsTrigger value="financial-impact" className="gap-2">
-                          <CurrencyDollar size={18} />
-                          <span className="hidden sm:inline">Financial Impact</span>
-                          <span className="sm:hidden">$</span>
                         </TabsTrigger>
                       </TabsList>
                     </Tabs>
@@ -1821,69 +1605,6 @@ function App() {
                     </div>
                   </motion.div>
                 )}
-                  {scoringMethod === 'financial-impact' && (
-                    <motion.div
-                      key="financial-impact"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.4, ease: 'easeInOut' }}
-                    >
-                      <div className="bg-muted/30 rounded-lg border border-border overflow-hidden">
-                        <button
-                          onClick={() => setShowFinancialImpactDesc(!showFinancialImpactDesc)}
-                          className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="text-left">
-                            <h3 className="text-lg font-semibold text-foreground">Financial Impact (COI + ROI)</h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {showFinancialImpactDesc
-                                ? 'Click to hide details'
-                                : 'Click to learn how financial impact is derived and edited'}
-                            </p>
-                          </div>
-                          {showFinancialImpactDesc ? (
-                            <CaretUp size={24} className="text-foreground flex-shrink-0" />
-                          ) : (
-                            <CaretDown size={24} className="text-foreground flex-shrink-0" />
-                          )}
-                        </button>
-
-                        <AnimatePresence>
-                          {showFinancialImpactDesc && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="px-6 pb-6 text-sm text-muted-foreground space-y-2">
-                                <p>
-                                  The app auto-derives initial COI/ROI values from discovery outputs (COI estimates, effort estimates, and any captured
-                                  financial analysis evidence). All derived numbers and notes remain fully editable and are used in executive exports.
-                                </p>
-                                <ul className="list-disc ml-5 space-y-1">
-                                  <li>Payback is calculated from implementation cost and annual value.</li>
-                                  <li>3-year ROI is calculated using the current ROI model used throughout the app.</li>
-                                  <li>Notes capture assumptions and the provenance of any derived defaults.</li>
-                                </ul>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      <div className="mt-6">
-                        <FinancialImpactTab
-                          useCases={useCasesList}
-                          selectedId={selectedUseCaseId}
-                          onSelectUseCase={setSelectedUseCaseId}
-                          onUpdateUseCase={handleUpdateUseCase}
-                        />
-                      </div>
-                    </motion.div>
-                  )}
                 </AnimatePresence>
 
                 <Card className="border-2 bg-card">
@@ -2031,37 +1752,6 @@ function App() {
 
       </div>{/* End of demo mode wrapper */}
 
-      <Dialog open={postQuickDiscoveryGateOpen} onOpenChange={setPostQuickDiscoveryGateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Discovery complete</DialogTitle>
-            <DialogDescription>
-              Decide whether to proceed to Sovereign Cloud Assessment (recommended) or conclude here.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2">
-            <Button
-              onClick={() => {
-                setPostQuickDiscoveryGateOpen(false)
-                handleStartSovereignCloud()
-              }}
-            >
-              Proceed to Sovereign Cloud Assessment
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setPostQuickDiscoveryGateOpen(false)
-                toast.info('Concluded after Discovery', {
-                  description: 'You’re in the Portfolio/Matrix view. You can continue later.',
-                })
-              }}
-            >
-              Conclude
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       </Suspense>
       </SectionErrorBoundary>
       <Footer />

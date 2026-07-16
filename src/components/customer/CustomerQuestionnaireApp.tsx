@@ -36,7 +36,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getQuestionnaire, submitQuestionnaire, QuestionnaireError } from '@/lib/questionnaire-api'
+import {
+  getQuestionnaire,
+  submitQuestionnaire,
+  QuestionnaireError,
+  QuestionnaireValidationError,
+  type QuestionnaireValidationDetail,
+} from '@/lib/questionnaire-api'
 import { downloadResponsesJson, downloadResponsesMarkdown } from '@/lib/questionnaire-export'
 import { businessFunctionLabel, groupedBusinessFunctions } from '@/lib/business-functions'
 import { industryLabels } from '@/lib/discovery-questions'
@@ -64,6 +70,7 @@ export default function CustomerQuestionnaireApp({ token }: { token: string }) {
   const [config, setConfig] = useState<QuestionnaireLinkConfig | null>(null)
   const [loadError, setLoadError] = useState<{ kind: string; message: string } | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [validationDetails, setValidationDetails] = useState<QuestionnaireValidationDetail[]>([])
 
   const [companyName, setCompanyName] = useState('')
   const [email, setEmail] = useState('')
@@ -162,6 +169,7 @@ export default function CustomerQuestionnaireApp({ token }: { token: string }) {
 
   const handleSubmit = async () => {
     setSubmitError(null)
+    setValidationDetails([])
     setPhase('submitting')
     try {
       await submitQuestionnaire(token, {
@@ -178,6 +186,11 @@ export default function CustomerQuestionnaireApp({ token }: { token: string }) {
       }
       setPhase('done')
     } catch (err) {
+      if (err instanceof QuestionnaireValidationError) {
+        setValidationDetails(err.details)
+        const firstInvalidIndex = questions.findIndex((question) => question.id === err.details[0]?.questionId)
+        if (firstInvalidIndex >= 0) setIndex(firstInvalidIndex)
+      }
       setSubmitError(err instanceof Error ? err.message : 'Submission failed. You can still download your answers below.')
       setPhase('questions')
     }
@@ -320,8 +333,18 @@ export default function CustomerQuestionnaireApp({ token }: { token: string }) {
                 <QuestionCard
                   question={current}
                   value={answers[current.id] ?? { answer: '' }}
-                  onChange={(next) => setAnswers((prev) => ({ ...prev, [current.id]: next }))}
+                  onChange={(next) => {
+                    setAnswers((prev) => ({ ...prev, [current.id]: next }))
+                    setValidationDetails((details) => details.filter((detail) => detail.questionId !== current.id))
+                  }}
                 />
+                {validationDetails
+                  .filter((detail) => detail.questionId === current.id)
+                  .map((detail) => (
+                    <p key={detail.error} className="text-sm text-destructive mt-3">
+                      {detail.error}
+                    </p>
+                  ))}
                 <p className="text-xs text-muted-foreground mt-3">
                   Optional — you can skip a question and come back to it later.
                 </p>
