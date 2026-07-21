@@ -22,14 +22,14 @@ export function EmptyState({ onAddFirst, onImport }: EmptyStateProps) {
         Start prioritizing by adding your first use case, or import from an existing document.
         Evaluate using Impact vs. Feasibility or RICE scoring to identify top opportunities.
       </p>
-      <div className="flex gap-3">
+      <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
         {onImport && (
-          <Button onClick={onImport} variant="outline" size="lg" className="gap-2">
+          <Button onClick={onImport} variant="outline" size="lg" className="w-full gap-2 sm:w-auto">
             <FileArrowUp size={20} weight="bold" />
             Import from Document
           </Button>
         )}
-        <Button onClick={onAddFirst} size="lg" className="gap-2">
+        <Button onClick={onAddFirst} size="lg" className="w-full gap-2 sm:w-auto">
           <Plus size={20} weight="bold" />
           Add Your First Use Case
         </Button>

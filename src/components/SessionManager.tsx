@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { DiscoverySession, EnterpriseDiscoverySession } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { useLocalStorage } from '@/hooks/use-local-storage'
@@ -112,10 +112,7 @@ export function SessionManager({ open, onOpenChange, onViewSession, onCompareSes
   if (!open) return null
 
   const sortedSessions = [...sessions].sort((a, b) => b.createdAt - a.createdAt)
-  const sortedEnterpriseSessions = useMemo(() => 
-    [...(enterpriseSessions || [])].sort((a, b) => b.createdAt - a.createdAt),
-    [enterpriseSessions]
-  )
+  const sortedEnterpriseSessions = [...(enterpriseSessions || [])].sort((a, b) => b.createdAt - a.createdAt)
 
   const handleDeleteEnterpriseSession = (sessionId: string) => {
     setEnterpriseSessions(prev => (prev || []).filter(s => s.id !== sessionId))

@@ -63,20 +63,33 @@ interface SuggestedUseCase {
 
 type FallbackReason = 'no-responses' | 'api-error' | 'empty-result'
 
+function restoreSuggestedUseCases(session: DiscoverySession): SuggestedUseCase[] {
+  return (session.suggestedUseCases ?? []).map((useCase) => ({
+    ...useCase,
+    selected: true,
+  }))
+}
+
+function restoreFallbackReason(session: DiscoverySession): FallbackReason | null {
+  const reason = session.useCaseGeneration?.fallbackReason
+  return reason === 'no-responses' || reason === 'api-error' || reason === 'empty-result' ? reason : null
+}
+
 export function DiscoveryResults({ session, onCreateUseCases, onBack }: DiscoveryResultsProps) {
-  const { addSession, updateSession } = useDiscovery()
-  const [isGenerating, setIsGenerating] = useState(true)
+  const { updateSession } = useDiscovery()
+  const restoredUseCases = restoreSuggestedUseCases(session)
+  const [isGenerating, setIsGenerating] = useState(restoredUseCases.length === 0)
   const [generationPhase, setGenerationPhase] = useState<'analyzing' | 'fetching-earnings' | 'generating'>('analyzing')
-  const [suggestedUseCases, setSuggestedUseCases] = useState<SuggestedUseCase[]>([])
-  const [earningsInsights, setEarningsInsights] = useState<EarningsInsight[]>([])
+  const [suggestedUseCases, setSuggestedUseCases] = useState<SuggestedUseCase[]>(restoredUseCases)
+  const [earningsInsights, setEarningsInsights] = useState<EarningsInsight[]>(session.earningsInsights ?? [])
   const [earningsDataSources, setEarningsDataSources] = useState<EarningsSearchResult['sources'] | null>(null)
   const [financialMetrics, setFinancialMetrics] = useState<FinancialMetrics | null>(null)
   const [newsArticles, setNewsArticles] = useState<NewsSearchResult | null>(null)
   const [industryInsights, setIndustryInsights] = useState<IndustryResearchResult | null>(null)
   const [showWorkflow, setShowWorkflow] = useState(false)
-  const [usedFallback, setUsedFallback] = useState(false)
-  const [fallbackReason, setFallbackReason] = useState<FallbackReason | null>(null)
-  const [usedEarningsData, setUsedEarningsData] = useState(false)
+  const [usedFallback, setUsedFallback] = useState(session.useCaseGeneration?.mode === 'template')
+  const [fallbackReason, setFallbackReason] = useState<FallbackReason | null>(restoreFallbackReason(session))
+  const [usedEarningsData, setUsedEarningsData] = useState((session.earningsInsights?.length ?? 0) > 0)
   const [showAllInsights, setShowAllInsights] = useState(false)
   const generationAttemptedRef = useRef<string | null>(null)
   const importedRef = useRef<{ responses: DiscoveryResponse[]; questions: DiscoveryQuestion[] } | null>(null)
@@ -488,21 +501,6 @@ IMPORTANT: Ensure use cases align with industry standards and address key trends
         },
       })
       
-      addSession({
-        ...session,
-        suggestedUseCases: useCaseData,
-        earningsInsights: fetchedInsights.length > 0 ? fetchedInsights : undefined,
-        useCaseGeneration: {
-          mode: 'ai',
-          provider: candidateResponse.generation.provider,
-          model: candidateResponse.generation.model,
-          deployment: candidateResponse.generation.deployment,
-          correlationId: candidateResponse.generation.correlationId,
-          generatedAt: Date.parse(candidateResponse.generation.generatedAt),
-          evidenceSources: dataSources,
-        },
-      })
-      
       // Check if AI returned empty results
       if (useCases.length === 0) {
         console.warn('AI returned empty use cases, loading fallback')
@@ -537,6 +535,16 @@ IMPORTANT: Ensure use cases align with industry standards and address key trends
   useEffect(() => {
     if (generationAttemptedRef.current === session.id) return
     generationAttemptedRef.current = session.id
+
+    if (session.suggestedUseCases?.length) {
+      setSuggestedUseCases(restoreSuggestedUseCases(session))
+      setEarningsInsights(session.earningsInsights ?? [])
+      setUsedFallback(session.useCaseGeneration?.mode === 'template')
+      setFallbackReason(restoreFallbackReason(session))
+      setUsedEarningsData((session.earningsInsights?.length ?? 0) > 0)
+      setIsGenerating(false)
+      return
+    }
 
     if (session.awaitingCustomerResponses) {
       setIsGenerating(false)

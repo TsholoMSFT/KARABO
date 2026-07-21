@@ -1,29 +1,42 @@
 import { useLocalStorage } from './use-local-storage'
 import { DiscoverySession } from '@/lib/types'
 
+function deduplicateSessions(sessions: DiscoverySession[]): DiscoverySession[] {
+  return Array.from(new Map(sessions.map((session) => [session.id, session])).values())
+}
+
 export function useDiscovery() {
   const [sessions, setSessions] = useLocalStorage<DiscoverySession[]>('discovery-sessions', [])
+  const uniqueSessions = deduplicateSessions(sessions || [])
 
   const addSession = (session: DiscoverySession) => {
-    setSessions([...(sessions || []), session])
+    setSessions((currentSessions) => {
+      const current = deduplicateSessions(currentSessions || [])
+      const existingIndex = current.findIndex((item) => item.id === session.id)
+      if (existingIndex === -1) return [...current, session]
+      return current.map((item, index) => index === existingIndex ? { ...item, ...session } : item)
+    })
   }
 
   const updateSession = (sessionId: string, updates: Partial<DiscoverySession>) => {
-    setSessions((sessions || []).map((s) => s.id === sessionId ? { ...s, ...updates } : s))
+    setSessions((currentSessions) => deduplicateSessions(
+      (currentSessions || []).map((session) => session.id === sessionId ? { ...session, ...updates } : session)
+    ))
   }
 
   const deleteSession = (sessionId: string) => {
-    setSessions((sessions || []).filter((s) => s.id !== sessionId))
+    setSessions((currentSessions) => deduplicateSessions(
+      (currentSessions || []).filter((session) => session.id !== sessionId)
+    ))
   }
 
   const getSessionById = (sessionId: string): DiscoverySession | undefined => {
-    return (sessions || []).find((s) => s.id === sessionId)
+    return uniqueSessions.find((session) => session.id === sessionId)
   }
 
   const getLatestSession = (): DiscoverySession | undefined => {
-    const allSessions = sessions || []
-    if (allSessions.length === 0) return undefined
-    return allSessions.sort((a, b) => b.createdAt - a.createdAt)[0]
+    if (uniqueSessions.length === 0) return undefined
+    return [...uniqueSessions].sort((a, b) => b.createdAt - a.createdAt)[0]
   }
 
   const clearSessions = () => {
@@ -31,7 +44,7 @@ export function useDiscovery() {
   }
 
   return {
-    sessions: sessions || [],
+    sessions: uniqueSessions,
     addSession,
     updateSession,
     deleteSession,

@@ -60,8 +60,8 @@ interface DiscoveryLauncherProps {
         {mode === 'quick' && (
           <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-secondary/5">
             <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                <div className="space-y-2">
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0 space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
                     <MagnifyingGlass size={28} weight="bold" className="text-primary" />
                     Use Case Discovery
@@ -69,7 +69,7 @@ interface DiscoveryLauncherProps {
                   <CardDescription className="text-base">
                     {features.discoveryDescription}
                   </CardDescription>
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
                     <Badge variant="outline" className="gap-1.5 bg-background">
                       <Buildings size={14} />
                       Industry-Specific Templates
@@ -80,7 +80,7 @@ interface DiscoveryLauncherProps {
                     </Badge>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
+                <div className="flex min-w-0 w-full shrink-0 flex-col gap-2 md:w-auto">
                   <Button onClick={onStartDiscovery} size="lg" className="gap-2">
                     <Sparkle size={20} weight="fill" />
                     {getDiscoveryButtonLabel(accountSegment)}
@@ -144,8 +144,8 @@ interface DiscoveryLauncherProps {
             
             <Card className="border-2 border-brand-blue/30 bg-gradient-to-br from-brand-blue/5 to-secondary/5">
             <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                <div className="space-y-2">
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0 space-y-2">
                   <CardTitle className="text-2xl flex items-center gap-3">
                     <Briefcase size={28} weight="bold" className="text-brand-blue" />
                     Strategic Assessment Process
@@ -153,7 +153,7 @@ interface DiscoveryLauncherProps {
                   <CardDescription className="text-base">
                     Comprehensive {features.strategicAssessmentStages}-stage framework for evidence gathering, stakeholder alignment, and prioritization.
                   </CardDescription>
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
                     <Badge variant="outline" className="gap-1.5 bg-background">
                       <ChartLine size={14} />
                       Evidence Review
@@ -168,7 +168,7 @@ interface DiscoveryLauncherProps {
                     </Badge>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
+                <div className="flex min-w-0 w-full shrink-0 flex-col gap-2 md:w-auto">
                   <Button 
                     onClick={onStartEnterpriseDiscovery}
                     size="lg" 

@@ -715,8 +715,8 @@ export function SessionMetadataForm({ onSubmit, onCancel, onBackToLanding, initi
                   value={metadata.complianceEnforcement || 'advisory'}
                   onValueChange={(value) => handleChange('complianceEnforcement', value)}
                 >
-                  <SelectTrigger id="compliance-enforcement">
-                    <SelectValue placeholder="Select compliance mode" />
+                  <SelectTrigger id="compliance-enforcement" className="w-full min-w-0">
+                    <SelectValue placeholder="Select compliance mode" className="min-w-0 flex-1 truncate" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="advisory">
