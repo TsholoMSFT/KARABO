@@ -1186,85 +1186,23 @@ export function UseCaseCard({
                 className="overflow-hidden"
               >
                 <div className="pt-3 space-y-4 text-xs">
-                  {/* COI Input Section */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <CurrencyDollar size={12} weight="bold" />
-                      <span className="font-medium">Cost of Inaction (Annual)</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Direct Costs</Label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          className="h-7 text-xs tabular-nums"
-                          value={useCase.costOfInaction?.directCosts || ''}
-                          onChange={(e) => {
-                            const value = Number(e.target.value) || 0
-                            const coi = useCase.costOfInaction || { directCosts: 0, opportunityCosts: 0, riskCosts: 0, totalAnnualCOI: 0 }
-                            const updated = { 
-                              ...coi, 
-                              directCosts: value,
-                              totalAnnualCOI: value + (coi.opportunityCosts || 0) + (coi.riskCosts || 0),
-                              calculatedAt: Date.now()
-                            }
-                            onUpdate({ ...useCase, costOfInaction: updated })
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Opportunity Costs</Label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          className="h-7 text-xs tabular-nums"
-                          value={useCase.costOfInaction?.opportunityCosts || ''}
-                          onChange={(e) => {
-                            const value = Number(e.target.value) || 0
-                            const coi = useCase.costOfInaction || { directCosts: 0, opportunityCosts: 0, riskCosts: 0, totalAnnualCOI: 0 }
-                            const updated = { 
-                              ...coi, 
-                              opportunityCosts: value,
-                              totalAnnualCOI: (coi.directCosts || 0) + value + (coi.riskCosts || 0),
-                              calculatedAt: Date.now()
-                            }
-                            onUpdate({ ...useCase, costOfInaction: updated })
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-[10px] text-muted-foreground">Risk Costs</Label>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          className="h-7 text-xs tabular-nums"
-                          value={useCase.costOfInaction?.riskCosts || ''}
-                          onChange={(e) => {
-                            const value = Number(e.target.value) || 0
-                            const coi = useCase.costOfInaction || { directCosts: 0, opportunityCosts: 0, riskCosts: 0, totalAnnualCOI: 0 }
-                            const updated = { 
-                              ...coi, 
-                              riskCosts: value,
-                              totalAnnualCOI: (coi.directCosts || 0) + (coi.opportunityCosts || 0) + value,
-                              calculatedAt: Date.now()
-                            }
-                            onUpdate({ ...useCase, costOfInaction: updated })
-                          }}
-                        />
-                      </div>
-                    </div>
-                    
-                    {useCase.costOfInaction && useCase.costOfInaction.totalAnnualCOI > 0 && (
-                      <div className="p-2 bg-red-500/10 rounded border border-red-500/20 flex items-center justify-between">
-                        <span className="text-red-600 font-medium">Total Annual COI</span>
-                        <span className="text-red-600 font-bold tabular-nums">
+                  {useCase.costOfInaction && useCase.costOfInaction.totalAnnualCOI > 0 && (
+                    <div className="space-y-2 rounded border border-border/60 bg-muted/20 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <CurrencyDollar size={12} weight="bold" />
+                          <span className="font-medium">Historical Cost of Inaction</span>
+                          <Badge variant="outline" className="text-[10px]">Read-only</Badge>
+                        </div>
+                        <span className="font-semibold tabular-nums text-foreground">
                           {formatCurrency(useCase.costOfInaction.totalAnnualCOI)}/year
                         </span>
                       </div>
-                    )}
-                  </div>
+                      {useCase.costOfInaction.notes && (
+                        <p className="text-[11px] text-muted-foreground">{useCase.costOfInaction.notes}</p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Expected Value Section */}
                   <div className="space-y-2">
@@ -1362,19 +1300,6 @@ export function UseCaseCard({
                     )}
                   </div>
 
-                  {/* Notes */}
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground">Calculation Notes</Label>
-                    <Input
-                      placeholder="Assumptions, data sources..."
-                      className="h-7 text-xs"
-                      value={useCase.costOfInaction?.notes || ''}
-                      onChange={(e) => {
-                        const coi = useCase.costOfInaction || { directCosts: 0, opportunityCosts: 0, riskCosts: 0, totalAnnualCOI: 0 }
-                        onUpdate({ ...useCase, costOfInaction: { ...coi, notes: e.target.value } })
-                      }}
-                    />
-                  </div>
                 </div>
               </motion.div>
             )}

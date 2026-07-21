@@ -2,6 +2,16 @@
 
 This repo uses Azure Functions Core Tools (v4) for the backend under `api/`.
 
+Use the repository launcher rather than invoking the global `func` shim directly:
+
+```powershell
+.\scripts\start-local-api.ps1
+```
+
+The launcher builds the API, starts Azurite when needed, resolves Node 20/22 and Core Tools, and fails unless `/api/health` becomes reachable. Override resolution with `KARABO_NODE_EXE` and `KARABO_FUNC_EXE`.
+
+On Windows ARM64, native ARM64 Core Tools can fail the Node worker handshake with `Value cannot be null. (Parameter 'provider')`. The launcher prefers portable x64 Node at `%LOCALAPPDATA%\karabo-node-x64` and x64 Core Tools at `%LOCALAPPDATA%\karabo-func-x64` when installed, allowing Windows x64 emulation to avoid the native gRPC failure.
+
 ## Symptom: routes print, but `localhost:<port>` is not reachable
 
 If `func start` prints routes like `http://localhost:7071/api/chat` but:
@@ -47,6 +57,18 @@ Even for HTTP-only projects, local host stability is best when storage is set.
 The frontend calls `/api/*`.
 
 - If you are running Vite separately, confirm any proxy config (or Static Web Apps emulator) is routing `/api` to the Functions host.
+- To use a deployed API when local Core Tools is unavailable, set `KARABO_API_PROXY_TARGET` before `npm run dev`:
+
+```powershell
+$env:KARABO_API_PROXY_TARGET = 'https://<function-app-hostname>'
+npm run dev
+```
+
+After liveness succeeds, verify model readiness separately:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:7071/api/ai-readiness?refresh=true
+```
 
 ## RSS storage configuration
 

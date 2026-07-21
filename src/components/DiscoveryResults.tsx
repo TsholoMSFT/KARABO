@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { DiscoverySession, UseCase, AIRegulationsInfo, CybersecurityInfo, EarningsInsight, StrategicAlignmentInfo, UseCaseBusinessProcess, UseCaseMicrosoftSolution, UseCaseAgenticOpportunity, ImplementationComplexityInfo, BusinessFunction, DiscoveryResponse, DiscoveryQuestion } from '@/lib/types'
 import { useDiscovery } from '@/hooks/use-discovery'
 import { discoveryQuestions, getQuestionsForIndustry, industryLabels } from '@/lib/discovery-questions'
-import { buildBusinessFunctionContext, BUSINESS_FUNCTION_IDS } from '@/lib/business-functions'
+import { BUSINESS_FUNCTION_IDS } from '@/lib/business-functions'
 import { AVAILABLE_KPIS } from '@/lib/kpis'
 import { getRegulationsForIndustry, getSecurityRequirementsForIndustry, getRegulationsForJurisdiction, getFallbackUseCasesForIndustry } from '@/lib/industry-fallbacks'
 import { detectJurisdictions, getApplicableFrameworks, getRegulationDisplayInfo } from '@/lib/regulatory-engine'
@@ -25,13 +25,17 @@ import { EnhancedDiscoveryWorkflow } from '@/components/EnhancedDiscoveryWorkflo
 import { QuestionnaireImportPanel, type ImportedQuestionnaire } from '@/components/QuestionnaireImportPanel'
 import { EngagementPrepCard } from '@/components/EngagementPrepCard'
 import { NavigationHeader } from '@/components/NavigationHeader'
-import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Sparkle, ArrowClockwise, Warning, ChartLineUp, Database, CheckCircle, CaretDown, CaretUp, Quotes, DownloadSimple } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
+import { AIServiceError, getAIReadiness } from '@/lib/openai-service'
+import {
+  generateUseCaseCandidates as requestUseCaseCandidates,
+  type CandidateEvidenceSource,
+} from '@/lib/use-case-generation-service'
 
 interface DiscoveryResultsProps {
   session: DiscoverySession
@@ -54,7 +58,10 @@ interface SuggestedUseCase {
   referenceArchitecture?: string
   agenticOpportunities?: UseCaseAgenticOpportunity[]
   implementationComplexity?: ImplementationComplexityInfo
+  kpis?: string[]
 }
+
+type FallbackReason = 'no-responses' | 'api-error' | 'empty-result'
 
 export function DiscoveryResults({ session, onCreateUseCases, onBack }: DiscoveryResultsProps) {
   const { addSession, updateSession } = useDiscovery()
@@ -68,30 +75,16 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
   const [industryInsights, setIndustryInsights] = useState<IndustryResearchResult | null>(null)
   const [showWorkflow, setShowWorkflow] = useState(false)
   const [usedFallback, setUsedFallback] = useState(false)
-  const [fallbackReason, setFallbackReason] = useState<'no-responses' | 'api-error' | 'empty-result' | null>(null)
+  const [fallbackReason, setFallbackReason] = useState<FallbackReason | null>(null)
   const [usedEarningsData, setUsedEarningsData] = useState(false)
   const [showAllInsights, setShowAllInsights] = useState(false)
-  const generationAttemptedRef = useRef(false)
+  const generationAttemptedRef = useRef<string | null>(null)
   const importedRef = useRef<{ responses: DiscoveryResponse[]; questions: DiscoveryQuestion[] } | null>(null)
   const [importedSummary, setImportedSummary] = useState<{ email?: string; count: number } | null>(null)
   const [showImportPanel, setShowImportPanel] = useState(false)
 
-  useEffect(() => {
-    // Prevent duplicate generation attempts
-    if (!generationAttemptedRef.current) {
-      generationAttemptedRef.current = true
-      if (session.awaitingCustomerResponses) {
-        // Defer generation until the consultant imports the customer's answers.
-        setIsGenerating(false)
-        setShowImportPanel(true)
-      } else {
-        generateUseCases()
-      }
-    }
-  }, [])
-
   // Load fallback use cases for the industry
-  const loadFallbackUseCases = () => {
+  const loadFallbackUseCases = (reason: FallbackReason) => {
     const industry = session.industry || 'general'
     const fallbackCases = getFallbackUseCasesForIndustry(industry)
     
@@ -118,6 +111,12 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
     
     updateSession(session.id, {
       suggestedUseCases: useCaseData,
+      useCaseGeneration: {
+        mode: 'template',
+        generatedAt: Date.now(),
+        fallbackReason: reason,
+        evidenceSources: ['fallback'],
+      },
     })
     
     toast.info(`Showing ${useCases.length} sample use cases for ${industryLabels[industry] || 'your industry'}`, {
@@ -144,13 +143,6 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
         ? [...session.responses.filter((sr) => !importedResponses.some((ir) => ir.questionId === sr.questionId)), ...importedResponses]
         : session.responses
 
-      const responsesText = effectiveResponses
-        .map((r) => {
-          const question = allQuestions.find((q) => q.id === r.questionId)
-          return `Q: ${question?.question}\nA: ${r.answer}`
-        })
-        .join('\n\n')
-
       // Check if we have any meaningful responses
       const hasResponses = effectiveResponses.length > 0 && 
         effectiveResponses.some(r => r.answer && r.answer.trim().length > 0)
@@ -161,23 +153,23 @@ export function DiscoveryResults({ session, onCreateUseCases, onBack }: Discover
       if (!hasResponses && !hasCompanyInsights && !hasStockTicker) {
         console.log('No discovery data available, loading fallback')
         setFallbackReason('no-responses')
-        loadFallbackUseCases()
+        loadFallbackUseCases('no-responses')
         setIsGenerating(false)
         return
       }
 
-      const industryContext = session.industry && session.industry !== 'general'
-        ? `\n\nINDUSTRY CONTEXT: The organization operates in the ${industryLabels[session.industry]} sector. Tailor your suggestions to be relevant to this industry's specific challenges and opportunities.`
-        : ''
-
-      // Business-function / department context (Discovery department dimension).
-      const departmentContext = buildBusinessFunctionContext(session.businessFunctions, session.businessUnitLabel)
+      const readiness = await getAIReadiness()
+      if (readiness.status !== 'ready') {
+        throw new AIServiceError(
+          readiness.message || 'AI provider is unavailable.',
+          readiness.code || 'PROVIDER_ERROR',
+          readiness.retryable ?? false,
+          readiness.correlationId,
+        )
+      }
 
       // Desired business KPI outcomes captured in Discovery.
       const targetKpiNames = (session.targetKpis ?? []).map((id) => AVAILABLE_KPIS.find((k) => k.id === id)?.name ?? id)
-      const desiredOutcomesContext = (targetKpiNames.length || session.desiredOutcomes)
-        ? `\n\nDESIRED BUSINESS OUTCOMES & TARGET KPIs: ${targetKpiNames.length ? `Prioritise use cases that measurably move these KPIs: ${targetKpiNames.join(', ')}. ` : ''}${session.desiredOutcomes ? `Stated targets: ${sanitizePromptInput(session.desiredOutcomes)}. ` : ''}Tie each use case's expected impact to these outcomes where relevant.`
-        : ''
 
       // Determine jurisdiction from location (enhanced with regulatory engine)
       const detectedJurisdictions = detectJurisdictions(session.innovationHubLocation || '')
@@ -379,206 +371,34 @@ IMPORTANT: Ensure use cases align with industry standards and address key trends
 
       // Sanitize user-supplied values before prompt interpolation
       const safeCustomerName = sanitizePromptInput(session.customerName || '')
-      const safeLocation = sanitizePromptInput(session.innovationHubLocation || '')
-      const safeResponsesText = sanitizePromptInput(responsesText || '')
 
-      const useCasesPromptText = `You are an innovation consultant at Microsoft using the Innovation Hub Methodology to help identify high-value use cases for Microsoft technologies and AI solutions.
 
-DISCOVERY SESSION CONTEXT:
-Customer: ${safeCustomerName}
-Industry: ${session.industry ? industryLabels[session.industry] : 'General'}
-Location: ${safeLocation}
-Primary Jurisdiction: ${jurisdiction}
-All Jurisdictions: ${detectedJurisdictions.join(', ')}
-Entity Type: ${session.entityType || 'public-company'}
-${session.stockTicker ? `Stock Ticker: ${sanitizePromptInput(session.stockTicker)} (Public Company)` : 'No stock ticker (non-public entity)'}
-
-DISCOVERY RESPONSES:
-${safeResponsesText}${industryContext}${departmentContext}${desiredOutcomesContext}${earningsContext}${financialsContext}${newsContext}${industryResearchContext}${companyResearchContext}${regulatoryFrameworkContext}${regulatoryNewsContext}
-
-TASK: Using the Microsoft Innovation Hub Methodology, analyze ALL available data sources to suggest 5-8 high-value use cases. For each use case, apply both Business Envisioning (the WHY and HOW) and Solution Envisioning (the WHAT and WITH WHAT).
-
-DATA SOURCES AVAILABLE:
-${dataSources.map(ds => `- ${ds.toUpperCase()}`).join('\n')}
-
-=== BUSINESS ENVISIONING (Phase 1) ===
-
-For each use case, extract:
-
-1. STRATEGIC ALIGNMENT (The "Why"):
-   - Which strategic priority does this address? (e.g., "Digital Transformation", "Cost Optimization", "Growth")
-   - Source of the priority (earnings-call, annual-report, discovery-session, industry-research)
-   - Alignment score (1-10)
-   - Brief rationale explaining WHY this supports the company's strategy
-
-2. BUSINESS PROCESS MAPPING (The "How"):
-   - Which business process does this improve?
-   - Key steps in that process (3-5 steps with name and description)
-   - Current pain points in the process
-   - Where AI can intervene (which steps)
-   - Expected cycle time or efficiency improvement
-
-=== SOLUTION ENVISIONING (Phase 2) ===
-
-For each use case, provide:
-
-3. MICROSOFT SOLUTION RECOMMENDATIONS:
-   - Primary product family: azure-ai, azure-data, power-platform, microsoft-365, dynamics-365, microsoft-fabric, microsoft-security
-   - Specific services to use (e.g., ["azure-openai", "azure-ai-search", "copilot-studio"])
-   - Role of each product family: primary, supporting, or integration
-   - Reference architecture pattern if applicable (conversational-ai, document-processing, predictive-analytics, process-automation, agentic-ai, etc.)
-
-4. AGENTIC AI OPPORTUNITIES:
-   - If this use case could benefit from autonomous AI agents, describe:
-     - Agent type: task-agent, orchestrator-agent, specialist-agent, assistant-agent
-     - Key capabilities: reasoning, planning, tool-use, memory, multi-step-execution, human-in-loop
-     - Human oversight level: none, approval, review, supervision
-     - Automation level: assisted, semi-autonomous, autonomous
-     - Tools/APIs the agent would use
-     - Orchestration pattern (e.g., supervisor, swarm, routing, sequential)
-     - Orchestration framework (e.g., semantic-kernel, autogen, langchain, custom)
-     - Interop protocols the agent supports: mcp, a2a, openapi, graphql, grpc
-     - Hosting target: azure-ai-foundry, azure-container-apps, azure-functions, copilot-studio
-
-5. IMPLEMENTATION COMPLEXITY:
-   - Level: low, medium, high, very-high
-   - Key complexity factors (e.g., "Multiple integrations", "Custom ML models", "Legacy system migration")
-   - Estimated duration (e.g., "3-6 months")
-   - Estimated team size (e.g., "5-8 people")
-   - Key risks
-
-=== COMPLIANCE & SECURITY ===
-
-6. AI Regulations & Compliance:
-   - applicableFrameworks: array of relevant regulation codes (gdpr, popia, hipaa, sox, msha, eu-ai-act, iso-42001, ms-responsible-ai)
-   - riskClassification: EU AI Act risk level (minimal, limited, high, unacceptable)
-   - complianceNotes: brief note on key compliance considerations
-   - jurisdictions: array of applicable jurisdictions (e.g., ["South Africa", "European Union"])
-
-7. Cybersecurity:
-   - securityRequirements: array of required controls (encryption-at-rest, access-control, audit-logging, mfa-required)
-   - dataClassification: data sensitivity level (public, internal, confidential, pii, operational)
-   - securityNotes: brief note on key security considerations
-
-=== OUTPUT FORMAT ===
-
-Return a valid JSON object with structure:
-{
-  "useCases": [
-    {
-      "title": "string (max 60 chars, specific and compelling)",
-      "description": "string (2-3 sentences explaining the opportunity)",
-      "rationale": "string (1-2 sentences referencing specific data sources)",
-      "businessFunction": "string (the single business function/department this primarily serves, from the Valid businessFunction values listed in the BUSINESS FUNCTION CONTEXT)",
-      "strategicAlignment": {
-        "primaryPriority": "string",
-        "linkedPriorities": ["string"],
-        "source": "earnings-call | annual-report | discovery-session | industry-research",
-        "alignmentScore": 1-10,
-        "alignmentRationale": "string"
-      },
-      "businessProcess": {
-        "processName": "string",
-        "category": "core | support | management",
-        "steps": [
-          {
-            "order": 1,
-            "name": "string",
-            "description": "string",
-            "painPoint": "string (optional)",
-            "aiOpportunity": {
-              "interventionType": "automate | augment | analyze | generate",
-              "description": "string"
-            }
-          }
-        ],
-        "currentPainPoints": ["string"],
-        "expectedImprovement": "string"
-      },
-      "microsoftSolutions": [
-        {
-          "productFamily": "azure-ai | power-platform | microsoft-365 | dynamics-365 | azure-data | microsoft-fabric | microsoft-security",
-          "services": ["string"],
-          "role": "primary | supporting | integration",
-          "justification": "string"
-        }
-      ],
-      "referenceArchitecture": "conversational-ai | document-processing | predictive-analytics | process-automation | agentic-ai | knowledge-mining | customer-360 | (optional)",
-      "agenticOpportunity": {
-        "hasOpportunity": true | false,
-        "title": "string (if hasOpportunity)",
-        "description": "string (if hasOpportunity)",
-        "agentType": "task-agent | orchestrator-agent | specialist-agent | assistant-agent",
-        "capabilities": ["reasoning", "planning", "tool-use", "memory", "multi-step-execution", "human-in-loop"],
-        "humanOversight": "none | approval | review | supervision",
-        "automationLevel": "assisted | semi-autonomous | autonomous",
-        "tools": ["string"],
-        "orchestrationPattern": "supervisor | swarm | routing | sequential (optional)",
-        "orchestrationFramework": "semantic-kernel | autogen | langchain | custom (optional)",
-        "interopProtocols": ["mcp", "a2a", "openapi"] ,
-        "hostingTarget": "azure-ai-foundry | azure-container-apps | azure-functions | copilot-studio (optional)"
-      },
-      "implementationComplexity": {
-        "level": "low | medium | high | very-high",
-        "factors": ["string"],
-        "estimatedDuration": "string",
-        "estimatedTeamSize": "string",
-        "keyRisks": ["string"]
-      },
-      "aiRegulations": {
-        "applicableFrameworks": ["string"],
-        "riskClassification": "minimal | limited | high",
-        "complianceNotes": "string",
-        "jurisdictions": ["string"]
-      },
-      "cybersecurity": {
-        "securityRequirements": ["string"],
-        "dataClassification": "public | internal | confidential | pii | operational",
-        "securityNotes": "string"
+      const evidence: Array<{ source: CandidateEvidenceSource; title?: string; content: string }> = []
+      const addEvidence = (source: CandidateEvidenceSource, title: string, content: string) => {
+        const normalized = sanitizePromptInput(content).trim().slice(0, 4_000)
+        if (normalized) evidence.push({ source, title, content: normalized })
       }
-    }
-  ]
-}
+      addEvidence('company-research', 'Company research', companyResearchContext)
+      addEvidence('earnings', 'Earnings insights', earningsContext)
+      addEvidence('financials', 'Financial context', financialsContext)
+      addEvidence('news', 'Company news', newsContext)
+      addEvidence('industry-research', 'Industry and regulatory context', `${industryResearchContext}${regulatoryFrameworkContext}${regulatoryNewsContext}`)
 
-GUIDELINES:
-- Focus on practical, implementable solutions that address their stated challenges
-- ALWAYS recommend specific Microsoft products - consider Azure AI, Microsoft 365 Copilot, Power Platform, Azure OpenAI Service, Dynamics 365, Microsoft Fabric
-- Prioritize use cases with clear business value and strategic alignment
-- Ensure diversity in the types of solutions (don't suggest 5 variations of the same thing)
-- For safety-critical AI (affecting workers, health, critical infrastructure), classify as "high" risk
-- Identify agentic AI opportunities where autonomous reasoning and multi-step execution can add value
-${earningsContext ? '- PRIORITIZE use cases that directly address strategic priorities, pain points, or investment areas from earnings calls' : ''}`
-
-      const useCasesResult = await window.llm(useCasesPromptText, 'gpt-4o-mini', true)
-      
-      // Attempt to parse JSON with repair for truncated responses
-      let parsed: { useCases?: unknown[] }
-      try {
-        parsed = JSON.parse(useCasesResult)
-      } catch (parseError) {
-        console.warn('JSON parse failed, attempting repair...', parseError)
-        // Try to repair truncated JSON by finding the last complete object
-        let repairedJson = useCasesResult
-        // Find the last complete use case object (ends with })
-        const lastCompleteObject = repairedJson.lastIndexOf('},')
-        if (lastCompleteObject > 0) {
-          repairedJson = repairedJson.substring(0, lastCompleteObject + 1) + ']}'
-        } else {
-          // Try to close the array and object
-          const lastBrace = repairedJson.lastIndexOf('}')
-          if (lastBrace > 0) {
-            repairedJson = repairedJson.substring(0, lastBrace + 1) + ']}'
-          }
-        }
-        try {
-          parsed = JSON.parse(repairedJson)
-          console.log('JSON repair successful, recovered use cases')
-        } catch {
-          // Final fallback - extract what we can
-          console.error('JSON repair failed, using fallback')
-          throw parseError
-        }
-      }
+      const candidateResponse = await requestUseCaseCandidates({
+        customerName: safeCustomerName,
+        industry: session.industry ? industryLabels[session.industry] : 'General',
+        jurisdiction,
+        businessFunctions: session.businessFunctions ?? [],
+        targetKpis: targetKpiNames,
+        desiredOutcomes: session.desiredOutcomes,
+        responses: effectiveResponses
+          .filter((response) => response.answer.trim())
+          .map((response) => ({
+            question: allQuestions.find((question) => question.id === response.questionId)?.question || response.questionId,
+            answer: sanitizePromptInput(response.answer),
+          })),
+        evidence,
+      })
 
       // Get default regulations based on industry and jurisdiction for fallback
       const defaultRegulations = session.industry 
@@ -589,62 +409,59 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
         ? getSecurityRequirementsForIndustry(session.industry) 
         : []
 
-      let useCases: SuggestedUseCase[] = []
-      if (parsed.useCases && Array.isArray(parsed.useCases)) {
-        useCases = parsed.useCases.map((uc: any) => ({
-          title: uc.title,
-          description: uc.description,
-          rationale: uc.rationale,
-          businessFunction: (BUSINESS_FUNCTION_IDS as string[]).includes(uc.businessFunction)
-            ? (uc.businessFunction as BusinessFunction)
+      const riskClassification = {
+        low: 'minimal',
+        medium: 'limited',
+        high: 'high',
+      } as const
+      const useCases: SuggestedUseCase[] = candidateResponse.useCases.map((candidate, index) => ({
+          title: candidate.title,
+          description: candidate.description,
+          rationale: `${candidate.rationale} Expected outcomes: ${candidate.expectedOutcomes.join('; ')}.`,
+          kpis: candidate.kpis,
+          businessFunction: (BUSINESS_FUNCTION_IDS as string[]).includes(candidate.businessFunction)
+            ? (candidate.businessFunction as BusinessFunction)
             : session.businessFunctions?.[0],
           selected: true,
-          aiRegulations: uc.aiRegulations || {
+          aiRegulations: {
             applicableFrameworks: [...new Set([...defaultRegulations, ...jurisdictionRegs])],
-            riskClassification: 'minimal',
+            riskClassification: riskClassification[candidate.preliminaryRisk.level],
+            complianceNotes: candidate.preliminaryRisk.notes,
             jurisdictions: [jurisdiction],
           },
-          cybersecurity: uc.cybersecurity || {
+          cybersecurity: {
             securityRequirements: defaultSecurityReqs,
             dataClassification: 'internal',
+            securityNotes: candidate.preliminaryRisk.notes,
           },
-          // Innovation Hub Methodology additions
-          strategicAlignment: uc.strategicAlignment ? {
-            primaryPriority: uc.strategicAlignment.primaryPriority,
-            linkedPriorities: uc.strategicAlignment.linkedPriorities,
-            alignmentScore: uc.strategicAlignment.alignmentScore,
-            alignmentRationale: uc.strategicAlignment.alignmentRationale,
-          } : undefined,
-          businessProcesses: uc.businessProcess ? [{
-            processId: `process-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            processName: uc.businessProcess.processName,
-            affectedSteps: uc.businessProcess.steps?.map((s: any) => s.name) || [],
-            currentPainPoints: uc.businessProcess.currentPainPoints || [],
-            proposedImprovement: uc.businessProcess.expectedImprovement || '',
-            processData: uc.businessProcess, // Keep full process data for visualization
-          }] : undefined,
-          microsoftSolutions: uc.microsoftSolutions || undefined,
-          referenceArchitecture: uc.referenceArchitecture || undefined,
-          agenticOpportunities: uc.agenticOpportunity?.hasOpportunity ? [{
-            id: `agent-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            title: uc.agenticOpportunity.title,
-            description: uc.agenticOpportunity.description,
-            agentType: uc.agenticOpportunity.agentType,
-            capabilities: uc.agenticOpportunity.capabilities || [],
-            humanOversight: uc.agenticOpportunity.humanOversight || 'review',
-            automationLevel: uc.agenticOpportunity.automationLevel || 'assisted',
-            tools: uc.agenticOpportunity.tools || [],
-          }] : undefined,
-          implementationComplexity: uc.implementationComplexity || undefined,
+          strategicAlignment: {
+            primaryPriority: candidate.strategicAlignment.primaryPriority,
+            linkedPriorities: [],
+            alignmentScore: candidate.strategicAlignment.alignmentScore,
+            alignmentRationale: candidate.strategicAlignment.rationale,
+            source: 'ai-generated',
+          },
+          businessProcesses: [{
+            processId: `process-${Date.now()}-${index}`,
+            processName: candidate.processContext.processName,
+            affectedSteps: [],
+            currentPainPoints: candidate.processContext.painPoints,
+            proposedImprovement: candidate.processContext.proposedImprovement,
+          }],
+          implementationComplexity: {
+            level: candidate.complexity.level,
+            factors: [candidate.complexity.rationale],
+            keyRisks: [candidate.preliminaryRisk.notes],
+          },
         }))
-        setSuggestedUseCases(useCases)
-        toast.success(`Generated ${useCases.length} use cases with Microsoft solution recommendations!`)
-      }
+      setSuggestedUseCases(useCases)
+      toast.success(`Generated ${useCases.length} use-case candidates ready for scoring!`)
       
       const useCaseData = useCases.map((uc: SuggestedUseCase) => ({
         title: uc.title,
         description: uc.description,
         rationale: uc.rationale,
+        kpis: uc.kpis,
         aiRegulations: uc.aiRegulations,
         cybersecurity: uc.cybersecurity,
         dataSources: [...dataSources, 'ai-generated'] as ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[],
@@ -660,19 +477,37 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
       updateSession(session.id, {
         suggestedUseCases: useCaseData,
         earningsInsights: fetchedInsights.length > 0 ? fetchedInsights : undefined,
+        useCaseGeneration: {
+          mode: 'ai',
+          provider: candidateResponse.generation.provider,
+          model: candidateResponse.generation.model,
+          deployment: candidateResponse.generation.deployment,
+          correlationId: candidateResponse.generation.correlationId,
+          generatedAt: Date.parse(candidateResponse.generation.generatedAt),
+          evidenceSources: dataSources,
+        },
       })
       
       addSession({
         ...session,
         suggestedUseCases: useCaseData,
         earningsInsights: fetchedInsights.length > 0 ? fetchedInsights : undefined,
+        useCaseGeneration: {
+          mode: 'ai',
+          provider: candidateResponse.generation.provider,
+          model: candidateResponse.generation.model,
+          deployment: candidateResponse.generation.deployment,
+          correlationId: candidateResponse.generation.correlationId,
+          generatedAt: Date.parse(candidateResponse.generation.generatedAt),
+          evidenceSources: dataSources,
+        },
       })
       
       // Check if AI returned empty results
       if (useCases.length === 0) {
         console.warn('AI returned empty use cases, loading fallback')
         setFallbackReason('empty-result')
-        loadFallbackUseCases()
+        loadFallbackUseCases('empty-result')
       }
     } catch (error) {
       console.error('Error generating use cases:', error)
@@ -693,11 +528,27 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
       }
       
       // Load fallback use cases
-      loadFallbackUseCases()
+      loadFallbackUseCases('api-error')
     } finally {
       setIsGenerating(false)
     }
   }
+
+  useEffect(() => {
+    if (generationAttemptedRef.current === session.id) return
+    generationAttemptedRef.current = session.id
+
+    if (session.awaitingCustomerResponses) {
+      setIsGenerating(false)
+      setShowImportPanel(true)
+      return
+    }
+
+    void generateUseCases()
+    // Generation is intentionally one attempt per session ID. Imported-response
+    // retries and the explicit Retry action invoke generateUseCases directly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.id, session.awaitingCustomerResponses])
 
   const handleRetryGeneration = async () => {
     setUsedFallback(false)
@@ -1048,19 +899,6 @@ ${earningsContext ? '- PRIORITIZE use cases that directly address strategic prio
                         </div>
                       )}
 
-                      {/* Quick Financial Quantification */}
-                      <div className="mt-4">
-                        <QuickCOICalculator 
-                          variant="compact"
-                          customerName={session.customerName}
-                          opportunityTitle={session.name}
-                          autoContext={{
-                            industry: session.industry ? industryLabels[session.industry] : undefined,
-                            companyName: session.customerName,
-                            annualRevenue: financialMetrics?.statements?.[0]?.revenue,
-                          }}
-                        />
-                      </div>
                     </div>
                   )}
                 </div>

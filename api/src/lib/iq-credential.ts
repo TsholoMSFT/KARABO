@@ -60,15 +60,18 @@ export function notConfiguredBody(connector: string, requiredEnv: string[], docs
 /**
  * Build auth headers for an Azure OpenAI / AI Foundry call.
  * Honours AZURE_OPENAI_AUTH_TYPE: "entra-id" (default) or "key".
+ * The selected mode is strict: an Entra failure does not silently cross over
+ * to key authentication.
  * Returns null when no auth method is configured.
  */
-export async function getAoaiAuthHeaders(apiKey?: string): Promise<Record<string, string> | null> {
-  const authType = (process.env.AZURE_OPENAI_AUTH_TYPE || "entra-id").toLowerCase();
+export async function getAoaiAuthHeaders(
+  apiKey?: string,
+  requestedAuthType?: "entra-id" | "key",
+): Promise<Record<string, string> | null> {
+  const authType = requestedAuthType || (process.env.AZURE_OPENAI_AUTH_TYPE || "entra-id").toLowerCase();
   if (authType === "entra-id") {
     const token = await getBearerToken("https://cognitiveservices.azure.com/.default");
     if (token) return { Authorization: `Bearer ${token}` };
-    // Fall back to key if available
-    if (apiKey) return { "api-key": apiKey };
     return null;
   }
   if (apiKey) return { "api-key": apiKey };

@@ -11,12 +11,13 @@
     "test": "tsx --test src/lib/*.test.ts"
   },
   "dependencies": {
-    "@azure/functions": "^4.0.0",
     "@azure/data-tables": "^13.3.0",
+    "@azure/functions": "^4.0.0",
     "@azure/identity": "^4.5.0",
     "@azure/keyvault-secrets": "^4.11.2",
     "@azure/search-documents": "^13.0.0",
-    "@azure/storage-blob": "^12.29.1"
+    "@azure/storage-blob": "^12.29.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

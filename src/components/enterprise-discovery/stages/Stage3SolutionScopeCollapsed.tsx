@@ -6,8 +6,7 @@
  * 
  * Features:
  * - Single-page collapsed view with accordions
- * - Auto-populate from Stage 1 COI data
- * - Auto-calculate RICE score based on COI and estimates
+ * - Manual value-driver and RICE inputs
  * - TabCompletionIndicator for tracking
  * - Skip for now functionality
  */
@@ -20,7 +19,6 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Accordion,
   AccordionContent,
@@ -31,15 +29,11 @@ import {
   TrendingUp,
   PiggyBank,
   BarChart3,
-  Sparkles,
   Calculator,
-  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TabCompletionIndicator } from '../TabCompletionIndicator'
 import { SkipForNowButton } from '../SkipForNowButton'
-import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
-import { calculateTotalCOI } from '@/lib/financial-calculations'
 import type {
   SolutionScopeStageData,
   OpportunityResourcesStageData,
@@ -85,19 +79,12 @@ interface SimpleCostDriver {
 }
 
 export function Stage3SolutionScopeCollapsed({
-  previousStageData,
   onComplete,
   onBack,
 }: Stage3SolutionScopeCollapsedProps) {
-  const { isAIFeatureEnabled } = useDiscoverySettings()
-  
   // Section completion tracking
   const [sectionCompletion, setSectionCompletion] = useState<Record<string, TabCompletionStatus>>({})
   const [expandedSections, setExpandedSections] = useState<string[]>(['revenue'])
-  
-  // Get COI data from previous stage for auto-population
-  const coiData = previousStageData?.opportunity?.coi
-  const totalCOI = coiData ? calculateTotalCOI(coiData) : 0
   
   // Revenue impact state (simplified)
   const [revenueDrivers, setRevenueDrivers] = useState<SimpleRevenueDriver[]>([
@@ -121,14 +108,13 @@ export function Stage3SolutionScopeCollapsed({
   const [workingCapitalImpact, setWorkingCapitalImpact] = useState(0)
   const [cashFlowImpact, setCashFlowImpact] = useState(0)
   
-  // RICE scoring (auto-calculated with AI assistance option)
+  // Manual RICE scoring
   const [rice, setRice] = useState({
     reach: 50, // Number of users/customers affected
     impact: 2, // 1-3 scale
     confidence: 50, // Percentage
     effort: 3, // Person-months
   })
-  const [isCalculatingRICE, setIsCalculatingRICE] = useState(false)
   
   // Calculate totals
   const totalRevenueImpact = useMemo(() => 
@@ -180,76 +166,6 @@ export function Stage3SolutionScopeCollapsed({
   const markSectionSkipped = useCallback((sectionId: string) => {
     setSectionCompletion(prev => ({ ...prev, [sectionId]: 'skipped' }))
   }, [])
-  
-  // Auto-populate from COI
-  const populateFromCOI = useCallback(() => {
-    if (!coiData) return
-    
-    // Map COI opportunity costs to revenue drivers
-    if (coiData.opportunityCosts.recurring > 0) {
-      setRevenueDrivers(prev => prev.map(d => {
-        if (d.id === 'customer-acquisition') {
-          return { ...d, enabled: true, annualValue: coiData.opportunityCosts.recurring * 12 }
-        }
-        return d
-      }))
-    }
-    
-    // Map COI direct costs to cost drivers
-    if (coiData.directCosts.recurring > 0) {
-      setCostDrivers(prev => prev.map(d => {
-        if (d.id === 'labour') {
-          return { ...d, enabled: true, annualValue: coiData.directCosts.recurring * 12 }
-        }
-        return d
-      }))
-    }
-  }, [coiData])
-  
-  // AI-assisted RICE calculation
-  const calculateRICEFromCOI = async () => {
-    if (!isAIFeatureEnabled('enableAutoRICEScoring')) return
-    if (typeof window.llm !== 'function') {
-      alert('AI service not available')
-      return
-    }
-    
-    setIsCalculatingRICE(true)
-    try {
-      const prompt = `You are a product management expert. Calculate RICE score components based on this discovery data:
-
-**Total Annual Value at Risk (COI):** £${totalCOI.toLocaleString()}
-**Problem Statement:** ${previousStageData?.opportunity?.problemStatement || 'Not specified'}
-**Affected Area:** ${previousStageData?.opportunity?.affectedArea || 'process'}
-**Timeline Expectation:** ${previousStageData?.opportunity?.timelineExpectation || '3-6 months'}
-**Team Capacity:** ${previousStageData?.resources?.teamCapacity || 'unknown'}
-**Identified Revenue Impact:** £${totalRevenueImpact.toLocaleString()}
-**Identified Cost Impact:** £${totalCostImpact.toLocaleString()}
-
-Calculate RICE components:
-- Reach: Estimated number of users/customers impacted (0-100 scale)
-- Impact: How significant is the impact? (1=Minimal, 2=Low, 3=Medium, 4=High, 5=Massive) - use 1-3 for conservative estimate
-- Confidence: How confident are we in these estimates? (0-100%)
-- Effort: Estimated person-months to implement (1-12)
-
-Return ONLY a JSON object with keys: reach, impact, confidence, effort`
-
-      const response = await window.llm(prompt, 'gpt-4o-mini', true)
-      const calculated = JSON.parse(response)
-      
-      setRice({
-        reach: Math.min(100, Math.max(0, calculated.reach || 50)),
-        impact: Math.min(3, Math.max(1, calculated.impact || 2)),
-        confidence: Math.min(100, Math.max(0, calculated.confidence || 50)),
-        effort: Math.max(1, calculated.effort || 3),
-      })
-    } catch (error) {
-      console.error('Failed to calculate RICE:', error)
-      alert('Failed to calculate RICE score. Please enter values manually.')
-    } finally {
-      setIsCalculatingRICE(false)
-    }
-  }
   
   // Revenue driver update
   const updateRevenueDriver = (id: string, updates: Partial<SimpleRevenueDriver>) => {
@@ -314,13 +230,13 @@ Return ONLY a JSON object with keys: reach, impact, confidence, effort`
       revenueImpact: {
         drivers: revenueImpactDrivers,
         totalAnnualRevenue: totalRevenueImpact,
-        sourceFromCOI: true,
+        sourceFromCOI: false,
       },
       costImpact: {
         drivers: costImpactDrivers,
         totalAnnualSavings: totalCostImpact,
         totalFTEEquivalent: totalFTE,
-        sourceFromCOI: true,
+        sourceFromCOI: false,
       },
       balanceSheetCashFlow: {
         drivers: balanceSheetDrivers,
@@ -368,21 +284,6 @@ Return ONLY a JSON object with keys: reach, impact, confidence, effort`
         currentTab={expandedSections[0] || 'revenue'}
         onTabClick={(id) => setExpandedSections([id])}
       />
-      
-      {/* COI Auto-populate hint */}
-      {totalCOI > 0 && (
-        <Alert>
-          <Sparkles className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>
-              Stage 1 COI of <strong>£{totalCOI.toLocaleString()}</strong> detected.
-            </span>
-            <Button variant="outline" size="sm" onClick={populateFromCOI}>
-              Auto-populate Value Drivers
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
       
       {/* Summary Card */}
       <Card className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950">
@@ -652,32 +553,10 @@ Return ONLY a JSON object with keys: reach, impact, confidence, effort`
               <p className="text-sm text-muted-foreground">
                 RICE = (Reach × Impact × Confidence) ÷ Effort
               </p>
-              <div className="flex items-center gap-2">
-                <SkipForNowButton 
-                  onSkip={() => markSectionSkipped('rice')}
-                  sectionName="RICE Score"
-                />
-                {isAIFeatureEnabled('enableAutoRICEScoring') && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={calculateRICEFromCOI}
-                    disabled={isCalculatingRICE}
-                  >
-                    {isCalculatingRICE ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Calculating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Auto-Calculate
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
+              <SkipForNowButton
+                onSkip={() => markSectionSkipped('rice')}
+                sectionName="RICE Score"
+              />
             </div>
             
             <div className="grid grid-cols-2 gap-6">

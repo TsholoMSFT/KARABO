@@ -121,6 +121,8 @@ export type ModelType = 'gpt-4o' | 'gpt-4o-mini' | 'phi-4-mini-instruct' | 'gpt-
 
 export type AITask = 
   | 'extraction'      // Use case extraction from text → Phi-4-mini-instruct
+  | 'use-case-generation' // Grounded use-case candidates before scoring
+  | 'solution-mapping' // Microsoft solution mapping after ranking
   | 'formatting'      // JSON formatting, simple transforms → Phi-4-mini-instruct  
   | 'analysis'        // COI estimation, effort estimation → GPT-4o-mini
   | 'architecture'    // Solution architecture → GPT-4o-mini
@@ -138,6 +140,8 @@ export type AITask =
 
 const AI_TASKS = new Set<AITask>([
   'extraction',
+  'use-case-generation',
+  'solution-mapping',
   'formatting',
   'analysis',
   'architecture',
@@ -165,6 +169,8 @@ const AI_TASKS = new Set<AITask>([
 export function getModelForTask(task: AITask): ModelType {
   const taskModelMap: Record<AITask, ModelType> = {
     extraction: 'phi-4-mini-instruct',
+    'use-case-generation': 'gpt-4o-mini',
+    'solution-mapping': 'gpt-4o-mini',
     formatting: 'phi-4-mini-instruct',
     general: 'phi-4-mini-instruct',
     analysis: 'gpt-4o-mini',
@@ -197,14 +203,62 @@ export async function callAIForTask(
 }
 
 interface ProxyResponse {
-  content: string
+  content?: string
   usage?: {
     prompt_tokens: number
     completion_tokens: number
     total_tokens: number
   }
   error?: string
+  code?: AIErrorCode
+  retryable?: boolean
+  correlationId?: string
   details?: string
+}
+
+export type AIErrorCode =
+  | 'BACKEND_UNREACHABLE'
+  | 'AI_NOT_CONFIGURED'
+  | 'AI_AUTH_FAILED'
+  | 'SUBSCRIPTION_DISABLED'
+  | 'DEPLOYMENT_NOT_FOUND'
+  | 'RATE_LIMITED'
+  | 'PROVIDER_TIMEOUT'
+  | 'INVALID_MODEL_OUTPUT'
+  | 'PROVIDER_ERROR'
+
+export class AIServiceError extends Error {
+  constructor(
+    message: string,
+    public readonly code: AIErrorCode,
+    public readonly retryable: boolean,
+    public readonly correlationId?: string,
+  ) {
+    super(message)
+    this.name = 'AIServiceError'
+  }
+}
+
+export interface AIReadiness {
+  status: 'ready' | 'unavailable'
+  checkedAt: string
+  provider: string
+  model: string
+  deployment?: string
+  authMode?: 'entra-id' | 'key'
+  correlationId: string
+  code?: AIErrorCode
+  retryable?: boolean
+  message?: string
+}
+
+export async function getAIReadiness(refresh = false): Promise<AIReadiness> {
+  const query = refresh ? '?refresh=true' : ''
+  const response = await fetch(`${API_ENDPOINT}/ai-readiness${query}`)
+  if (!response.ok) {
+    throw new AIServiceError('AI readiness endpoint is unavailable.', 'BACKEND_UNREACHABLE', true)
+  }
+  return response.json() as Promise<AIReadiness>
 }
 
 /**
@@ -264,12 +318,17 @@ async function callViaProxy(
       if (!response.ok || data?.error) {
         const details = data?.details || (rawText && rawText.length < 500 ? rawText : '')
         const errMsg = data?.error || `API error: ${response.status}${details ? ` (${details})` : ''}`
-        // Retry on 5xx errors only
-        if (response.status >= 500 && attempt < maxRetries) {
-          lastError = new Error(errMsg)
+        const providerError = new AIServiceError(
+          errMsg,
+          data?.code || 'PROVIDER_ERROR',
+          data?.retryable ?? response.status >= 500,
+          data?.correlationId,
+        )
+        if (providerError.retryable && attempt < maxRetries) {
+          lastError = providerError
           continue
         }
-        throw new Error(errMsg)
+        throw providerError
       }
 
       if (!data?.content) {
@@ -285,9 +344,17 @@ async function callViaProxy(
       // Translate low-level fetch failures into actionable messages so the UI can
       // tell the user the backend is unreachable rather than failing mutely.
       if (error instanceof Error && error.name === 'AbortError') {
-        lastError = new Error('AI request timed out — the backend may be unavailable.')
+        lastError = new AIServiceError(
+          'AI request timed out — the backend may be unavailable.',
+          'PROVIDER_TIMEOUT',
+          true,
+        )
       } else if (error instanceof TypeError) {
-        lastError = new Error('Could not reach the AI backend. Is the Functions host running on :7071?')
+        lastError = new AIServiceError(
+          'Could not reach the AI backend. Is the Functions host running on :7071?',
+          'BACKEND_UNREACHABLE',
+          true,
+        )
       } else {
         lastError = error instanceof Error ? error : new Error(String(error))
       }
@@ -350,137 +417,6 @@ export interface EffortEstimate {
     development: number
     testing: number
     deployment: number
-  }
-}
-
-export interface COIEstimate {
-  directCosts: number
-  opportunityCosts: number
-  riskCosts: number
-  totalAnnualCOI: number
-  /** Conservative / optimistic annual COI bounds (optional; UI derives a range if absent). */
-  low?: number
-  high?: number
-  /** One concrete thing to verify with the customer to firm up the estimate. */
-  verificationStep?: string
-  assumptions: string[]
-  reasoning: string
-  confidence: 'high' | 'medium' | 'low'
-  // Suggested RICE adjustments based on COI
-  suggestedRICE: {
-    impactMultiplier: 0.25 | 0.5 | 1 | 2 | 3
-    impactReason: string
-    confidenceBoost: number // 0-20% to add to user's confidence
-    confidenceReason: string
-  }
-}
-
-export async function estimateCOI(
-  useCase: { title: string; description: string },
-  context?: { industry?: string; companyName?: string; annualRevenue?: number; entityType?: EntityType }
-): Promise<COIEstimate> {
-  // Entity type context for appropriate language
-  const entityContext = context?.entityType === 'government'
-    ? '\nORGANIZATION TYPE: Government/Public Sector\n- Use "budget efficiency" and "taxpayer value" instead of revenue/profit\n- Consider public service delivery impact\n- Include regulatory compliance costs'
-    : context?.entityType === 'non-profit'
-    ? '\nORGANIZATION TYPE: Non-Profit\n- Focus on "mission impact" and "donor efficiency"\n- Consider program effectiveness metrics\n- Include fundraising/grant efficiency'
-    : context?.entityType === 'private-company'
-    ? '\nORGANIZATION TYPE: Private Company (no public financials)\n- Focus on competitive advantage and operational efficiency\n- No public stock/P-E metrics available'
-    : ''
-
-  const prompt = `You are a financial analyst specializing in business case development and cost-benefit analysis.
-
-USE CASE TO ANALYZE:
-Title: ${useCase.title}
-Problem Statement: ${useCase.description}
-${context?.industry ? `Industry: ${context.industry}` : ''}
-${context?.companyName ? `Company: ${context.companyName}` : ''}
-${context?.annualRevenue ? `Approx Annual Revenue: $${context.annualRevenue.toLocaleString()}` : ''}${entityContext}
-
-TASK: Estimate the annual Cost of Inaction (COI) - what the organization loses each year by NOT solving this problem.
-
-COST CATEGORIES:
-1. **Direct Costs** - Current spending on manual workarounds, inefficient processes, extra staff
-2. **Opportunity Costs** - Lost revenue, market share, competitive advantage
-3. **Risk Costs** - Potential regulatory fines, security breaches, compliance failures (probability-weighted)
-
-RICE IMPACT MAPPING (for the RICE scoring framework):
-Based on totalAnnualCOI, suggest the RICE Impact multiplier:
-- COI > $2M → Impact = 3 (Massive - fundamental change)
-- COI $500K-$2M → Impact = 2 (High - significant improvement)  
-- COI $100K-$500K → Impact = 1 (Medium - noticeable difference)
-- COI $25K-$100K → Impact = 0.5 (Low - minor improvement)
-- COI < $25K → Impact = 0.25 (Minimal - barely noticeable)
-
-Also suggest a Confidence boost (0-20%) based on how well-quantified the costs are.
-
-Return a JSON object:
-{
-  "directCosts": <annual USD>,
-  "opportunityCosts": <annual USD>,
-  "riskCosts": <annual USD, probability-weighted>,
-  "totalAnnualCOI": <sum of all costs>,
-  "low": <conservative/defensible lower-bound annual COI, USD>,
-  "high": <optimistic upper-bound annual COI, USD>,
-  "verificationStep": "<one concrete data point to confirm with the customer to firm up this estimate>",
-  "assumptions": ["assumption 1", "assumption 2", "assumption 3"],
-  "reasoning": "<2-3 sentences explaining the estimate>",
-  "confidence": "high" | "medium" | "low",
-  "suggestedRICE": {
-    "impactMultiplier": <0.25 | 0.5 | 1 | 2 | 3>,
-    "impactReason": "<why this impact level>",
-    "confidenceBoost": <0-20>,
-    "confidenceReason": "<why this confidence adjustment>"
-  }
-}
-
-Be conservative and defensible — when uncertain, estimate LOW and name what would need to be verified with the customer. Prefer industry benchmarks over guesses. It is better to under-claim a credible number than over-state an unverifiable one.`
-
-  try {
-    const result = await callOpenAI(prompt, 'gpt-4o-mini', true)
-    const parsed = JSON.parse(result)
-    
-    // Validate impact multiplier
-    const validMultipliers = [0.25, 0.5, 1, 2, 3]
-    const impactMultiplier = validMultipliers.includes(parsed.suggestedRICE?.impactMultiplier) 
-      ? parsed.suggestedRICE.impactMultiplier 
-      : 1
-
-    return {
-      directCosts: Math.max(0, parsed.directCosts || 0),
-      opportunityCosts: Math.max(0, parsed.opportunityCosts || 0),
-      riskCosts: Math.max(0, parsed.riskCosts || 0),
-      totalAnnualCOI: Math.max(0, parsed.totalAnnualCOI || 0),
-      low: typeof parsed.low === 'number' ? Math.max(0, parsed.low) : undefined,
-      high: typeof parsed.high === 'number' ? Math.max(0, parsed.high) : undefined,
-      verificationStep: typeof parsed.verificationStep === 'string' ? parsed.verificationStep : undefined,
-      assumptions: parsed.assumptions || ['Based on industry averages'],
-      reasoning: parsed.reasoning || 'Estimated based on typical business impact.',
-      confidence: parsed.confidence || 'medium',
-      suggestedRICE: {
-        impactMultiplier: impactMultiplier as 0.25 | 0.5 | 1 | 2 | 3,
-        impactReason: parsed.suggestedRICE?.impactReason || 'Based on total COI value',
-        confidenceBoost: Math.min(20, Math.max(0, parsed.suggestedRICE?.confidenceBoost || 0)),
-        confidenceReason: parsed.suggestedRICE?.confidenceReason || 'Based on quantification quality',
-      },
-    }
-  } catch (error) {
-    console.error('COI estimation failed:', error)
-    return {
-      directCosts: 0,
-      opportunityCosts: 0,
-      riskCosts: 0,
-      totalAnnualCOI: 0,
-      assumptions: ['AI estimation unavailable - please enter manually'],
-      reasoning: 'Unable to estimate. Please provide your own assessment.',
-      confidence: 'low',
-      suggestedRICE: {
-        impactMultiplier: 1,
-        impactReason: 'Default - please adjust based on your assessment',
-        confidenceBoost: 0,
-        confidenceReason: 'No quantified data available',
-      },
-    }
   }
 }
 
@@ -928,7 +864,7 @@ function getDefaultJourney(complexity: 'low' | 'medium' | 'high' | 'very-high', 
 // ============================================================================
 // ENGAGEMENT ARTIFACT GENERATORS (HubWorks-inspired)
 // Agenda / follow-up email / task timeline / closeout / architecture diagram.
-// Each follows the estimateCOI pattern: build prompt -> callAIForTask(expectJson)
+// Each follows the shared AI generator pattern: build prompt -> callAIForTask(expectJson)
 // -> JSON.parse -> type-guard -> safe fallback so the UI never crashes.
 // ============================================================================
 
@@ -1241,7 +1177,6 @@ export const llmAPI = {
   llm: callOpenAI,
   callForTask: callAIForTask,
   estimateEffort,
-  estimateCOI,
   generateCustomerJourney,
   clearCache: clearAICache,
   getCacheStats,
@@ -1254,7 +1189,6 @@ declare global {
     llm: typeof callOpenAI
     llmForTask: typeof callAIForTask
     estimateEffort: typeof estimateEffort
-    estimateCOI: typeof estimateCOI
     estimateROI: typeof estimateROI
     generateSuccessMetrics: typeof generateSuccessMetrics
     clearAICache: typeof clearAICache
@@ -1266,7 +1200,6 @@ if (typeof window !== 'undefined') {
   window.llm = callOpenAI
   window.llmForTask = callAIForTask
   window.estimateEffort = estimateEffort
-  window.estimateCOI = estimateCOI
   window.estimateROI = estimateROI
   window.generateSuccessMetrics = generateSuccessMetrics
   window.clearAICache = clearAICache

@@ -9,6 +9,9 @@ if (typeof globalThis.crypto === "undefined") {
 }
 
 import "./functions/chat";
+import "./functions/ai-readiness";
+import "./functions/use-case-candidates";
+import "./functions/solution-mapping";
 import "./functions/earnings";
 import "./functions/health";
 import "./functions/rss-feeds";

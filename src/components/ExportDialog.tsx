@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
-import { FilePdf, Envelope, Printer, CheckCircle, MicrosoftPowerpointLogo, MicrosoftTeamsLogo, MicrosoftOutlookLogo } from '@phosphor-icons/react'
+import { FilePdf, Envelope, Printer, CheckCircle, MicrosoftPowerpointLogo, MicrosoftTeamsLogo, MicrosoftOutlookLogo, SpinnerGap } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { exportSessionToPptx } from '@/lib/pptx-export'
 import { openTeamsShare, openOutlookCompose, buildTeamsSummary } from '@/lib/share-helpers'
@@ -12,7 +12,7 @@ import { openTeamsShare, openOutlookCompose, buildTeamsSummary } from '@/lib/sha
 export interface ExportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onExportPDF: (effortUnit: 'person-weeks' | 'fte' | 'man-hours') => void
+  onExportPDF: (effortUnit: 'person-weeks' | 'fte' | 'man-hours') => void | Promise<void>
   // Optional session data for email export
   sessionData?: {
     customerName: string
@@ -23,7 +23,6 @@ export interface ExportDialogProps {
       description: string
       priority?: number
       rice?: { score?: number }
-      coiEstimate?: { totalAnnualCOI?: number }
       effortPersonWeeks?: number
     }>
     nextSteps?: string[]
@@ -40,10 +39,7 @@ export interface ExportDialogProps {
 export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: ExportDialogProps) {
   const [effortUnit, setEffortUnit] = useState<'person-weeks' | 'fte' | 'man-hours'>('person-weeks')
   const [emailCopied, setEmailCopied] = useState(false)
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)
-  }
+  const [isExportingPDF, setIsExportingPDF] = useState(false)
 
   const handleCopyEmailHTML = async () => {
     if (!sessionData) {
@@ -64,7 +60,6 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
     th { background-color: #f5f5f5; font-weight: 600; }
     tr:nth-child(even) { background-color: #fafafa; }
     .priority-high { color: #059669; font-weight: 600; }
-    .coi { color: #dc2626; }
     .summary { background-color: #f0f9ff; padding: 16px; border-radius: 8px; margin: 16px 0; }
   </style>
 </head>
@@ -86,7 +81,6 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
       <th>Use Case</th>
       <th>Description</th>
       <th>RICE Score</th>
-      <th>Annual COI</th>
     </tr>
     ${sessionData.useCases.slice(0, 10).map((uc, i) => `
     <tr>
@@ -94,7 +88,6 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
       <td><strong>${uc.title}</strong></td>
       <td>${uc.description}</td>
       <td>${uc.rice?.score?.toFixed(1) || 'N/A'}</td>
-      <td class="coi">${uc.coiEstimate?.totalAnnualCOI ? formatCurrency(uc.coiEstimate.totalAnnualCOI) : 'N/A'}</td>
     </tr>
     `).join('')}
   </table>
@@ -140,7 +133,6 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
           title: u.title,
           description: u.description,
           riceScore: u.rice?.score,
-          annualCoiUSD: u.coiEstimate?.totalAnnualCOI,
           effortPersonWeeks: u.effortPersonWeeks,
         })),
         businessCase: sessionData.businessCase,
@@ -158,9 +150,7 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
     openTeamsShare({
       message: buildTeamsSummary({
         customerName: sessionData.customerName,
-        topUseCases: (sessionData.useCases || []).slice(0, 5).map((u) => ({
-          title: u.title, annualCoiUSD: u.coiEstimate?.totalAnnualCOI,
-        })),
+        topUseCases: (sessionData.useCases || []).slice(0, 5).map((u) => ({ title: u.title })),
         threeYearBenefitUSD: sessionData.businessCase?.threeYearBenefitUSD,
         paybackMonths: sessionData.businessCase?.paybackMonths,
       }),
@@ -174,9 +164,7 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
     const subject = `Karabo Discovery Readout — ${sessionData.customerName}`
     const body = buildTeamsSummary({
       customerName: sessionData.customerName,
-      topUseCases: (sessionData.useCases || []).slice(0, 5).map((u) => ({
-        title: u.title, annualCoiUSD: u.coiEstimate?.totalAnnualCOI,
-      })),
+      topUseCases: (sessionData.useCases || []).slice(0, 5).map((u) => ({ title: u.title })),
       threeYearBenefitUSD: sessionData.businessCase?.threeYearBenefitUSD,
       paybackMonths: sessionData.businessCase?.paybackMonths,
     })
@@ -184,9 +172,17 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
     toast.success('Opening Outlook…')
   }
 
-  const handleExportPDF = () => {
-    onExportPDF(effortUnit)
-    onOpenChange(false)
+  const handleExportPDF = async () => {
+    setIsExportingPDF(true)
+    try {
+      await onExportPDF(effortUnit)
+      toast.success('PDF report downloaded')
+      onOpenChange(false)
+    } catch (error) {
+      toast.error(`PDF export failed: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setIsExportingPDF(false)
+    }
   }
 
   return (
@@ -322,9 +318,9 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleExportPDF} className="gap-2">
-            <FilePdf size={18} weight="bold" />
-            Export PDF Report
+          <Button onClick={handleExportPDF} className="gap-2" disabled={isExportingPDF}>
+            {isExportingPDF ? <SpinnerGap size={18} className="animate-spin" /> : <FilePdf size={18} weight="bold" />}
+            {isExportingPDF ? 'Exporting...' : 'Export PDF Report'}
           </Button>
         </div>
       </DialogContent>

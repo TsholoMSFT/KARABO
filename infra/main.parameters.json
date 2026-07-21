@@ -17,6 +17,15 @@
     "embeddingDeployment": {
       "value": "${AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-small}"
     },
+    "aiAuthMode": {
+      "value": "${AZURE_OPENAI_AUTH_TYPE=key}"
+    },
+    "aiServicesResourceGroupName": {
+      "value": "${AZURE_AI_SERVICES_RESOURCE_GROUP=rg-tsetati}"
+    },
+    "aiServicesAccountName": {
+      "value": "${AZURE_AI_SERVICES_ACCOUNT_NAME=ai-tsetati0596ai632839372344}"
+    },
     "searchEndpoint": {
       "value": "${AZURE_SEARCH_ENDPOINT=https://id8-search.search.windows.net}"
     },

@@ -4,6 +4,7 @@ import { defineConfig } from "vite";
 import { resolve } from 'path'
 
 const projectRoot = process.env.PROJECT_ROOT || import.meta.dirname
+const apiProxyTarget = process.env.KARABO_API_PROXY_TARGET || 'http://127.0.0.1:7071'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -25,7 +26,7 @@ export default defineConfig({
       // Use 127.0.0.1 (not localhost) so Node doesn't resolve to ::1 while the
       // Functions host only listens on IPv4 (0.0.0.0:7071).
       '/api': {
-        target: 'http://127.0.0.1:7071',
+        target: apiProxyTarget,
         changeOrigin: true,
         secure: false,
       },

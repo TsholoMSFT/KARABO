@@ -1,5 +1,7 @@
 export type AITask =
   | "extraction"
+  | "use-case-generation"
+  | "solution-mapping"
   | "formatting"
   | "analysis"
   | "architecture"
@@ -17,6 +19,8 @@ export type AITask =
 
 const OUTPUT_TOKEN_LIMITS: Record<AITask, number> = {
   extraction: 4000,
+  "use-case-generation": 6000,
+  "solution-mapping": 5000,
   formatting: 2000,
   analysis: 4000,
   architecture: 5000,

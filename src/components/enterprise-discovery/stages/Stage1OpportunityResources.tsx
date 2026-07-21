@@ -10,7 +10,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CurrencyInput } from '@/components/ui/currency-input'
 import { 
   Loader2, Sparkles, CheckCircle2, XCircle, CalendarIcon, Plus, Check, SkipForward 
 } from 'lucide-react'
@@ -18,7 +17,6 @@ import { format } from 'date-fns'
 import { VoiceInputField } from '../VoiceInputField'
 import { TabCompletionIndicator } from '../TabCompletionIndicator'
 import { SkipForNowButton } from '../SkipForNowButton'
-import { calculateTotalCOI } from '@/lib/financial-calculations'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
 import type { 
   OpportunityResourcesStageData, 
@@ -65,7 +63,6 @@ const defaultOpportunityData: OpportunityStageData = {
 const ALL_TABS = [
   { id: 'current-state', label: 'Current State', group: 'opportunity' },
   { id: 'desired-state', label: 'Desired State', group: 'opportunity' },
-  { id: 'coi', label: 'Cost of Inaction', group: 'opportunity' },
   { id: 'financial', label: 'Financial', group: 'resources' },
   { id: 'human', label: 'Human', group: 'resources' },
   { id: 'technical', label: 'Technical', group: 'resources' },
@@ -85,10 +82,9 @@ export function Stage1OpportunityResources({
   // Get progressive disclosure config
   const disclosure = useMemo(() => {
     // Import PROGRESSIVE_DISCLOSURE from types
-    const config: Record<DiscoveryType, { showProblemStatement: boolean; showFullCOI: boolean; showBudgetDetails: boolean; showCompetitiveAnalysis: boolean; prefillFromExisting: boolean; focusOnRelationship: boolean; showMACCFields: boolean }> = {
+    const config: Record<DiscoveryType, { showProblemStatement: boolean; showBudgetDetails: boolean; showCompetitiveAnalysis: boolean; prefillFromExisting: boolean; focusOnRelationship: boolean; showMACCFields: boolean }> = {
       'new-opportunity': {
         showProblemStatement: true,
-        showFullCOI: true,
         showBudgetDetails: true,
         showCompetitiveAnalysis: true,
         prefillFromExisting: false,
@@ -97,7 +93,6 @@ export function Stage1OpportunityResources({
       },
       'expansion': {
         showProblemStatement: false,
-        showFullCOI: true,
         showBudgetDetails: true,
         showCompetitiveAnalysis: false,
         prefillFromExisting: true,
@@ -106,7 +101,6 @@ export function Stage1OpportunityResources({
       },
       'renewal': {
         showProblemStatement: false,
-        showFullCOI: false,
         showBudgetDetails: false,
         showCompetitiveAnalysis: true,
         prefillFromExisting: true,
@@ -115,7 +109,6 @@ export function Stage1OpportunityResources({
       },
       'macc': {
         showProblemStatement: true,
-        showFullCOI: true,
         showBudgetDetails: true,
         showCompetitiveAnalysis: false,
         prefillFromExisting: false,
@@ -147,9 +140,7 @@ export function Stage1OpportunityResources({
   const [timelineExpectation, setTimelineExpectation] = useState<TimelineExpectation>(
     initialData?.opportunity?.timelineExpectation || '3-6-months'
   )
-  const [coi, setCoi] = useState(
-    initialData?.opportunity?.coi || defaultOpportunityData.coi
-  )
+  const coi = initialData?.opportunity?.coi || defaultOpportunityData.coi
   
   // Resources state (Stage 2)
   const [budgetStatus, setBudgetStatus] = useState<BudgetStatus>(
@@ -199,8 +190,6 @@ export function Stage1OpportunityResources({
   )
   const [isGeneratingSCQ, setIsGeneratingSCQ] = useState(false)
 
-  const totalCOI = calculateTotalCOI(coi)
-
   // Tab completion logic
   const updateTabCompletion = useCallback((tabId: string, status: TabCompletionStatus) => {
     setTabCompletion(prev => ({ ...prev, [tabId]: status }))
@@ -219,8 +208,6 @@ export function Stage1OpportunityResources({
         return problemStatement.trim() ? 'complete' : 'not-started'
       case 'desired-state':
         return desiredOutcome.trim() && successMetrics.some(m => m.trim()) ? 'complete' : 'not-started'
-      case 'coi':
-        return totalCOI > 0 ? 'complete' : 'not-started'
       case 'financial':
         return budgetStatus !== 'unknown' || budgetRange !== 'unknown' ? 'complete' : 'not-started'
       case 'human':
@@ -235,16 +222,11 @@ export function Stage1OpportunityResources({
       default:
         return tabCompletion[tabId] || 'not-started'
     }
-  }, [tabCompletion, problemStatement, desiredOutcome, successMetrics, totalCOI, budgetStatus, budgetRange, executiveSponsor, projectLead, existingPlatforms, dataAvailability, targetStart, targetCompletion, scq])
+  }, [tabCompletion, problemStatement, desiredOutcome, successMetrics, budgetStatus, budgetRange, executiveSponsor, projectLead, existingPlatforms, dataAvailability, targetStart, targetCompletion, scq])
 
   // Get visible tabs based on discovery type
   const visibleTabs = useMemo(() => {
     let tabs = [...ALL_TABS]
-    
-    // For renewal, hide COI tab (simplified)
-    if (!disclosure.showFullCOI) {
-      tabs = tabs.filter(t => t.id !== 'coi')
-    }
     
     // For renewal, hide budget details
     if (!disclosure.showBudgetDetails) {
@@ -290,7 +272,6 @@ export function Stage1OpportunityResources({
 **Problem Category**: ${problemCategory}
 **Affected Area**: ${affectedArea}
 **Desired Outcome**: ${desiredOutcome}
-**Annual Cost of Inaction**: £${totalCOI.toLocaleString()}
 **Budget Range**: ${budgetRange}
 **Team Capacity**: ${teamCapacity}
 **Executive Sponsor**: ${executiveSponsor || 'TBD'}
@@ -327,7 +308,7 @@ Return ONLY a JSON object with keys: situation, complication, question`
       desiredOutcome,
       successMetrics: successMetrics.filter(m => m.trim() !== ''),
       timelineExpectation,
-      coi: { ...coi, totalAnnual: totalCOI },
+      coi: { ...coi },
       scq,
     }
 
@@ -570,118 +551,6 @@ Return ONLY a JSON object with keys: situation, complication, question`
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Cost of Inaction Tab - only shown for certain discovery types */}
-        {disclosure.showFullCOI && (
-          <TabsContent value="coi" className="space-y-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Cost of Inaction (COI) — 4 Boxes</CardTitle>
-                  <CardDescription>
-                    Quantify the financial impact of not solving this problem
-                  </CardDescription>
-                </div>
-                <SkipForNowButton 
-                  onSkip={() => markTabSkipped('coi')}
-                  sectionName="Cost of Inaction"
-                />
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Direct Costs */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Direct Costs (Money Out)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <CurrencyInput
-                        label="One-Time"
-                        value={coi.directCosts.oneTime}
-                        onChange={(v) => setCoi({ ...coi, directCosts: { ...coi.directCosts, oneTime: v } })}
-                      />
-                      <CurrencyInput
-                        label="Recurring (per month)"
-                        value={coi.directCosts.recurring}
-                        onChange={(v) => setCoi({ ...coi, directCosts: { ...coi.directCosts, recurring: v } })}
-                      />
-                    </CardContent>
-                  </Card>
-
-                  {/* Opportunity Costs */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Opportunity Costs (Money Lost)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <CurrencyInput
-                        label="One-Time"
-                        value={coi.opportunityCosts.oneTime}
-                        onChange={(v) => setCoi({ ...coi, opportunityCosts: { ...coi.opportunityCosts, oneTime: v } })}
-                      />
-                      <CurrencyInput
-                        label="Recurring (per month)"
-                        value={coi.opportunityCosts.recurring}
-                        onChange={(v) => setCoi({ ...coi, opportunityCosts: { ...coi.opportunityCosts, recurring: v } })}
-                      />
-                    </CardContent>
-                  </Card>
-
-                  {/* Risk Costs */}
-                  <Card className="col-span-2">
-                    <CardHeader>
-                      <CardTitle className="text-base">Risk Costs (Exposure)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <CurrencyInput
-                          label="One-Time Risk Exposure"
-                          value={coi.riskCosts.oneTime}
-                          onChange={(v) => setCoi({ ...coi, riskCosts: { ...coi.riskCosts, oneTime: v } })}
-                        />
-                        <div className="space-y-2">
-                          <Label>Probability (%)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={coi.riskCosts.oneTimeProbability}
-                            onChange={(e) => setCoi({ ...coi, riskCosts: { ...coi.riskCosts, oneTimeProbability: Number(e.target.value) } })}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <CurrencyInput
-                          label="Recurring Risk (per month)"
-                          value={coi.riskCosts.recurring}
-                          onChange={(v) => setCoi({ ...coi, riskCosts: { ...coi.riskCosts, recurring: v } })}
-                        />
-                        <div className="space-y-2">
-                          <Label>Probability (%)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={coi.riskCosts.recurringProbability}
-                            onChange={(e) => setCoi({ ...coi, riskCosts: { ...coi.riskCosts, recurringProbability: Number(e.target.value) } })}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Total */}
-                <Alert>
-                  <AlertDescription className="flex items-center justify-between text-lg font-semibold">
-                    <span>Total Annual Cost of Inaction:</span>
-                    <span className="text-2xl">£{totalCOI.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
 
         {/* Financial Resources Tab */}
         {disclosure.showBudgetDetails && (

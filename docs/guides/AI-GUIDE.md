@@ -20,11 +20,16 @@ I've added powerful AI capabilities to the ID-8 (Microsoft Innovation Hub Use Ca
 **Result**: Receive immediate analysis highlighting opportunities and suggesting areas to explore
 
 ### 3. 🚀 Automatic Use Case Generation
-**What it does**: Generates 5-8 relevant use cases based on your discovery session
+**What it does**: Generates 5-8 relevant, evidence-backed candidates based on your discovery session
 **How to use**: Happens automatically at the end of discovery
-**Result**: AI-suggested use cases with detailed descriptions and rationale tied to your specific answers
+**Result**: Lean candidates with business outcomes, KPIs, process context, risk, and complexity. Detailed Microsoft solution mapping is intentionally deferred until after scoring.
 
-### 4. 📄 Professional Executive Summaries
+### 4. 🏗️ Post-Ranking Solution Mapping
+**What it does**: Maps the top-ranked use case to Microsoft products, services, a reference architecture, implementation complexity, compliance, security, and an optional agentic pattern
+**How to use**: Complete Impact/Feasibility and RICE scoring, then select **Solution Design**
+**Result**: The ranked use case is saved with mapping provenance and opens as the linked seed in Solution Blueprint. If AI mapping is unavailable, deterministic archetype inference still opens the workspace.
+
+### 5. 📄 Professional Executive Summaries
 **What it does**: Creates executive-ready summaries of your discovery sessions
 **How to use**: Generated automatically after scoring all use cases
 **Result**: 3-4 paragraph summary covering key findings, recommendations with scores, and strategic next steps
@@ -37,6 +42,22 @@ The application uses task-specific model routing and bounded output budgets:
 - **Production**: Azure OpenAI only, followed by the typed deterministic fallback owned by each feature.
 - **Embeddings**: `text-embedding-3-small` with 1536 dimensions.
 - **Images**: `gpt-image-1-mini` with low-cost quality defaults.
+
+The API exposes separate liveness and readiness checks:
+
+- `/api/health` confirms that the Functions host is serving requests.
+- `/api/ai-readiness` sends a minimal cached request to the configured model deployment and classifies configuration, authentication, disabled-subscription, deployment, throttling, and timeout failures.
+
+Use-case candidates and ranked solution mappings are validated against bounded schemas. Permanent provider failures are not retried; the application automatically switches candidate generation to clearly labelled industry templates.
+
+## Azure Authentication
+
+Set `AZURE_OPENAI_AUTH_TYPE` explicitly in every environment:
+
+- `key` (default deployment mode): uses `AZURE_OPENAI_API_KEY`, normally supplied through a Key Vault reference.
+- `entra-id`: uses the developer identity locally and the Function App managed identity in Azure. The identity requires **Cognitive Services OpenAI User** on the existing AI Services/OpenAI account.
+
+The two modes are strict. An Entra failure does not silently cross over to a configured key.
 
 ## Foundry Local Development Setup
 

@@ -547,6 +547,15 @@ export interface UseCase {
   // Implementation complexity (Solution Envisioning)
   implementationComplexity?: ImplementationComplexityInfo
 
+  // AI mapping performed after prioritization, before Solution Blueprint.
+  solutionMapping?: {
+    provider: string
+    model: string
+    deployment?: string
+    correlationId: string
+    generatedAt: number
+  }
+
   // Canonical Solution Blueprint linkage (Phase 4: collapsed shape).
   // The SolutionBlueprintWorkspace mirrors selected metadata onto the source
   // UseCase so prioritization, exec summary annex, and exports can derive
@@ -2545,6 +2554,7 @@ export interface DiscoverySession {
   creationSource?: DiscoverySessionCreationSource
   responses: DiscoveryResponse[]
   suggestedUseCases?: SuggestedUseCaseData[]
+  useCaseGeneration?: UseCaseGenerationMetadata
   earningsInsights?: EarningsInsight[] // AI-extracted insights from earnings calls
   companyInsights?: CompanyInsight[] // AI-extracted insights from company research (news, docs, etc.)
   companyResearchSummary?: string // AI-generated summary of company research insights
@@ -2743,6 +2753,7 @@ export interface SuggestedUseCaseData {
   title: string
   description: string
   rationale: string
+  kpis?: string[]
   sourceTexts?: SourceTextHighlight[]
   dataSources?: ('earnings' | 'financials' | 'news' | 'industry-research' | 'discovery' | 'ai-generated' | 'manual' | 'fallback')[]
   strategicAlignment?: StrategicAlignmentInfo
@@ -2752,8 +2763,20 @@ export interface SuggestedUseCaseData {
   referenceArchitecture?: string
   agenticOpportunities?: UseCaseAgenticOpportunity[]
   implementationComplexity?: ImplementationComplexityInfo
+  solutionMapping?: UseCase['solutionMapping']
   aiRegulations?: AIRegulationsInfo
   cybersecurity?: CybersecurityInfo
+}
+
+export interface UseCaseGenerationMetadata {
+  mode: 'ai' | 'template'
+  provider?: string
+  model?: string
+  deployment?: string
+  correlationId?: string
+  generatedAt: number
+  fallbackReason?: string
+  evidenceSources?: string[]
 }
 
 // ============================================================================

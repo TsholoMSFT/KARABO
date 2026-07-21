@@ -8,10 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CurrencyInput } from '@/components/ui/currency-input'
 import { Loader2, Sparkles, CheckCircle2, XCircle, Edit, Mic, Info, Target } from 'lucide-react'
 import { VoiceInputField } from '../VoiceInputField'
-import { calculateTotalCOI } from '@/lib/financial-calculations'
 import { useDiscoverySettings } from '@/hooks/use-discovery-settings'
 import type { OpportunityStageData, ProblemCategory, AffectedArea, TimelineExpectation, SCQStatus, BusinessEnvisioningData } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -109,15 +107,12 @@ export function Stage1Opportunity({ initialData, businessEnvisioning, onComplete
   const [successMetrics, setSuccessMetrics] = useState<string[]>(initialData?.successMetrics || [''])
   const [timelineExpectation, setTimelineExpectation] = useState<TimelineExpectation>(initialData?.timelineExpectation || '3-6-months')
 
-  // 1C: Cost of Inaction
-  const [coi, setCoi] = useState(
-    initialData?.coi || {
-      directCosts: { oneTime: 0, recurring: 0 },
-      opportunityCosts: { oneTime: 0, recurring: 0 },
-      riskCosts: { oneTime: 0, oneTimeProbability: 50, recurring: 0, recurringProbability: 50 },
-      totalAnnual: 0,
-    }
-  )
+  const coi = initialData?.coi || {
+    directCosts: { oneTime: 0, recurring: 0 },
+    opportunityCosts: { oneTime: 0, recurring: 0 },
+    riskCosts: { oneTime: 0, oneTimeProbability: 50, recurring: 0, recurringProbability: 50 },
+    totalAnnual: 0,
+  }
 
   // 1D: SCQ
   const [scq, setScq] = useState(
@@ -147,8 +142,6 @@ export function Stage1Opportunity({ initialData, businessEnvisioning, onComplete
     
     setShowPrePopulatePrompt(false)
   }
-
-  const totalCOI = calculateTotalCOI(coi)
 
   const updateSuccessMetric = (index: number, value: string) => {
     const updated = [...successMetrics]
@@ -180,7 +173,6 @@ export function Stage1Opportunity({ initialData, businessEnvisioning, onComplete
 **Problem Category**: ${problemCategory}
 **Affected Area**: ${affectedArea}
 **Desired Outcome**: ${desiredOutcome}
-**Annual Cost of Inaction**: £${totalCOI.toLocaleString()}
 
 Generate a professional SCQ in the following format:
 - Situation: A 1-2 sentence summary of the current state
@@ -214,10 +206,7 @@ Return ONLY a JSON object with keys: situation, complication, question`
       desiredOutcome,
       successMetrics: successMetrics.filter(m => m.trim() !== ''),
       timelineExpectation,
-      coi: {
-        ...coi,
-        totalAnnual: totalCOI,
-      },
+      coi: { ...coi },
       scq,
     }
     onComplete(data)
@@ -309,10 +298,9 @@ Return ONLY a JSON object with keys: situation, complication, question`
       )}
 
       <Tabs defaultValue="current-state" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="current-state">Current State</TabsTrigger>
           <TabsTrigger value="desired-state">Desired State</TabsTrigger>
-          <TabsTrigger value="coi">Cost of Inaction</TabsTrigger>
           <TabsTrigger value="scq">SCQ Confirmation</TabsTrigger>
         </TabsList>
 
@@ -470,116 +458,12 @@ Return ONLY a JSON object with keys: situation, complication, question`
           </Card>
         </TabsContent>
 
-        {/* 1C: Cost of Inaction */}
-        <TabsContent value="coi" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>1C: Cost of Inaction (COI) — 4 Boxes</CardTitle>
-              <CardDescription>
-                Quantify the financial impact of not solving this problem
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                {/* Direct Costs */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Direct Costs (Money Out)</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <CurrencyInput
-                      label="One-Time"
-                      value={coi.directCosts.oneTime}
-                      onChange={(v) => setCoi({ ...coi, directCosts: { ...coi.directCosts, oneTime: v } })}
-                    />
-                    <CurrencyInput
-                      label="Recurring (per month)"
-                      value={coi.directCosts.recurring}
-                      onChange={(v) => setCoi({ ...coi, directCosts: { ...coi.directCosts, recurring: v } })}
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* Opportunity Costs */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Opportunity Costs (Money Lost)</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <CurrencyInput
-                      label="One-Time"
-                      value={coi.opportunityCosts.oneTime}
-                      onChange={(v) => setCoi({ ...coi, opportunityCosts: { ...coi.opportunityCosts, oneTime: v } })}
-                    />
-                    <CurrencyInput
-                      label="Recurring (per month)"
-                      value={coi.opportunityCosts.recurring}
-                      onChange={(v) => setCoi({ ...coi, opportunityCosts: { ...coi.opportunityCosts, recurring: v } })}
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* Risk Costs */}
-                <Card className="col-span-2">
-                  <CardHeader>
-                    <CardTitle className="text-base">Risk Costs (Exposure)</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <CurrencyInput
-                        label="One-Time Risk Exposure"
-                        value={coi.riskCosts.oneTime}
-                        onChange={(v) => setCoi({ ...coi, riskCosts: { ...coi.riskCosts, oneTime: v } })}
-                      />
-                      <div className="space-y-2">
-                        <Label>Probability (%)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={coi.riskCosts.oneTimeProbability}
-                          onChange={(e) => setCoi({ ...coi, riskCosts: { ...coi.riskCosts, oneTimeProbability: Number(e.target.value) } })}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <CurrencyInput
-                        label="Recurring Risk (per month)"
-                        value={coi.riskCosts.recurring}
-                        onChange={(v) => setCoi({ ...coi, riskCosts: { ...coi.riskCosts, recurring: v } })}
-                      />
-                      <div className="space-y-2">
-                        <Label>Probability (%)</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={coi.riskCosts.recurringProbability}
-                          onChange={(e) => setCoi({ ...coi, riskCosts: { ...coi.riskCosts, recurringProbability: Number(e.target.value) } })}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Total */}
-              <Alert>
-                <AlertDescription className="flex items-center justify-between text-lg font-semibold">
-                  <span>Total Annual Cost of Inaction:</span>
-                  <span className="text-2xl">£{totalCOI.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 1D: SCQ Confirmation */}
+        {/* 1C: SCQ Confirmation */}
         <TabsContent value="scq" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                1D: SCQ Confirmation
+                1C: SCQ Confirmation
                 {isAIFeatureEnabled('enableSCQGeneration') && (
                   <Button
                     variant="outline"

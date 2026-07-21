@@ -1,10 +1,9 @@
 import { useMemo } from 'react'
-import type { UseCase, UseCaseCOI, UseCaseExpectedValue } from '@/lib/types'
+import type { UseCase, UseCaseExpectedValue } from '@/lib/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
-import { QuickCOICalculator } from '@/components/QuickCOICalculator'
 import { QuickROICalculator, type ROIInputs, type ROIResult } from '@/components/QuickROICalculator'
 import { calculatePaybackPeriod, calculateROI } from '@/lib/financial-calculations'
 import { valueRange, VALUE_BASIS_LABEL } from '@/lib/value-credibility'
@@ -33,11 +32,6 @@ function buildDerivedExpectedValueNotes(useCase: UseCase) {
     lines.push('Derived defaults were applied because Expected Value was not yet set.')
   }
 
-  const coiTotal = useCase.costOfInaction?.totalAnnualCOI
-  if (typeof coiTotal === 'number' && coiTotal > 0 && !useCase.expectedValue?.totalAnnualValue) {
-    lines.push(`Annual expected value defaulted to COI total ($${Math.round(coiTotal).toLocaleString()}/yr) — please adjust if value capture differs from COI.`)
-  }
-
   const effortWeeks = useCase.aiEffortEstimate?.effortWeeks
   if (typeof effortWeeks === 'number' && effortWeeks > 0 && !useCase.expectedValue?.implementationCost) {
     lines.push(`Implementation cost defaulted from effort estimate (${effortWeeks} person-weeks × $${DEFAULT_COST_PER_WEEK_USD.toLocaleString()}/week).`)
@@ -60,11 +54,9 @@ function buildDerivedExpectedValueNotes(useCase: UseCase) {
 
 function inferROIInputs(useCase: UseCase): ROIInputs {
   const annualFromEV = useCase.expectedValue?.totalAnnualValue
-  const annualFromCOI = useCase.costOfInaction?.totalAnnualCOI
-
   const totalAnnualValue = typeof annualFromEV === 'number' && annualFromEV > 0
     ? annualFromEV
-    : (typeof annualFromCOI === 'number' && annualFromCOI > 0 ? annualFromCOI : 0)
+    : 0
 
   const implFromEV = useCase.expectedValue?.implementationCost
   const effortWeeks = useCase.aiEffortEstimate?.effortWeeks
@@ -89,16 +81,6 @@ function computeROIResult(inputs: ROIInputs): ROIResult {
     totalAnnualValue,
     paybackMonths: calculatePaybackPeriod(inputs.implementationCost || 0, totalAnnualValue),
     roi3YearPercent: calculateROI(inputs.implementationCost || 0, totalAnnualValue),
-  }
-}
-
-function inferCOIValues(useCase: UseCase) {
-  const c = useCase.costOfInaction
-  return {
-    directCosts: c?.directCosts ?? 0,
-    opportunityCosts: c?.opportunityCosts ?? 0,
-    riskCosts: c?.riskCosts ?? 0,
-    notes: c?.notes ?? '',
   }
 }
 
@@ -139,7 +121,7 @@ export function FinancialImpactTab({
             Financial Impact Overview
           </CardTitle>
           <CardDescription>
-            COI and ROI are auto-derived where possible and remain fully editable.
+            Review historical financial context, expected value, ROI, and delivery cost.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -173,7 +155,7 @@ export function FinancialImpactTab({
               <div className="flex items-center gap-2 px-3 py-2 rounded bg-amber-500/10 border border-amber-500/20">
                 <WarningCircle size={16} className="text-amber-500" />
                 <span className="text-xs text-muted-foreground">
-                  Add COI/ROI for more complete executive reporting.
+                  Add expected value and ROI for more complete executive reporting.
                 </span>
               </div>
             )}
@@ -187,7 +169,7 @@ export function FinancialImpactTab({
         <Card className="border-2 bg-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Use Cases</CardTitle>
-            <CardDescription>Select a use case to view/edit COI + ROI.</CardDescription>
+            <CardDescription>Select a use case to review financial context and edit ROI.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {useCases.map((uc) => {
@@ -353,8 +335,8 @@ export function FinancialImpactTab({
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="text-sm text-muted-foreground">
-                        Value not yet quantified. This use case is still ranked on strategic merit — add COI or ROI below
-                        to estimate a credible, confidence-adjusted range.
+                        Value not yet quantified. This use case is still ranked on strategic merit — add expected value
+                        below to estimate a credible, confidence-adjusted range.
                       </CardContent>
                     </Card>
                   )
@@ -406,24 +388,6 @@ export function FinancialImpactTab({
                 )
               })()}
 
-              <QuickCOICalculator
-                variant="compact"
-                customerName={undefined}
-                opportunityTitle={selected.title}
-                initialValues={inferCOIValues(selected)}
-                onSave={(values) => {
-                  const next: UseCaseCOI = {
-                    directCosts: values.directCosts,
-                    opportunityCosts: values.opportunityCosts,
-                    riskCosts: values.riskCosts,
-                    totalAnnualCOI: values.totalCOI,
-                    notes: values.notes,
-                    calculatedAt: Date.now(),
-                  }
-                  onUpdateUseCase({ ...selected, costOfInaction: next })
-                }}
-              />
-
               <QuickROICalculator
                 currency="USD"
                 initialValues={selectedROIInputs}
@@ -451,7 +415,7 @@ export function FinancialImpactTab({
                   <CardContent className="text-sm text-muted-foreground space-y-1">
                     <InlineDisclaimer
                       icon="info"
-                      text="Values below are auto-derived from COI, effort estimates, and industry multipliers. Review and adjust before saving."
+                      text="Values below are derived from expected value, effort estimates, and industry multipliers. Review and adjust before saving."
                       className="mb-3"
                     />
                     <div className="flex justify-between"><span>Total annual value</span><span className="text-foreground">{formatMoney(selectedROIResult.totalAnnualValue)}/yr</span></div>

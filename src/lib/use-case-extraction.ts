@@ -4,7 +4,13 @@
  */
 
 import { callAIForTask } from './openai-service'
-import { Industry, BusinessFunction } from './types'
+import {
+  Industry,
+  BusinessFunction,
+  type AgentCapability,
+  type AIRegulationsInfo,
+  type CybersecurityInfo,
+} from './types'
 import { industryLabels } from './discovery-questions'
 import { buildBusinessFunctionContext, BUSINESS_FUNCTION_IDS } from './business-functions'
 import { CompanyInsight } from './company-research-service'
@@ -57,7 +63,7 @@ export interface ExtractedUseCase {
     hasOpportunity: boolean
     title?: string
     agentType?: 'task-agent' | 'orchestrator-agent' | 'specialist-agent' | 'assistant-agent'
-    capabilities?: string[]
+    capabilities?: AgentCapability[]
     humanOversight?: 'none' | 'approval' | 'review' | 'supervision'
     automationLevel?: 'assisted' | 'semi-autonomous' | 'autonomous'
   }
@@ -69,18 +75,8 @@ export interface ExtractedUseCase {
     estimatedTeamSize: string
   }
   
-  aiRegulations?: {
-    applicableFrameworks: string[]
-    riskClassification: 'minimal' | 'limited' | 'high'
-    complianceNotes: string
-    jurisdictions: string[]
-  }
-  
-  cybersecurity?: {
-    securityRequirements: string[]
-    dataClassification: 'public' | 'internal' | 'confidential' | 'pii'
-    securityNotes: string
-  }
+  aiRegulations?: AIRegulationsInfo
+  cybersecurity?: CybersecurityInfo
 }
 
 interface ExtractionContext {

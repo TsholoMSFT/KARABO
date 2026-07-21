@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { toast } from 'sonner'
+import { getAIReadiness, type AIReadiness } from '@/lib/openai-service'
 
 type Status = 'unknown' | 'online' | 'degraded' | 'offline'
 
@@ -24,6 +25,7 @@ function apiBase(): string {
 
 export function BackendStatusBadge() {
   const [status, setStatus] = useState<Status>('unknown')
+  const [aiReadiness, setAIReadiness] = useState<AIReadiness | null>(null)
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
   const prev = useRef<Status>('unknown')
 
@@ -35,14 +37,24 @@ export function BackendStatusBadge() {
       clearTimeout(t)
       if (!res.ok) {
         setStatus('offline')
+        setAIReadiness(null)
       } else {
         const body = await res.json().catch(() => ({}))
         const ok = body?.status === 'healthy' || body?.ok === true || body?.status === 'ok'
         const degraded = body?.status === 'degraded' || (Array.isArray(body?.issues) && body.issues.length > 0)
         setStatus(degraded ? 'degraded' : ok ? 'online' : 'online')
+        try {
+          const readiness = await getAIReadiness()
+          setAIReadiness(readiness)
+          if (readiness.status !== 'ready') setStatus('degraded')
+        } catch {
+          setAIReadiness(null)
+          setStatus('degraded')
+        }
       }
     } catch {
       setStatus('offline')
+      setAIReadiness(null)
     } finally {
       setLastChecked(new Date())
     }
@@ -70,6 +82,7 @@ export function BackendStatusBadge() {
     : 'bg-muted-foreground'
 
   const label = status === 'online' ? 'Online'
+    : status === 'degraded' && aiReadiness?.status === 'unavailable' ? 'AI unavailable'
     : status === 'degraded' ? 'Degraded'
     : status === 'offline' ? 'Offline'
     : 'Checking…'
@@ -93,6 +106,10 @@ export function BackendStatusBadge() {
         <TooltipContent>
           <div className="text-[11px] space-y-0.5">
             <div>Backend: <strong>{label}</strong></div>
+            {status !== 'offline' && (
+              <div>AI: <strong>{aiReadiness?.status === 'ready' ? 'Ready' : 'Unavailable'}</strong></div>
+            )}
+            {aiReadiness?.code && <div className="text-muted-foreground">{aiReadiness.code}</div>}
             {lastChecked && <div>Last check: {lastChecked.toLocaleTimeString()}</div>}
             <div className="text-muted-foreground">Polls every 60s · click to recheck</div>
           </div>

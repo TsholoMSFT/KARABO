@@ -682,9 +682,11 @@ function App() {
       strategicAlignment: data.strategicAlignment,
       businessProcesses: data.businessProcesses,
       microsoftSolutions: data.microsoftSolutions,
+      solutionPlays: data.solutionPlays,
       referenceArchitecture: data.referenceArchitecture,
       agenticOpportunities: data.agenticOpportunities,
       implementationComplexity: data.implementationComplexity,
+      solutionMapping: data.solutionMapping,
       aiRegulations: data.aiRegulations,
       cybersecurity: data.cybersecurity,
       createdAt: Date.now(),
@@ -704,8 +706,8 @@ function App() {
     toast.success(`Session saved! Added ${createdUseCases.length} use case${createdUseCases.length !== 1 ? 's' : ''} successfully!`)
 
     if (nextAction === 'solution-design') {
-      // Jump straight into Solution Envisioning (best-fit vs estate-optimized blueprint).
-      handleStartSolutionBlueprint()
+      // The workflow emits ranked order, so seed Solution Envisioning with #1.
+      handleStartSolutionBlueprint({ fromUseCase: createdUseCases[0] })
     } else {
       setCurrentView('dashboard')
     }
@@ -967,7 +969,9 @@ function App() {
             microsoftSolutions: uc.microsoftSolutions,
             referenceArchitecture: uc.referenceArchitecture,
             agenticOpportunities: uc.agenticOpportunity?.hasOpportunity ? [{
+              id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
               title: uc.agenticOpportunity.title || '',
+              description: uc.agenticOpportunity.title || 'AI-assisted workflow opportunity',
               agentType: uc.agenticOpportunity.agentType || 'task-agent',
               capabilities: uc.agenticOpportunity.capabilities || [],
               humanOversight: uc.agenticOpportunity.humanOversight || 'review',

@@ -8,8 +8,9 @@ I built this comprehensive web application to help evaluate and prioritize use c
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ and npm
-- Azure OpenAI API key (configured in `api/local.settings.json`)
+- Node.js 20 or 22 and npm
+- Azure Functions Core Tools v4 and Azurite, or a deployed API endpoint
+- Azure OpenAI API key **or** an Entra identity with Cognitive Services OpenAI User
 
 ### Installation
 
@@ -28,25 +29,29 @@ cmd /c "npm install"
 cmd /c "cd api && npm install"
 ```
 
-3. **Configure API keys**
+3. **Configure AI authentication**
 
-Edit `api/local.settings.json` with your Azure OpenAI credentials:
+For key mode, edit the ignored `api/local.settings.json`:
 ```json
 {
   "Values": {
+    "AZURE_OPENAI_AUTH_TYPE": "key",
     "AZURE_OPENAI_ENDPOINT": "https://your-resource.openai.azure.com/",
     "AZURE_OPENAI_API_KEY": "your-key-here"
   }
 }
 ```
 
-4. **Start the development server**
+For Entra mode, set `AZURE_OPENAI_AUTH_TYPE` to `entra-id`, omit the key, run `az login`, and assign Cognitive Services OpenAI User to the local/deployed identity.
+
+4. **Start the local API and frontend**
 ```powershell
-cmd /c "npm run dev"
+.\scripts\start-local-api.ps1
+npm run dev
 ```
 
 5. **Open your browser**
-Navigate to `http://localhost:5173`
+Navigate to `http://localhost:3000`
 
 ### Common Commands
 

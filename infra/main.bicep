@@ -15,6 +15,22 @@ param allowedOrigin string = '*'
 @description('Azure OpenAI embedding deployment name.')
 param embeddingDeployment string = 'text-embedding-3-small'
 
+@allowed([
+  'key'
+  'entra-id'
+])
+@description('Azure OpenAI authentication mode. Key mode uses the Key Vault API-key secret; Entra mode assigns the Function identity inference access.')
+param aiAuthMode string = 'key'
+
+@description('Subscription containing the existing Azure AI Services/OpenAI account. Used only for Entra mode.')
+param aiServicesSubscriptionId string = subscription().subscriptionId
+
+@description('Resource group containing the existing Azure AI Services/OpenAI account. Used only for Entra mode.')
+param aiServicesResourceGroupName string = resourceGroup().name
+
+@description('Name of the existing Azure AI Services/OpenAI account. Required for Entra mode.')
+param aiServicesAccountName string = ''
+
 @description('Azure OpenAI chat deployment alias for "gpt-4o" (Foundry: gpt-5.2).')
 param chatDeploymentGpt4o string = 'gpt-5.2'
 
@@ -29,6 +45,9 @@ param searchIndex string = 'karabo-knowledge-v2'
 
 var resourceToken = uniqueString(subscription().id, resourceGroup().id, environmentName)
 var tags = { 'azd-env-name': environmentName }
+var aiKeySettings = aiAuthMode == 'key' ? [
+  { name: 'AZURE_OPENAI_API_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ai-hub-api-key)' }
+] : []
 
 // ---------- Storage (required by Functions) ----------
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
@@ -133,12 +152,12 @@ resource func 'Microsoft.Web/sites@2023-12-01' = {
         allowedOrigins: [ allowedOrigin ]
         supportCredentials: false
       }
-      appSettings: [
+      appSettings: concat([
         { name: 'AzureWebJobsStorage__accountName', value: storage.name }
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appi.properties.ConnectionString }
         { name: 'FUNCTIONS_EXTENSION_VERSION', value: '~4' }
         { name: 'AZURE_OPENAI_ENDPOINT', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ai-hub-endpoint)' }
-        { name: 'AZURE_OPENAI_API_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=ai-hub-api-key)' }
+        { name: 'AZURE_OPENAI_AUTH_TYPE', value: aiAuthMode }
         { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingDeployment }
         { name: 'AZURE_OPENAI_EMBEDDING_API_VERSION', value: '2024-10-21' }
         { name: 'AZURE_OPENAI_DEPLOYMENT_GPT4O', value: chatDeploymentGpt4o }
@@ -149,7 +168,7 @@ resource func 'Microsoft.Web/sites@2023-12-01' = {
         { name: 'ALPHA_VANTAGE_KEY', value: '@Microsoft.KeyVault(VaultName=${keyVaultName};SecretName=alpha-vantage-key)' }
         { name: 'ALLOWED_ORIGIN', value: allowedOrigin }
         { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storage.name }
-      ]
+      ], aiKeySettings)
     }
   }
 }
@@ -190,6 +209,15 @@ resource storageTableAssignment 'Microsoft.Authorization/roleAssignments@2022-04
     principalId: func.identity.principalId
     principalType: 'ServicePrincipal'
     roleDefinitionId: storageTableContributorRoleId
+  }
+}
+
+module aiInferenceRbac './modules/ai-inference-rbac.bicep' = if (aiAuthMode == 'entra-id') {
+  name: 'ai-inference-rbac-${resourceToken}'
+  scope: resourceGroup(aiServicesSubscriptionId, aiServicesResourceGroupName)
+  params: {
+    aiServicesAccountName: aiServicesAccountName
+    principalId: func.identity.principalId
   }
 }
 

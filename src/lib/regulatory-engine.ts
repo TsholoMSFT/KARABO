@@ -152,6 +152,7 @@ export const REGULATION_REGISTRY: Record<string, RegulationDetail> = {
     },
   },
   'gdpr': {
+    code: 'gdpr',
     displayName: 'General Data Protection Regulation',
     shortName: 'GDPR',
     jurisdiction: 'European Union',
