@@ -187,7 +187,7 @@ export function ExportDialog({ open, onOpenChange, onExportPDF, sessionData }: E
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FilePdf size={24} weight="duotone" className="text-red-600" />
