@@ -3,7 +3,7 @@ import { buildSolutionPathsAnnex } from '@/lib/solution-blueprint/annex-builder'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import '@/lib/openai-service' // Initialize OpenAI service
 import { UseCase, ScoringMethod, CustomerMetadata, DiscoverySession, Industry, DiscoveryResponse, EntityType, BusinessFunction } from '@/lib/types'
-import type { EnterpriseDiscoverySession, EnterpriseDiscoverySessionMVP } from '@/lib/types'
+import type { CustomerJourney, EnterpriseDiscoverySession, EnterpriseDiscoverySessionMVP } from '@/lib/types'
 
 // Union type: handlers accept both legacy and MVP sessions
 type AnyEnterpriseSession = EnterpriseDiscoverySession | EnterpriseDiscoverySessionMVP
@@ -60,6 +60,7 @@ const PipelineBoard = lazy(() => import('@/components/PipelineBoard').then(m => 
 const EngagementHub = lazy(() => import('@/components/EngagementHub').then(m => ({ default: m.EngagementHub })))
 const QuestionnaireBuilder = lazy(() => import('@/components/QuestionnaireBuilder').then(m => ({ default: m.QuestionnaireBuilder })))
 const Fy27AlignmentCockpit = lazy(() => import('@/components/fy27/Fy27AlignmentCockpit').then(m => ({ default: m.Fy27AlignmentCockpit })))
+const AccountJourneyWorkspace = lazy(() => import('@/components/customer-journey/AccountJourneyWorkspace').then(m => ({ default: m.AccountJourneyWorkspace })))
 
 /** Fallback spinner for lazy-loaded components */
 function LazyFallback() {
@@ -70,7 +71,7 @@ function LazyFallback() {
   )
 }
 
-type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'portfolio' | 'pipeline' | 'engagement-hub' | 'csam-cockpit' | 'questionnaire-builder' | 'fy27-cockpit'
+type AppView = 'landing' | 'dashboard' | 'session-metadata' | 'discovery-wizard' | 'discovery-results' | 'session-comparison' | 'live-discovery' | 'solution-blueprint' | 'enterprise-discovery' | 'notes-input' | 'notes-workflow' | 'portfolio' | 'pipeline' | 'engagement-hub' | 'customer-journey' | 'csam-cockpit' | 'questionnaire-builder' | 'fy27-cockpit'
 
 type SourceFilter = 'all' | 'ai-generated' | 'manual' | 'fallback'
 
@@ -340,6 +341,12 @@ function App() {
     setUseCases((current) =>
       (current || []).map((uc) => (uc.id === updatedUseCase.id ? updatedUseCase : uc))
     )
+  }
+
+  const handleJourneyUpdate = (useCaseId: string, journey: CustomerJourney) => {
+    setUseCases((current) => (current || []).map((useCase) => (
+      useCase.id === useCaseId ? { ...useCase, customerJourney: journey } : useCase
+    )))
   }
 
   const handleEditUseCase = (useCase: UseCase) => {
@@ -796,15 +803,48 @@ function App() {
         </>
       )}
 
+      {currentView === 'customer-journey' && (
+        <>
+          <NavigationHeader
+            onBackToLanding={handleBackToLanding}
+            onBack={() => setCurrentView('dashboard')}
+            backLabel="Back to dashboard"
+            title="Frontier AI Account Journey"
+            subtitle="Customer readiness, engagement value, and full maturity roadmap"
+          />
+          <div className="container mx-auto max-w-[1600px] px-4 py-8 md:px-6">
+            <SectionErrorBoundary>
+              <Suspense fallback={<LazyFallback />}>
+                {selectedCustomer ? (
+                  <AccountJourneyWorkspace
+                    customer={selectedCustomer}
+                    sessions={discoverySessions || []}
+                    useCases={useCases || []}
+                  />
+                ) : (
+                  <div className="border-y border-border py-16 text-center">
+                    <h2 className="text-xl font-semibold">Select a customer first</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">An account journey is stored against the active customer.</p>
+                    <Button variant="outline" className="mt-4" onClick={() => setCurrentView('dashboard')}>Back to dashboard</Button>
+                  </div>
+                )}
+              </Suspense>
+            </SectionErrorBoundary>
+          </div>
+        </>
+      )}
+
       {currentView === 'engagement-hub' && (
         <Suspense fallback={<LazyFallback />}>
           <EngagementHub
+            customerId={selectedCustomerId ?? undefined}
             customerName={selectedSession?.customerName}
             industry={selectedSession?.industry}
             sessionId={selectedSessionId ?? undefined}
             useCases={filteredUseCases}
             customerStakeholders={selectedCustomer?.stakeholders}
             initialTool={requestedEngagementTool}
+            onOpenAccountJourney={() => setCurrentView('customer-journey')}
             onBack={() => {
               setRequestedEngagementTool(undefined)
               setCurrentView(selectedSessionId ? 'dashboard' : 'landing')
@@ -1249,6 +1289,10 @@ function App() {
                   onOpenSessionComparison={() => setSessionManagerOpen(true)}
                   onOpenExport={() => handleOpenTableExport()}
                   onOpenEngagementHub={handleStartEngagementHub}
+                  onOpenAccountJourney={() => setCurrentView('customer-journey')}
+                  currentSession={selectedSession}
+                  useCases={filteredUseCases}
+                  onJourneyUpdate={handleJourneyUpdate}
                   accountSegment={selectedSession?.accountSegment}
                 />
 

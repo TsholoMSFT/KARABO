@@ -12,6 +12,7 @@ import {
 } from '@phosphor-icons/react'
 import type { CustomerStakeholder, Engagement, EngagementArtifactKind, EngagementToolkitType, Industry, UseCase } from '@/lib/types'
 import { useEngagements } from '@/hooks/use-engagements'
+import { useAccountCustomerJourney } from '@/hooks/use-account-customer-journey'
 import { ENGAGEMENT_TYPE_LABELS } from '@/lib/engagement/format'
 import { downloadMarkdown, downloadDocxFromMarkdown, artifactFilename } from '@/lib/engagement/exports'
 import { AgendaBuilderDialog, type EngagementToolContext } from '@/components/engagement/AgendaBuilderDialog'
@@ -24,12 +25,14 @@ import { EngagementInitiatorDialog } from '@/components/engagement/EngagementIni
 import { HubInsightsPanel } from '@/components/HubInsightsPanel'
 
 interface EngagementHubProps {
+  customerId?: string
   customerName?: string
   industry?: Industry
   sessionId?: string
   useCases?: UseCase[]
   customerStakeholders?: CustomerStakeholder[]
   initialTool?: 'agenda' | 'email'
+  onOpenAccountJourney?: () => void
   onBack: () => void
 }
 
@@ -63,8 +66,9 @@ const KIND_LABEL: Record<EngagementArtifactKind, string> = {
   agenda: 'Agenda', email: 'Email', timeline: 'Timeline', closeout: 'Closeout', diagram: 'Diagram', journey: 'Journey',
 }
 
-export function EngagementHub({ customerName, industry, sessionId, useCases, customerStakeholders, initialTool, onBack }: EngagementHubProps) {
+export function EngagementHub({ customerId, customerName, industry, sessionId, useCases, customerStakeholders, initialTool, onOpenAccountJourney, onBack }: EngagementHubProps) {
   const { engagements, addEngagement, deleteEngagement, saveArtifact, deleteArtifact } = useEngagements()
+  const { journey: accountJourney } = useAccountCustomerJourney(customerId)
 
   const visibleEngagements = useMemo(
     () => engagements.filter((e) => !customerName || e.customerName === customerName),
@@ -261,7 +265,7 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, cus
                     onClick={() => downloadMarkdown(a.markdown, artifactFilename(selected.customerName, a.kind, 'md'))}>
                     <FileText size={14} /> .md
                   </Button>
-                  {(a.kind === 'agenda' || a.kind === 'closeout') && (
+                  {(a.kind === 'agenda' || a.kind === 'closeout' || a.kind === 'journey') && (
                     <Button size="sm" variant="ghost" className="gap-1"
                       onClick={() => downloadDocxFromMarkdown(a.markdown, artifactFilename(selected.customerName, a.kind, 'docx'), a.title)}>
                       <FileText size={14} weight="fill" /> .docx
@@ -334,6 +338,9 @@ export function EngagementHub({ customerName, industry, sessionId, useCases, cus
           open={activeTool === 'journey'}
           onOpenChange={(o) => setActiveTool(o ? 'journey' : null)}
           context={toolContext}
+          journey={accountJourney}
+          useCases={useCases ?? []}
+          onOpenAccountJourney={onOpenAccountJourney}
           onSaveArtifact={(artifact) => saveArtifact(selected.id, artifact)}
         />
       )}

@@ -7,9 +7,9 @@ import { DiscoverySettingsDialog } from '@/components/DiscoverySettingsDialog'
 import { PausedSessionsList } from '@/components/enterprise-discovery/PausedSessionsList'
 import { CustomerJourneyTool } from '@/components/CustomerJourneyTool'
 import { ThreadlightTool } from '@/components/ThreadlightTool'
-import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket, Toolbox, FileArrowDown, ArrowsLeftRight, FileText } from '@phosphor-icons/react'
+import { MagnifyingGlass, Lightbulb, ChartLine, Sparkle, Buildings, Microphone, GearSix, Briefcase, Rocket, Toolbox, FileArrowDown, ArrowsLeftRight, FileText, Path } from '@phosphor-icons/react'
 import { motion } from 'framer-motion'
-import type { EnterpriseDiscoverySession, DiscoverySession, CustomerJourney, AccountSegment } from '@/lib/types'
+import type { EnterpriseDiscoverySession, DiscoverySession, CustomerJourney, AccountSegment, UseCase } from '@/lib/types'
 import { getVisibleTabs, getSegmentFeatures, getDiscoveryButtonLabel, getStrategicAssessmentLabel } from '@/lib/segment-config'
 
 type DiscoveryMode = 'quick' | 'enterprise' | 'tools'
@@ -22,12 +22,14 @@ interface DiscoveryLauncherProps {
   onOpenSessionComparison?: () => void
   onOpenExport?: () => void
   onOpenEngagementHub?: () => void
+  onOpenAccountJourney?: () => void
   currentSession?: DiscoverySession | null
+  useCases?: UseCase[]
   onJourneyUpdate?: (useCaseId: string, journey: CustomerJourney) => void
   accountSegment?: AccountSegment
 }
 
-  export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onOpenSessionComparison, onOpenExport, onOpenEngagementHub, currentSession, onJourneyUpdate, accountSegment = 'enterprise' }: DiscoveryLauncherProps) {
+  export function DiscoveryLauncher({ onStartDiscovery, onStartLiveDiscovery, onStartEnterpriseDiscovery, onResumeEnterpriseDiscovery, onOpenSessionComparison, onOpenExport, onOpenEngagementHub, onOpenAccountJourney, currentSession, useCases = [], onJourneyUpdate, accountSegment = 'enterprise' }: DiscoveryLauncherProps) {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const visibleTabs = getVisibleTabs(accountSegment)
   const features = getSegmentFeatures(accountSegment)
@@ -255,15 +257,44 @@ interface DiscoveryLauncherProps {
               </CardHeader>
             </Card>
 
-            {/* Customer Journey Builder */}
-            <CustomerJourneyTool
-              session={currentSession || null}
-              onJourneyUpdate={onJourneyUpdate}
-            />
+            {onOpenAccountJourney && (
+              <Card className="rounded-md border-2 border-emerald-600/30 bg-emerald-50/40 dark:bg-emerald-950/20">
+                <CardHeader>
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="flex items-center gap-2">
+                        <Path size={22} weight="duotone" className="text-emerald-700" />
+                        Frontier AI Account Journey
+                      </CardTitle>
+                      <CardDescription>
+                        Assess account readiness and build a customer-ready engagement roadmap across Shared Foundation, Trusted Intelligence, and Agentify.
+                      </CardDescription>
+                    </div>
+                    <Button onClick={onOpenAccountJourney} className="shrink-0 gap-2">
+                      <Path size={16} /> Open account journey
+                    </Button>
+                  </div>
+                </CardHeader>
+              </Card>
+            )}
+
+            {currentSession && useCases.length > 0 && (
+              <div className="space-y-2">
+                <div>
+                  <h3 className="text-base font-semibold">Use-case delivery journeys</h3>
+                  <p className="text-xs text-muted-foreground">Create a detailed implementation journey for an individual use case.</p>
+                </div>
+                <CustomerJourneyTool
+                  session={currentSession}
+                  useCases={useCases}
+                  onJourneyUpdate={onJourneyUpdate}
+                />
+              </div>
+            )}
 
             {/* Threadlight Export Tool */}
             <ThreadlightTool
-              useCases={[]}
+              useCases={useCases}
               customerName={currentSession?.customerName}
               industry={currentSession?.industry}
             />

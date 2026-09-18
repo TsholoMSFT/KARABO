@@ -149,7 +149,7 @@ export function CustomerJourneyTool({ session, useCases = [], onJourneyUpdate }:
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TreeStructure size={24} weight="duotone" className="text-primary" />
-            Customer Journey Builder
+            Use Case Delivery Journey
           </CardTitle>
           <CardDescription>
             Generate Innovation Hub engagement roadmaps for your use cases
@@ -176,7 +176,7 @@ export function CustomerJourneyTool({ session, useCases = [], onJourneyUpdate }:
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TreeStructure size={24} weight="duotone" className="text-primary" />
-          Customer Journey Builder
+          Use Case Delivery Journey
         </CardTitle>
         <CardDescription>
           Generate Innovation Hub engagement roadmaps for your use cases. Each journey is tailored based on project complexity.

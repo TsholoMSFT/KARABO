@@ -1,4 +1,4 @@
-const MIGRATION_VERSION = 2
+const MIGRATION_VERSION = 3
 const MARKER_KEY = `karabo:data-schema-v${MIGRATION_VERSION}`
 const BACKUP_KEY = `karabo:data-schema-v${MIGRATION_VERSION}:backup`
 
@@ -13,6 +13,7 @@ const JSON_STORAGE_KEYS = [
   'opportunities',
   'csam-profiles',
   'engagements',
+  'frontier-account-journeys',
   'karabo-roadmaps',
   'solution-blueprint-usecases',
 ] as const

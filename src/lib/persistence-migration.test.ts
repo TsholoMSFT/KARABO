@@ -25,6 +25,9 @@ describe('persistence migration', () => {
 
   it('migrates known stores and removes DUCE and questionnaire local data once', () => {
     localStorage.setItem('use-cases', JSON.stringify([{ id: 'u1', expectedValue: { totalAnnualValue: 10 } }]))
+    localStorage.setItem('frontier-account-journeys', JSON.stringify({
+      c1: { id: 'journey-1', customerName: 'Contoso', expectedValue: { totalAnnualValue: 10 } },
+    }))
     localStorage.setItem('duce-sessions', '{"session":{}}')
     localStorage.setItem('duce-user-mode', 'technical')
     localStorage.setItem('questionnaire-links', '[]')
@@ -32,6 +35,9 @@ describe('persistence migration', () => {
 
     expect(runPersistenceMigration()).toBe(true)
     expect(JSON.parse(localStorage.getItem('use-cases') || '[]')).toEqual([{ id: 'u1' }])
+    expect(JSON.parse(localStorage.getItem('frontier-account-journeys') || '{}')).toEqual({
+      c1: { id: 'journey-1', customerName: 'Contoso' },
+    })
     expect(localStorage.getItem('duce-sessions')).toBeNull()
     expect(localStorage.getItem('duce-user-mode')).toBeNull()
     expect(localStorage.getItem('questionnaire-links')).toBeNull()

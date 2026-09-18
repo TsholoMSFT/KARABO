@@ -1,4 +1,12 @@
 import { CompanyInsight } from './company-research-service'
+import type {
+  FrontierDeliveryStage,
+  FrontierMaturityStage,
+  FrontierOfferingId,
+  FrontierPillarId,
+  FrontierReadinessRatings,
+  FrontierWorkstreamId,
+} from './frontier-ai/catalog'
 
 export interface KPI {
   id: string
@@ -1887,6 +1895,108 @@ export interface CustomerJourney {
     constraints?: string[]
     opportunities?: string[]
   }
+}
+
+// ============================================================================
+// FRONTIER AI ACCOUNT JOURNEY
+// ============================================================================
+
+export type AccountJourneyRecommendationStatus =
+  | 'start-now'
+  | 'next'
+  | 'later'
+  | 'assumed-in-place'
+  | 'revisit-gap'
+
+export interface FrontierReadinessAssessment {
+  ratings: FrontierReadinessRatings
+  evidence: Partial<Record<FrontierPillarId, string>>
+  assessedAt: number
+  assessedBy?: string
+}
+
+export interface JourneySourceSelection {
+  sessionIds: string[]
+  useCaseIds: string[]
+}
+
+export interface AccountJourneyMaturity {
+  stage: FrontierMaturityStage
+  description: string
+  pillarsAtThreshold: number
+  aiPillarsAtThreshold: number
+  trustedPillarsAtThreshold: number
+  agentifyPillarsAtThreshold: number
+}
+
+export interface AccountJourneyStep {
+  id: string
+  offeringId: FrontierOfferingId
+  order: number
+  publicationStatus: 'published' | 'draft'
+  deliveryStage: FrontierDeliveryStage
+  title: string
+  duration: string
+  recommendationStatus: AccountJourneyRecommendationStatus
+  weakPillarIds: FrontierPillarId[]
+  customerValue: string
+  customerContext: string
+  whyNow: string
+  linkedUseCaseIds: string[]
+  sourceSessionIds: string[]
+  prerequisites: string[]
+  participants: string[]
+  customerCommitments: string[]
+  focusAreas: string[]
+  deliverables: string[]
+  outcomes: string[]
+  successCriteria: string[]
+  owner?: string
+  targetTiming?: string
+  notes?: string
+  isComplete: boolean
+  completedAt?: number
+}
+
+export interface AccountJourneyWorkstream {
+  id: FrontierWorkstreamId
+  label: string
+  steps: AccountJourneyStep[]
+}
+
+export interface AccountJourneyWarning {
+  id: string
+  offeringId?: FrontierOfferingId
+  message: string
+}
+
+export interface AccountJourneyNextStep {
+  id: string
+  action: string
+  owner?: string
+  targetDate?: string
+  isComplete: boolean
+  completedAt?: number
+}
+
+export interface AccountCustomerJourney {
+  id: string
+  customerId: string
+  accountId?: string
+  customerName: string
+  title: string
+  ambition: string
+  readiness: FrontierReadinessAssessment
+  maturity: AccountJourneyMaturity
+  sources: JourneySourceSelection
+  workstreams: AccountJourneyWorkstream[]
+  warnings: AccountJourneyWarning[]
+  nextSteps: AccountJourneyNextStep[]
+  catalogVersion: string
+  generatedBy: 'deterministic' | 'ai-assisted'
+  revision: number
+  createdAt: number
+  updatedAt: number
 }
 
 /**
